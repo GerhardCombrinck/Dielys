@@ -10,7 +10,7 @@ Needs a local Android SDK (Android Studio, or standalone `cmdline-tools`) with
 GitHub-hosted CI runners ship one preinstalled; a plain dev machine may not.
 
 Also needs JDK 21 specifically (matches CI's `actions/setup-java` version) —
-`compileOptions`/`kotlinOptions` in `app/build.gradle.kts` target 21, and
+`compileOptions`/`compilerOptions` in `app/build.gradle.kts` target 21, and
 building with an older JDK on `JAVA_HOME`/`PATH` fails with `invalid source
 release: 21`, not a useful error pointing at the real cause.
 
@@ -18,11 +18,44 @@ release: 21`, not a useful error pointing at the real cause.
 ./gradlew ktlintCheck detekt testDebugUnitTest
 ```
 
-Kotlin 2.0+ needs `org.jetbrains.kotlin.plugin.compose` applied explicitly
-alongside `org.jetbrains.kotlin.android` — the Compose compiler was decoupled
-from the Kotlin compiler starting Kotlin 2.0. Both `build.gradle.kts` files
-already have it; if a "Compose Compiler Gradle plugin is required" error
-shows up again, that plugin got dropped somewhere.
+## Toolchain: AGP 9 has built-in Kotlin
+
+**There is deliberately no `org.jetbrains.kotlin.android` plugin in this
+build.** AGP 9.0 absorbed Kotlin support; applying the standalone plugin on
+top is a hard error ("no longer required for Kotlin support since AGP 9.0").
+Don't "fix" a Kotlin problem by re-adding it.
+
+`org.jetbrains.kotlin.plugin.compose` *is* still separate and still required —
+the Compose compiler was decoupled from the Kotlin compiler in Kotlin 2.0 and
+did not get absorbed into AGP. If a "Compose Compiler Gradle plugin is
+required" error appears, that one got dropped.
+
+Kotlin compiler options use the `compilerOptions` DSL, not `kotlinOptions`:
+
+```kotlin
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_21)
+    }
+}
+```
+
+`kotlinOptions { jvmTarget = "21" }` is an *error*, not a warning, on current
+Kotlin — it fails config with "Using 'jvmTarget: String' is an error".
+
+These versions move as a locked set — bumping one alone fails:
+
+| Piece | Version | Constrained by |
+|---|---|---|
+| Gradle | 9.6.0 | AGP 9.4 requires ≥ 9.6.0 |
+| AGP | 9.4.0 | Hilt 2.60.1 requires AGP ≥ 9.0.0 |
+| Hilt | 2.60.1 | Older Hilt breaks on current KSP (classloader error) |
+| KSP | 2.3.11 | Dropped the `<kotlin>-<ksp>` version scheme at 2.3.0 |
+| Compose compiler plugin | 2.4.10 | Must match the Kotlin version AGP uses |
+| compileSdk / targetSdk | 37 | compose-bom 2026.08.00 requires ≥ 37 |
+
+Dependabot will keep proposing these one at a time; each one alone will fail
+CI. They need bumping together, in one PR.
 
 `google-services.json` is not committed (gitignored, project-specific), and
 the `com.google.gms.google-services` plugin is declared at the root (`apply
