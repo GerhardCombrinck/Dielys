@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "wonderlys"
+rootProject.name = "dielys"
 include(":app")

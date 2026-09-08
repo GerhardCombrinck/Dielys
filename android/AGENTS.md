@@ -1,6 +1,6 @@
 # android/AGENTS.md
 
-Kotlin + Compose + Room, package `za.co.wonderlys`. Layout and rules: see E1/E2 in
+Kotlin + Compose + Room, package `za.co.dielys`. Layout and rules: see E1/E2 in
 `../docs/CODE_STANDARD.md`, and `data/sync/AGENTS.md` before touching sync code.
 
 ## Bootstrapping the Gradle wrapper

@@ -5,7 +5,7 @@
 
 ## Context
 
-Wonderlys has exactly two users. The earlier plan (ASP.NET Identity) died with the .NET
+Dielys has exactly two users. The earlier plan (ASP.NET Identity) died with the .NET
 backend plan; the current stack is Cloudflare Workers, which has no built-in identity system.
 [Gerhard owns his infra](../../CLAUDE.md) — Firebase Auth, Supabase Auth, and Clerk-style
 third-party identity are rejected for the same reason Firebase/Supabase were rejected as a

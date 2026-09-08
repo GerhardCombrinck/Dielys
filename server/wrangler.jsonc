@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "wonderlys-dev",
+  "name": "dielys-dev",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-22",
   "compatibility_flags": ["nodejs_compat"],
@@ -21,11 +21,11 @@
   ],
   "env": {
     "dev": {
-      "name": "wonderlys-dev",
+      "name": "dielys-dev",
       "vars": { "ENVIRONMENT": "dev" }
     },
     "prod": {
-      "name": "wonderlys-prod",
+      "name": "dielys-prod",
       "vars": { "ENVIRONMENT": "prod" }
     }
   }

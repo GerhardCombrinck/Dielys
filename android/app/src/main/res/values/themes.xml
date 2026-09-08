@@ -1,4 +1,4 @@
 <resources>
     <!-- Dark blue chrome, per the Wunderlist look — real values land with the theme package. -->
-    <style name="Theme.Wonderlys" parent="android:Theme.Material.NoActionBar" />
+    <style name="Theme.Dielys" parent="android:Theme.Material.NoActionBar" />
 </resources>

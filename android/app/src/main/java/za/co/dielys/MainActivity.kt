@@ -1,4 +1,4 @@
-package za.co.wonderlys
+package za.co.dielys
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -19,7 +19,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface {
-                    Text("Wonderlys")
+                    Text("Dielys")
                 }
             }
         }

@@ -1,6 +1,6 @@
 # How sync works
 
-This is the hard part of Wonderlys. The code says *what*; this document says *why*, so the
+This is the hard part of Dielys. The code says *what*; this document says *why*, so the
 reason a rule exists is still findable six months from now.
 
 ## The model: local-first, not request/response

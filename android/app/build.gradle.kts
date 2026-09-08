@@ -9,11 +9,11 @@ plugins {
 }
 
 android {
-    namespace = "za.co.wonderlys"
+    namespace = "za.co.dielys"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "za.co.wonderlys"
+        applicationId = "za.co.dielys"
         minSdk = 26
         targetSdk = 35
         versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 1

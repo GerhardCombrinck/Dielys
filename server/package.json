@@ -1,5 +1,5 @@
 {
-  "name": "@wonderlys/server",
+  "name": "@dielys/server",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "deploy:prod": "wrangler deploy --env prod"
   },
   "dependencies": {
-    "@wonderlys/protocol": "file:../protocol"
+    "@dielys/protocol": "file:../protocol"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.12",

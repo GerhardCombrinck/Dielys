@@ -1,4 +1,4 @@
-## Wonderlys
+## Dielys
 
 A Wunderlist-style shared to-do / shopping list for a household of two. Local-first,
 offline-tolerant, syncs over Cloudflare Durable Objects.
@@ -13,8 +13,8 @@ offline-tolerant, syncs over Cloudflare Durable Objects.
 ### Getting Started
 
 ```bash
-git clone https://github.com/GerhardCombrinck/Wonderlys.git
-cd Wonderlys
+git clone https://github.com/GerhardCombrinck/Dielys.git
+cd Dielys
 ```
 
 **Server:**
@@ -65,7 +65,7 @@ cd android && ./gradlew testDebugUnitTest ktlintCheck detekt
 ### Deploying
 
 Push to `main` auto-deploys `server/` to the `dev` Cloudflare environment
-(`wonderlys-dev`). Tagging `v*` deploys `prod` (`wonderlys-prod`, gated on a required
+(`dielys-dev`). Tagging `v*` deploys `prod` (`dielys-prod`, gated on a required
 reviewer) and builds a signed Android release APK attached to the GitHub Release.
 
 ### Rolling Back

@@ -5,7 +5,7 @@
 
 ## Context
 
-Wonderlys needs a backend for two users sharing to-do lists, with a hard requirement on
+Dielys needs a backend for two users sharing to-do lists, with a hard requirement on
 bulletproof sync: two phones editing the same list, one losing signal mid-shop, must never
 double-cart an item or silently drop a change. The backend must also cost effectively nothing
 — this is a household app, not a funded product.

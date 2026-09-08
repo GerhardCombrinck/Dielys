@@ -1,6 +1,6 @@
-# Wonderlys Development Coding Standard
+# Dielys Development Coding Standard
 
-- [Wonderlys Development Coding Standard](#wonderlys-development-coding-standard)
+- [Dielys Development Coding Standard](#dielys-development-coding-standard)
   - [Introduction \& Requirements Summary](#introduction--requirements-summary)
   - [A: Repository Structure](#a-repository-structure)
   - [B: Code Style \& Formatting](#b-code-style--formatting)
@@ -21,13 +21,13 @@
 
 ## Introduction & Requirements Summary
 
-**Reference Repository:** `Wonderlys` (this repo is its own gold standard — keep it that way)
+**Reference Repository:** `Dielys` (this repo is its own gold standard — keep it that way)
 
 ---
 
 ### Purpose and Scope
 
-This document defines the coding standard and standard operating procedure for the Wonderlys
+This document defines the coding standard and standard operating procedure for the Dielys
 shared to-do application: a Cloudflare Workers + Durable Objects backend and a native Kotlin
 Android client, sharing one wire protocol.
 
@@ -98,7 +98,7 @@ clients and servers drift. One repo means one PR, one CI run, one review.
 #### Standard Root Layout
 
 ```
-Wonderlys/
+Dielys/
 ├── .github/
 │   ├── workflows/
 │   │   ├── ci.yml                   ← [J2] Lint, typecheck, test — all components
@@ -611,7 +611,7 @@ this architecture is simple; violating them silently gives them up.
 #### Standard
 
 ```
-android/app/src/main/java/za/co/wonderlys/
+android/app/src/main/java/za/co/dielys/
 ├── ui/                       ← Compose only. No business logic, no I/O
 │   ├── lists/
 │   ├── tasks/
@@ -624,7 +624,7 @@ android/app/src/main/java/za/co/wonderlys/
 └── di/                       ← Hilt modules
 ```
 
-Package name is `za.co.wonderlys`.
+Package name is `za.co.dielys`.
 
 #### Rules
 
@@ -818,7 +818,7 @@ server/migrations/
 ### G2 — Client Migrations (Room)
 
 **Requirement ID:** G2
-**Applicability:** `android/app/src/main/java/za/co/wonderlys/data/local/`.
+**Applicability:** `android/app/src/main/java/za/co/dielys/data/local/`.
 
 #### Rules
 
@@ -978,8 +978,8 @@ A PR that changes sync behaviour MUST state in **How to test** which of these it
 
 | Environment | Worker name       | Trigger                  | Protection             |
 |-------------|-------------------|--------------------------|------------------------|
-| `dev`       | `wonderlys-dev`   | push to `main`           | none — auto-deploys    |
-| `prod`      | `wonderlys-prod`  | tag `v*`                 | required reviewer      |
+| `dev`       | `dielys-dev`   | push to `main`           | none — auto-deploys    |
+| `prod`      | `dielys-prod`  | tag `v*`                 | required reviewer      |
 
 #### Rules
 
@@ -1104,7 +1104,7 @@ jobs:
 #### Required Sections
 
 ```markdown
-## Wonderlys
+## Dielys
 
 ### Requirements
 ### Getting Started          ← clone to running locally, both halves
@@ -1355,7 +1355,7 @@ catch-up pull can run. It is not a notification system and it is not a transport
 #### What
 
 FCM supports both per-device registration tokens and topic subscriptions (broadcast to every
-subscriber). Wonderlys uses device tokens only.
+subscriber). Dielys uses device tokens only.
 
 #### Why
 

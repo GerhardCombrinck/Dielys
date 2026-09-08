@@ -1,7 +1,7 @@
-package za.co.wonderlys
+package za.co.dielys
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
-class WonderlysApplication : Application()
+class DielysApplication : Application()

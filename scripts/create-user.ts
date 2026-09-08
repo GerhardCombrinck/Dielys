@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Creates one Wonderlys account. There is no public registration endpoint
+ * Creates one Dielys account. There is no public registration endpoint
  * (see docs/CODE_STANDARD.md L2) — this script, run by hand, is the only way
  * an account is created. Household has exactly two users; this is not meant
  * to scale past that.

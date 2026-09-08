@@ -1,4 +1,4 @@
-# Wonderlys wire protocol
+# Dielys wire protocol
 
 `PROTOCOL_VERSION = 1` (`src/version.ts`).
 
