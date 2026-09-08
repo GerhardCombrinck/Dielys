@@ -51,9 +51,9 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.activity:activity-compose:1.9.2")
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
+    implementation("androidx.room:room-runtime:2.8.4")
+    implementation("androidx.room:room-ktx:2.8.4")
+    ksp("androidx.room:room-compiler:2.8.4")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("com.google.dagger:hilt-android:2.52")
     ksp("com.google.dagger:hilt-android-compiler:2.52")
@@ -61,5 +61,5 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
     testImplementation("app.cash.turbine:turbine:1.1.0")
-    testImplementation("androidx.room:room-testing:2.6.1")
+    testImplementation("androidx.room:room-testing:2.8.4")
 }
