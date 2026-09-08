@@ -6,10 +6,30 @@ Utility and maintenance scripts. POSIX `sh` or Node only — CI runs on Linux
 | Script            | What                                                        | Touches prod data |
 |-------------------|--------------------------------------------------------------|--------------------|
 | `verify.sh`       | Runs everything `ci.yml` runs, locally. Use before every push ([B3](../docs/CODE_STANDARD.md#standard-b3)). | No |
+| `smoke.sh`        | End-to-end check against a running server — local, dev or prod. Run after a deploy. | Creates two throwaway accounts and one list |
 | `create-user.ts`  | Creates one Dielys account in `UsersRoom`. See [L2](../docs/CODE_STANDARD.md#standard-l2) — there is no public registration endpoint, this is the only way an account gets created. | Yes |
 
 A script that touches production data MUST print what it is about to do and prompt for
 confirmation before doing it. Anything run by hand more than twice becomes a script here.
+
+## smoke.sh
+
+```sh
+DIELYS_ADMIN_TOKEN=... scripts/smoke.sh https://dielys-dev.dielys.workers.dev
+```
+
+23 checks over the whole contract: login, list claim, mutation, an idempotent
+retry that must return the original result at the same seq without adding a
+changelog row, catch-up, invite mint and accept, and refresh rotation with
+replay detection. Exits non-zero on the first disagreement and prints the body.
+
+It is not read-only: it creates two `smoke-*@dielys.test` accounts and one list
+per run, and names them at the end. Nothing deletes them — there is no account
+deletion endpoint, deliberately (L2). On dev that is fine; think before pointing
+it at prod.
+
+`scripts/verify.sh` proves the code is right before a push; this proves the
+deployment is right after one. Neither replaces the other.
 
 ## create-user.ts
 
