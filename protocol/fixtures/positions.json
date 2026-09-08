@@ -1,0 +1,90 @@
+{
+  "_comment": [
+    "Golden vectors for fractional indexing (F5.5). Hand-computed from the",
+    "order-key scheme described in server/src/domain/position.ts, not generated",
+    "by it (F4). Both the TypeScript and the Kotlin implementations must",
+    "reproduce every `expected` exactly, or the two clients will disagree about",
+    "list order and neither build will notice.",
+    "",
+    "The digit alphabet is base-62 in ASCII order:",
+    "0-9, then A-Z, then a-z. Index 31 is 'V', index 16 is 'G'."
+  ],
+  "between": [
+    {
+      "why": "First item in an empty list. 'a' means an integer part of length 2.",
+      "before": null,
+      "after": null,
+      "expected": "a0"
+    },
+    {
+      "why": "Append: increment the integer part. No fractional part is needed.",
+      "before": "a0",
+      "after": null,
+      "expected": "a1"
+    },
+    {
+      "why": "Append across the 62-item boundary: 'az' rolls over into a longer integer part.",
+      "before": "az",
+      "after": null,
+      "expected": "b00"
+    },
+    {
+      "why": "Prepend: decrement below 'a0' into the negative half of the encoding.",
+      "before": null,
+      "after": "a0",
+      "expected": "Zz"
+    },
+    {
+      "why": "Prepend again, still within the same integer length.",
+      "before": null,
+      "after": "Zz",
+      "expected": "Zy"
+    },
+    {
+      "why": "Insert between adjacent integers: midpoint of digit 0 and 62 is index 31, 'V'.",
+      "before": "a0",
+      "after": "a1",
+      "expected": "a0V"
+    },
+    {
+      "why": "Insert again on the low side: midpoint of 0 and 31 is 15.5, rounded to 16, 'G'.",
+      "before": "a0",
+      "after": "a0V",
+      "expected": "a0G"
+    },
+    {
+      "why": "Insert on the high side of the same pair: midpoint of 31 and 62 is 46.5, rounded to 47, 'l'.",
+      "before": "a0V",
+      "after": "a1",
+      "expected": "a0l"
+    },
+    {
+      "why": "A gap wider than one digit needs only one character, however long the neighbours are.",
+      "before": "a0",
+      "after": "a2",
+      "expected": "a1"
+    }
+  ],
+  "ordering": {
+    "why": "Sorted ascending by plain byte comparison. A locale-aware comparator would reorder these, which is why the client must not use one.",
+    "keys": [
+      "A00000000000000000000000001",
+      "Z1",
+      "Zy",
+      "Zz",
+      "a0",
+      "a0G",
+      "a0V",
+      "a0l",
+      "a1",
+      "az",
+      "b00",
+      "b2D",
+      "zzzzzzzzzzzzzzzzzzzzzzzzzzz"
+    ]
+  },
+  "invalid": {
+    "why": "Every one of these must be rejected rather than stored.",
+    "keys": ["", "0", "a", "a00", "1", "!", "aa!", "z0", "a0z0"]
+  }
+}

@@ -23,12 +23,14 @@ Where Dielys is and what comes next. Short by design — the standard is in
       account creation, invite tokens, membership checked by the Worker only (L3).
 - [x] **Dev deployment** — live at `dielys-dev.dielys.workers.dev`, secrets set,
       `scripts/smoke.sh` exercises the whole contract against it.
+- [x] **Fractional indexing** — base-62 order keys in `server/src/domain/position.ts`, with
+      golden vectors in `protocol/fixtures/positions.json` for the Kotlin client to match.
+      Appends stay two characters for 62 items; `betweenMany` bisects so bulk inserts do not
+      nest. Ordering is `(position, id)` — two devices inserting at the same spot offline can
+      produce the same key, and the id breaks the tie (H3.9).
 
 ## Next
 
-- [ ] **Fractional indexing** (`domain/position.ts`) — real base-62 midpoint. Currently a
-      stub that throws between two existing positions, so reordering is impossible.
-      Blocks H3.9.
 - [ ] **Android data layer** — Room schema, DAOs, the outbox, and the drain worker. This is
       where F5.7 (local write and outbox row in one transaction) and F5.8 (cursor advances
       only after the local commit) actually live.
