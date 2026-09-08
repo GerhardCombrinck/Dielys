@@ -59,6 +59,7 @@ spend a runner minute on per commit. Push when the change is complete and testab
 
 ## Where to look next
 
+- `docs/PLAN.md` — what is built, what is next, and the questions still open.
 - `docs/CODE_STANDARD.md` — the full standard, A through N.
 - `docs/SYNC.md` — how sync actually works and why.
 - `docs/adr/` — decisions already made; read before re-proposing an alternative.
