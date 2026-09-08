@@ -40,6 +40,6 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
         with: { distribution: 'temurin', java-version: '21' }
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - run: ./gradlew ktlintCheck detekt testDebugUnitTest
         working-directory: android
