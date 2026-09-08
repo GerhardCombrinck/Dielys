@@ -1,5 +1,6 @@
 import { SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
+import { isUsableSigningKey, MIN_SIGNING_KEY_LENGTH } from "../src/auth/jwt.js";
 
 /**
  * The Worker does routing and auth only (D1). The auth *flow* is covered in
@@ -64,5 +65,22 @@ describe("Worker routing", () => {
       body: "{not json",
     });
     expect(response.status).toBe(400);
+  });
+});
+
+describe("signing key guard (I1)", () => {
+  it("serves health but refuses everything else when the key is unusable", async () => {
+    // The tests run with a real key bound, so this checks the predicate that
+    // gates the Worker rather than re-binding the environment.
+    expect(isUsableSigningKey(undefined)).toBe(false);
+    expect(isUsableSigningKey("")).toBe(false);
+    expect(isUsableSigningKey("too-short")).toBe(false);
+    expect(isUsableSigningKey("x".repeat(MIN_SIGNING_KEY_LENGTH))).toBe(true);
+  });
+
+  it("rejects a key that is a plausible-looking accident", async () => {
+    // What an unset binding actually produces once it reaches TextEncoder.
+    expect(isUsableSigningKey("undefined")).toBe(false);
+    expect(isUsableSigningKey("null")).toBe(false);
   });
 });

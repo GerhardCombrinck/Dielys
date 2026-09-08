@@ -57,3 +57,12 @@ TypeScript half, and pretending otherwise would make the script useless there. R
 
 `android/local.properties` is gitignored and points at the same SDK; it is per-machine and
 is not something to commit.
+
+### If `npm ci` fails with EPERM or EBUSY
+
+Windows only, and self-inflicted: a running `wrangler dev` holds
+`node_modules/@esbuild/win32-x64/esbuild.exe` and miniflare's `local-explorer-ui`, and `npm
+ci` deletes `node_modules` before reinstalling. Stop the dev server first. The half-deleted
+tree that gets left behind also makes `npx tsc` fall through to whatever `tsc` is on the
+Windows PATH — often Turbo C, which prints "This is not the tsc command you are looking
+for". That message means the install is broken, not the TypeScript config.
