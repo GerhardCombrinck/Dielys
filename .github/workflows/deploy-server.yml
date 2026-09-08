@@ -18,7 +18,7 @@ jobs:
       - run: npm test
         working-directory: server
       - name: Deploy to dielys-dev
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           workingDirectory: server
@@ -39,7 +39,7 @@ jobs:
       - run: npm test
         working-directory: server
       - name: Deploy to dielys-prod
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           workingDirectory: server
