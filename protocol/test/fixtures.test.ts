@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   type ChangeEnvelope,
   type ClientMessage,
+  MAX_POSITION_LENGTH,
   MAX_TITLE_LENGTH,
   type ServerMessage,
 } from "../src/types.js";
@@ -162,5 +163,48 @@ describe("edge cases required by F4 are present", () => {
     expect(empty).toBeDefined();
     expect(empty.changes).toEqual([]);
     expect(empty.maxSeq).toBe(0);
+  });
+});
+
+describe("position fixtures (F5.5)", () => {
+  // Shared contract between the TypeScript implementation in
+  // server/src/domain/position.ts and the Kotlin one that will mirror it.
+  // Checked here too so editing the file fails a build even without the server.
+  const positions = JSON.parse(readFileSync(join(fixturesDir, "positions.json"), "utf-8")) as {
+    between: Array<{ why: string; before: string | null; after: string | null; expected: string }>;
+    ordering: { keys: string[] };
+    invalid: { keys: string[] };
+  };
+
+  it("every vector states what it is for", () => {
+    expect(positions.between.length).toBeGreaterThan(0);
+    for (const vector of positions.between) {
+      expect(typeof vector.why).toBe("string");
+      expect(vector.why.length).toBeGreaterThan(0);
+      expect(typeof vector.expected).toBe("string");
+    }
+  });
+
+  it("every expected key lands strictly between its neighbours", () => {
+    for (const { before, after, expected } of positions.between) {
+      if (before !== null) expect(expected > before).toBe(true);
+      if (after !== null) expect(expected < after).toBe(true);
+    }
+  });
+
+  it("the ordering keys are sorted by plain byte comparison", () => {
+    // Not localeCompare — that would put "a" before "B" and silently reorder
+    // the list on a client that used it.
+    expect([...positions.ordering.keys].sort()).toEqual(positions.ordering.keys);
+  });
+
+  it("no expected key exceeds the protocol bound", () => {
+    for (const { expected } of positions.between) {
+      expect(expected.length).toBeLessThanOrEqual(MAX_POSITION_LENGTH);
+    }
+  });
+
+  it("has invalid keys to reject", () => {
+    expect(positions.invalid.keys.length).toBeGreaterThan(0);
   });
 });
