@@ -6,9 +6,39 @@ complexity:
     threshold: 60
   LargeClass:
     threshold: 300
+  # `Position` is a line-for-line port of `server/src/domain/position.ts`. The two
+  # have to produce identical keys from identical inputs (F4), and the way that
+  # guarantee breaks is one of them being restructured to satisfy a counter.
+  CyclomaticComplexMethod:
+    threshold: 20
+  # `DielysRepository` is the whole surface the UI is allowed to call, one function
+  # per user action. Splitting it by count would put related writes in different
+  # files without making any of them simpler.
+  TooManyFunctions:
+    thresholdInFiles: 20
+    thresholdInClasses: 20
+    thresholdInObjects: 20
 
 style:
   ForbiddenComment:
+    active: false
+  # Guard clauses. The ported fractional-index functions return early because the
+  # reference implementation does, and the HTTP mapping reads as a table.
+  ReturnCount:
+    max: 5
+  # `validate` throws a different message per way a key can be malformed. One
+  # throw with a joined message would be worse to debug.
+  ThrowsCount:
+    max: 4
+  # Four is the size of a fixture list in the reorder tests, and naming the four
+  # is clearer than four indexed reads.
+  DestructuringDeclarationWithTooManyEntries:
+    maxDestructuringEntries: 4
+
+performance:
+  # `Room.databaseBuilder(...).addMigrations(vararg Migration)`. There is no
+  # non-spread call, and the array is four entries at most.
+  SpreadOperator:
     active: false
 
 comments:

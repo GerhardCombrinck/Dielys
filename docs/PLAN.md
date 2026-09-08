@@ -28,13 +28,21 @@ Where Dielys is and what comes next. Short by design — the standard is in
       Appends stay two characters for 62 items; `betweenMany` bisects so bulk inserts do not
       nest. Ordering is `(position, id)` — two devices inserting at the same spot offline can
       produce the same key, and the id breaks the tie (H3.9).
+- [x] **Android data layer** — Room schema and DAOs, the outbox, the `WorkManager` drain, and
+      the Kotlin port of the fractional index that reproduces every golden vector. `domain/`,
+      `data/{local,remote,sync}` and `di/` are real; the UI is still a placeholder. Every user
+      action commits its entity and its outbox row in one transaction (F5.7), and the cursor
+      moves only after a change is committed locally (F5.8).
+- [x] **The rest of H3** — 3.1, 3.4 and 3.9 are covered by JVM tests against a fake server:
+      a write made offline drains when the network returns, a drain killed after the server
+      applied replays the same idempotency key without duplicating, and both devices dragging
+      into the same gap converge on one order. Room runs under Robolectric, so real SQLite
+      settles the `(position, id)` tie the same way the phone will.
+- [x] **Cross-language wire check** — `WireFormatTest` round-trips every fixture in
+      `protocol/fixtures/` through the Kotlin types, and Konsist enforces the E1 layer rules.
 
 ## Next
 
-- [ ] **Android data layer** — Room schema, DAOs, the outbox, and the drain worker. This is
-      where F5.7 (local write and outbox row in one transaction) and F5.8 (cursor advances
-      only after the local commit) actually live.
-- [ ] **The rest of H3** — 3.1, 3.4, 3.9 are client-side and cannot be tested server-side.
 - [ ] **Compose UI** — list of lists, list detail, add/tick/star/reorder. Nothing beyond a
       placeholder exists.
 - [ ] **FCM** (section M) — data-only payloads carrying `{type, listId, seq}` and no list
