@@ -1,0 +1,45 @@
+{
+  "type": "catch-up-response",
+  "listId": "018f2f6c-6a3e-7c3a-8f1e-000000000001",
+  "since": 1,
+  "changes": [
+    {
+      "seq": 2,
+      "listId": "018f2f6c-6a3e-7c3a-8f1e-000000000001",
+      "entityType": "task",
+      "idempotencyKey": "018f2f6c-6a3e-7c3a-8f1e-0000000000a2",
+      "deviceId": "018f2f6c-6a3e-7c3a-8f1e-0000000000d1",
+      "serverTimestamp": "2026-09-08T09:05:00.000Z",
+      "entity": {
+        "id": "018f2f6c-6a3e-7c3a-8f1e-000000000010",
+        "listId": "018f2f6c-6a3e-7c3a-8f1e-000000000001",
+        "title": "Milk",
+        "done": false,
+        "starred": false,
+        "position": "a0",
+        "deletedAt": "2026-09-08T09:05:00.000Z",
+        "updatedAt": "2026-09-08T09:05:00.000Z"
+      }
+    },
+    {
+      "seq": 3,
+      "listId": "018f2f6c-6a3e-7c3a-8f1e-000000000001",
+      "entityType": "task",
+      "idempotencyKey": "018f2f6c-6a3e-7c3a-8f1e-0000000000a3",
+      "deviceId": "018f2f6c-6a3e-7c3a-8f1e-0000000000d2",
+      "serverTimestamp": "2026-09-08T09:10:00.000Z",
+      "entity": {
+        "id": "018f2f6c-6a3e-7c3a-8f1e-000000000011",
+        "listId": "018f2f6c-6a3e-7c3a-8f1e-000000000001",
+        "title": "Braai vleis 🍖 — vir Saterdag ❤️",
+        "done": false,
+        "starred": true,
+        "position": "a1",
+        "deletedAt": null,
+        "updatedAt": "2026-09-08T09:10:00.000Z"
+      }
+    }
+  ],
+  "maxSeq": 6,
+  "truncated": true
+}

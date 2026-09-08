@@ -1,0 +1,13 @@
+{
+  "type": "mutate",
+  "protocolVersion": 2,
+  "listId": "018f2f6c-6a3e-7c3a-8f1e-000000000001",
+  "entityType": "task",
+  "entityId": "018f2f6c-6a3e-7c3a-8f1e-000000000010",
+  "idempotencyKey": "018f2f6c-6a3e-7c3a-8f1e-0000000000a1",
+  "deviceId": "018f2f6c-6a3e-7c3a-8f1e-0000000000d1",
+  "patch": {
+    "title": "Milk",
+    "position": "a0"
+  }
+}

@@ -1,25 +1,283 @@
 import { DurableObject } from "cloudflare:workers";
+import type { AuthErrorCode, Membership, MembershipRole } from "@dielys/protocol";
+import {
+  generateRefreshToken,
+  hashPassword,
+  hashRefreshToken,
+  PASSWORD_ITERATIONS,
+  verifyPassword,
+} from "../auth/password.js";
+import { log } from "../lib/log.js";
+import { applyPendingMigrations, USERS_MIGRATIONS } from "../storage/migrations.js";
+import {
+  countListMembers,
+  countUsers,
+  deleteExpiredRefreshTokens,
+  deleteRefreshTokensForUser,
+  insertMembership,
+  insertRefreshToken,
+  insertUser,
+  markRefreshTokenUsed,
+  selectMembership,
+  selectMemberships,
+  selectRefreshToken,
+  selectUserByEmail,
+  selectUserById,
+  updateUserPassword,
+} from "../storage/users.js";
+
+/** 30 days (L1). */
+export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+export type UsersResult<T> = { ok: true; value: T } | { ok: false; code: AuthErrorCode };
+
+export interface Session {
+  userId: string;
+  refreshToken: string;
+}
 
 /**
  * Singleton Durable Object (idFromName("users-v1")) holding accounts,
- * device-scoped refresh tokens, FCM tokens, and list membership. See
+ * device-scoped refresh tokens, and list membership. See
  * docs/adr/0002-authentication.md and CODE_STANDARD.md L1-L3, M2.
  *
- * ListRoom never checks membership itself — the Worker checks it here before
- * forwarding any request to a ListRoom.
+ * It is a singleton by construction — one fixed name — rather than one per
+ * entity, which is why it does not conflict with D3's one-DO-per-list rule.
+ *
+ * `ListRoom` never checks membership itself; the Worker checks it here before
+ * forwarding any request to a `ListRoom`. Authorization lives in one place.
+ *
+ * The methods below are the DO's RPC surface. Password hashing happens here
+ * rather than in the Worker because this object owns the `users` table and
+ * `auth/jwt.ts` is barred from storage access (D1); it also puts the one
+ * CPU-expensive operation in the object with the larger CPU budget.
  */
 export class UsersRoom extends DurableObject {
+  private readonly sql: SqlStorage;
+
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
+    this.sql = ctx.storage.sql;
     ctx.blockConcurrencyWhile(async () => {
-      // TODO: run pending migrations.
+      ctx.storage.transactionSync(() => {
+        applyPendingMigrations(this.sql, USERS_MIGRATIONS);
+      });
     });
   }
 
-  override async fetch(_request: Request): Promise<Response> {
-    // TODO: internal RPC surface for the Worker — createUser, verifyPassword,
-    // issueRefreshToken, rotateRefreshToken, checkMembership, addMembership,
-    // setFcmToken, listMemberDevices.
-    return new Response("not implemented", { status: 501 });
+  /**
+   * There is no public registration endpoint (L2) — this is reached only by
+   * the Worker's admin route, which `scripts/create-user.ts` calls.
+   */
+  async createUser(email: string, password: string, now: number): Promise<UsersResult<string>> {
+    const normalized = normalizeEmail(email);
+    if (selectUserByEmail(this.sql, normalized) !== null) {
+      return { ok: false, code: "already-exists" };
+    }
+
+    const hashed = await hashPassword(password);
+    const id = crypto.randomUUID();
+    this.ctx.storage.transactionSync(() => {
+      insertUser(this.sql, {
+        id,
+        email: normalized,
+        password: hashed,
+        createdAt: new Date(now).toISOString(),
+      });
+    });
+    // Never log the email — that is user content (D4). The id is enough to
+    // correlate with anything else.
+    log("info", "usersroom.user.created", { userId: id });
+    return { ok: true, value: id };
   }
+
+  async login(
+    email: string,
+    password: string,
+    deviceId: string,
+    now: number,
+  ): Promise<UsersResult<Session>> {
+    const user = selectUserByEmail(this.sql, normalizeEmail(email));
+
+    if (user === null) {
+      // Hash anyway. Returning early here would make "no such account" measurably
+      // faster than "wrong password", turning the one shared error code into a
+      // timing oracle for which emails exist.
+      await hashPassword(password);
+      return { ok: false, code: "invalid-credentials" };
+    }
+
+    if (!(await verifyPassword(password, user.password))) {
+      return { ok: false, code: "invalid-credentials" };
+    }
+
+    // Re-hash at the current cost when the stored one is behind. This is what
+    // makes PASSWORD_ITERATIONS raisable later without locking anyone out.
+    if (user.password.iterations < PASSWORD_ITERATIONS) {
+      const upgraded = await hashPassword(password);
+      this.ctx.storage.transactionSync(() => updateUserPassword(this.sql, user.id, upgraded));
+      log("info", "usersroom.password.rehashed", {
+        userId: user.id,
+        from: user.password.iterations,
+        to: upgraded.iterations,
+      });
+    }
+
+    return { ok: true, value: await this.issueSession(user.id, deviceId, now) };
+  }
+
+  /**
+   * Rotation (L1): the presented token is spent and a new one returned. The
+   * spent row is kept, not deleted — that is what makes a replay detectable
+   * rather than indistinguishable from a token that never existed.
+   */
+  async rotateRefreshToken(
+    refreshToken: string,
+    deviceId: string,
+    now: number,
+  ): Promise<UsersResult<Session>> {
+    const tokenHash = await hashRefreshToken(refreshToken);
+    const row = selectRefreshToken(this.sql, tokenHash);
+
+    if (row === null) return { ok: false, code: "invalid-credentials" };
+
+    if (row.usedAt !== null) {
+      // Someone is presenting a token that was already exchanged. Either it
+      // was stolen, or a legitimate client replayed one — both mean the
+      // token is loose, so every session for this user goes (L1).
+      const revoked = this.ctx.storage.transactionSync(() =>
+        deleteRefreshTokensForUser(this.sql, row.userId),
+      );
+      log("warn", "usersroom.refresh.reuse-detected", { userId: row.userId, revoked });
+      return { ok: false, code: "token-reused" };
+    }
+
+    if (Date.parse(row.expiresAt) <= now) {
+      return { ok: false, code: "token-expired" };
+    }
+
+    if (row.deviceId !== deviceId) {
+      // Device-scoped (L1). Not treated as a reuse signal: a client bug that
+      // sent the wrong device id should not log the household out.
+      log("warn", "usersroom.refresh.device-mismatch", { userId: row.userId });
+      return { ok: false, code: "invalid-credentials" };
+    }
+
+    const nowIso = new Date(now).toISOString();
+    const token = generateRefreshToken();
+    const newHash = await hashRefreshToken(token);
+
+    this.ctx.storage.transactionSync(() => {
+      markRefreshTokenUsed(this.sql, tokenHash, nowIso);
+      insertRefreshToken(this.sql, {
+        tokenHash: newHash,
+        userId: row.userId,
+        deviceId,
+        issuedAt: nowIso,
+        expiresAt: new Date(now + REFRESH_TOKEN_TTL_MS).toISOString(),
+        usedAt: null,
+      });
+      deleteExpiredRefreshTokens(this.sql, nowIso);
+    });
+
+    return { ok: true, value: { userId: row.userId, refreshToken: token } };
+  }
+
+  async checkMembership(userId: string, listId: string): Promise<Membership | null> {
+    return selectMembership(this.sql, userId, listId);
+  }
+
+  async listMemberships(userId: string): Promise<Membership[]> {
+    return selectMemberships(this.sql, userId);
+  }
+
+  /**
+   * Idempotent by design (L3): accepting an invite twice is a no-op rather
+   * than an error, matching the spirit of F5.2.
+   */
+  async addMembership(
+    userId: string,
+    listId: string,
+    role: MembershipRole,
+    now: number,
+  ): Promise<UsersResult<{ alreadyMember: boolean }>> {
+    if (selectUserById(this.sql, userId) === null) return { ok: false, code: "not-found" };
+
+    const existing = selectMembership(this.sql, userId, listId);
+    if (existing !== null) return { ok: true, value: { alreadyMember: true } };
+
+    this.ctx.storage.transactionSync(() => {
+      insertMembership(this.sql, userId, listId, role, new Date(now).toISOString());
+    });
+    log("info", "usersroom.membership.added", { userId, listId, role });
+    return { ok: true, value: { alreadyMember: false } };
+  }
+
+  /**
+   * Claims an unowned list id as owner.
+   *
+   * List ids are client-generated (F5.1), so the server never mints one and
+   * cannot hand out ownership at creation time. Instead the first caller to
+   * claim an id that nobody holds becomes its owner; a claim on an id someone
+   * else already holds is refused. Re-claiming a list you are already on is a
+   * no-op, so an outbox retry of the same create is harmless.
+   *
+   * A UUIDv7 is not guessable in practice, so this is not a land-grab risk;
+   * the check exists so that a collision or a malicious guess fails loudly
+   * rather than silently joining someone else's shopping list.
+   */
+  async claimList(
+    userId: string,
+    listId: string,
+    now: number,
+  ): Promise<UsersResult<{ alreadyMember: boolean }>> {
+    const existing = selectMembership(this.sql, userId, listId);
+    if (existing !== null) return { ok: true, value: { alreadyMember: true } };
+
+    if (countListMembers(this.sql, listId) > 0) {
+      log("warn", "usersroom.claim.already-owned", { userId, listId });
+      return { ok: false, code: "forbidden" };
+    }
+
+    this.ctx.storage.transactionSync(() => {
+      insertMembership(this.sql, userId, listId, "owner", new Date(now).toISOString());
+    });
+    log("info", "usersroom.list.claimed", { userId, listId });
+    return { ok: true, value: { alreadyMember: false } };
+  }
+
+  /** Whether any account exists at all — used by the admin route to refuse
+   * bootstrapping a second time without an explicit token. */
+  async userCount(): Promise<number> {
+    return countUsers(this.sql);
+  }
+
+  private async issueSession(userId: string, deviceId: string, now: number): Promise<Session> {
+    const token = generateRefreshToken();
+    const tokenHash = await hashRefreshToken(token);
+    const nowIso = new Date(now).toISOString();
+
+    this.ctx.storage.transactionSync(() => {
+      insertRefreshToken(this.sql, {
+        tokenHash,
+        userId,
+        deviceId,
+        issuedAt: nowIso,
+        expiresAt: new Date(now + REFRESH_TOKEN_TTL_MS).toISOString(),
+        usedAt: null,
+      });
+      deleteExpiredRefreshTokens(this.sql, nowIso);
+    });
+
+    return { userId, refreshToken: token };
+  }
+}
+
+/**
+ * Case-insensitive, trimmed. Two accounts differing only in the case of their
+ * email would be two accounts to their owners' surprise, and the UNIQUE index
+ * would not stop it.
+ */
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
 }

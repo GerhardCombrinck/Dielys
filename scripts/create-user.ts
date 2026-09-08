@@ -5,37 +5,99 @@
  * an account is created. Household has exactly two users; this is not meant
  * to scale past that.
  *
- * Usage: npm run create-user -- <email> <password>
+ * It calls the Worker's admin route rather than touching storage directly, so
+ * it behaves identically against dev and prod and needs no local binding.
  *
- * TODO: wire up once server/src/do/UsersRoom.ts and its admin RPC exist.
- * This script calls that RPC over an authenticated admin endpoint — it does
- * not touch storage directly, so it works the same in dev and prod.
+ * Usage:
+ *   DIELYS_URL=https://dielys-dev.dielys.workers.dev \
+ *   DIELYS_ADMIN_TOKEN=<the ADMIN_TOKEN secret> \
+ *   node --experimental-strip-types scripts/create-user.ts <email>
+ *
+ * The password is read from the terminal, not passed as an argument: a
+ * password in argv shows up in shell history and in the process list.
  */
+import { createInterface } from "node:readline/promises";
+import { stdin, stdout } from "node:process";
 
-async function main() {
-  const [email, password] = process.argv.slice(2);
-  if (!email || !password) {
-    console.error("Usage: create-user.ts <email> <password>");
+const MIN_PASSWORD_LENGTH = 12;
+
+async function main(): Promise<void> {
+  const email = process.argv[2];
+  const baseUrl = process.env["DIELYS_URL"];
+  const adminToken = process.env["DIELYS_ADMIN_TOKEN"];
+
+  if (!email) {
+    console.error("Usage: create-user.ts <email>");
+    console.error("Requires DIELYS_URL and DIELYS_ADMIN_TOKEN in the environment.");
+    process.exit(1);
+  }
+  if (!baseUrl || !adminToken) {
+    console.error("DIELYS_URL and DIELYS_ADMIN_TOKEN must both be set.");
+    console.error("The admin token is the ADMIN_TOKEN Worker secret for that environment.");
     process.exit(1);
   }
 
-  console.log(`About to create user: ${email}`);
-  console.log("This writes to the live UsersRoom Durable Object. Continue? [y/N]");
+  const rl = createInterface({ input: stdin, output: stdout });
+  try {
+    // A2: print what this is about to do, then ask, before writing anything.
+    console.log("About to create a Dielys account.");
+    console.log(`  Target:  ${baseUrl}`);
+    console.log(`  Email:   ${email}`);
+    console.log("This writes to the live UsersRoom Durable Object for that environment.");
 
-  const answer = await new Promise<string>((resolve) => {
-    process.stdin.resume();
-    process.stdin.once("data", (d) => resolve(d.toString().trim()));
-  });
+    const confirmation = await rl.question("Continue? [y/N] ");
+    if (confirmation.trim().toLowerCase() !== "y") {
+      console.log("Aborted.");
+      return;
+    }
 
-  if (answer.toLowerCase() !== "y") {
-    console.log("Aborted.");
-    process.exit(0);
+    const password = await rl.question("Password (use a generated one): ");
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      console.error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      process.exitCode = 1;
+      return;
+    }
+    const again = await rl.question("Repeat password: ");
+    if (password !== again) {
+      console.error("Passwords do not match. Nothing was created.");
+      process.exitCode = 1;
+      return;
+    }
+
+    const response = await fetch(new URL("/admin/users", baseUrl), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (response.status === 201) {
+      const body = (await response.json()) as { userId: string };
+      console.log(`Created. userId: ${body.userId}`);
+      return;
+    }
+
+    if (response.status === 409) {
+      console.error("An account with that email already exists. Nothing was created.");
+      process.exitCode = 1;
+      return;
+    }
+    if (response.status === 401) {
+      console.error("Admin token rejected. Check DIELYS_ADMIN_TOKEN for this environment.");
+      process.exitCode = 1;
+      return;
+    }
+
+    console.error(`Failed: HTTP ${response.status} ${await response.text()}`);
+    process.exitCode = 1;
+  } finally {
+    rl.close();
   }
-
-  throw new Error(
-    "Not implemented yet — server/src/do/UsersRoom.ts has no admin RPC to call. " +
-      "See docs/adr/0002-authentication.md.",
-  );
 }
 
-main();
+main().catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+});

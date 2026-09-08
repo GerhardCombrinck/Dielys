@@ -1,0 +1,23 @@
+{
+  "type": "ack",
+  "idempotencyKey": "018f2f6c-6a3e-7c3a-8f1e-0000000000a1",
+  "duplicate": true,
+  "change": {
+    "seq": 1,
+    "listId": "018f2f6c-6a3e-7c3a-8f1e-000000000001",
+    "entityType": "task",
+    "idempotencyKey": "018f2f6c-6a3e-7c3a-8f1e-0000000000a1",
+    "deviceId": "018f2f6c-6a3e-7c3a-8f1e-0000000000d1",
+    "serverTimestamp": "2026-09-08T09:00:00.000Z",
+    "entity": {
+      "id": "018f2f6c-6a3e-7c3a-8f1e-000000000010",
+      "listId": "018f2f6c-6a3e-7c3a-8f1e-000000000001",
+      "title": "Milk",
+      "done": false,
+      "starred": false,
+      "position": "a0",
+      "deletedAt": null,
+      "updatedAt": "2026-09-08T09:00:00.000Z"
+    }
+  }
+}

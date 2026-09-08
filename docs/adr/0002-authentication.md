@@ -86,6 +86,35 @@ prints what it's about to do and prompts for confirmation before writing to `Use
   re-authenticate. Given only two users and a password each can re-enter, this is judged
   simpler than adding a grace-period grace window.
 
+## Implementation notes
+
+Added when the decision was built, 2026-09-08. These do not change the decision; they record
+what it turned out to require.
+
+- **PBKDF2 cost is capped by the plan, not by taste.** Measured: 10,000 iterations ≈ 4.5 ms,
+  600,000 ≈ 248 ms. The Workers free plan allows 10 ms of CPU per invocation, so the shipped
+  value is 10,000. The household's compensating control is *generated* passwords — iteration
+  count only protects guessable secrets. The cost is stored per user, so raising it later
+  costs one constant and a plan upgrade, and existing accounts re-hash on next login. See
+  [L1](../CODE_STANDARD.md#standard-l1).
+- **The access token rides on the WebSocket upgrade request, not in the `hello` message.**
+  The Context section above notes that a bearer token suits a native client "in the
+  connection message anyway"; that turned out to be incompatible with the decision's own
+  rule that the *Worker* authorizes before anything reaches a `ListRoom`, since the Worker
+  cannot see post-upgrade messages. OkHttp sets headers on an upgrade, so the Android client
+  is unaffected. A browser cannot, which is a problem `web/` will have to solve.
+- **Ownership is claimed, not granted.** Entity ids are client-generated (F5.1), so the
+  server never mints a list id and cannot assign an owner at creation. The first caller to
+  claim an unheld id becomes its owner; re-claiming your own is a no-op (so an outbox retry
+  is harmless), and claiming someone else's is refused.
+- **Account creation goes through an `ADMIN_TOKEN`-guarded Worker route.** That is a second
+  secret alongside `JWT_SIGNING_KEY`. It fails closed: an unset or empty `ADMIN_TOKEN` means
+  nobody, never everybody.
+- **Not built, and deliberately:** login rate limiting. Two users, no public registration,
+  and generated passwords make an online guessing attack uninteresting; adding it would mean
+  another DO or a KV namespace. Revisit if the user base ever grows past the two this ADR
+  assumes.
+
 ## Alternatives considered
 
 - **Firebase Auth / Supabase Auth** — rejected, see Context.
