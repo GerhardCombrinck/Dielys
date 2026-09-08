@@ -7,6 +7,7 @@ import { authenticate, authorizeAdmin, authorizeListAccess, usersRoom } from "./
 import {
   ACCESS_TOKEN_TTL_SECONDS,
   INVITE_TOKEN_TTL_SECONDS,
+  isUsableSigningKey,
   signAccessToken,
   signInviteToken,
   verifyInviteToken,
@@ -40,6 +41,16 @@ export default {
     try {
       if (url.pathname === "/health") {
         return Response.json({ ok: true, environment: env.ENVIRONMENT });
+      }
+
+      // Fail closed on a missing or weak signing key. Without this the Worker
+      // would sign and verify tokens with the literal string "undefined" —
+      // valid-looking sessions anyone could forge. A deployment that has not
+      // had `wrangler secret put JWT_SIGNING_KEY` run against it must serve
+      // nothing but /health.
+      if (!isUsableSigningKey(env.JWT_SIGNING_KEY)) {
+        log("error", "worker.signing-key.unusable", { path: url.pathname });
+        return errorResponse("internal", 503);
       }
 
       switch (url.pathname) {

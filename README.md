@@ -26,10 +26,65 @@ cp .dev.vars.example .dev.vars   # fill in JWT_SIGNING_KEY and ADMIN_TOKEN
 npm run dev                      # wrangler dev, local Durable Object storage
 ```
 
-`.dev.vars` is gitignored and local-only. For a deployed environment the same two secrets are
-set with `wrangler secret put JWT_SIGNING_KEY --env dev` and `wrangler secret put ADMIN_TOKEN
---env dev`; both are long random values and neither ever goes in `wrangler.jsonc`
+`.dev.vars` is gitignored and local-only. Generate real values into it — the Worker refuses to
+serve anything but `/health` when `JWT_SIGNING_KEY` is missing or shorter than 32 characters,
+because an unset binding would otherwise sign tokens with the literal string `"undefined"`:
+
+```bash
+node -e 'const r=()=>require("crypto").randomBytes(32).toString("base64url");require("fs").writeFileSync("server/.dev.vars",`JWT_SIGNING_KEY=${r()}
+ADMIN_TOKEN=${r()}
+FCM_SERVICE_ACCOUNT_JSON={}
+`)'
+```
+
+For a deployed environment the same two secrets are set with `wrangler secret put
+JWT_SIGNING_KEY --env dev` and `wrangler secret put ADMIN_TOKEN --env dev`; both are long
+random values and neither ever goes in `wrangler.jsonc`
 ([I1](docs/CODE_STANDARD.md#standard-i1)).
+
+### Local development
+
+`wrangler dev` runs the real `workerd` runtime with real Durable Object storage on your
+machine — not a mock, and not a simulator. Behaviour matches production except for platform
+limits, which are only enforced on Cloudflare's network.
+
+```bash
+cd server && npm run dev
+```
+
+Serves on `http://127.0.0.1:8787`. State persists in `.wrangler/` between runs; delete that
+directory for a clean slate. A full walk through the API against it:
+
+```bash
+ADMIN=$(grep '^ADMIN_TOKEN=' server/.dev.vars | cut -d= -f2); B=http://127.0.0.1:8787
+```
+
+```bash
+curl -s -X POST $B/admin/users -H "Authorization: Bearer $ADMIN" -H 'content-type: application/json' -d '{"email":"you@dielys.test","password":"a-generated-password-1234"}'
+```
+
+```bash
+TOKEN=$(curl -s -X POST $B/auth/login -H 'content-type: application/json' -d '{"email":"you@dielys.test","password":"a-generated-password-1234","deviceId":"phone-a"}' | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).accessToken')
+```
+
+```bash
+LIST=$(node -pe 'crypto.randomUUID()'); curl -s -X POST "$B/lists/$LIST" -H "Authorization: Bearer $TOKEN"
+```
+
+```bash
+curl -s -X POST "$B/lists/$LIST/mutate" -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' -d "{\"type\":\"mutate\",\"protocolVersion\":2,\"listId\":\"$LIST\",\"entityType\":\"task\",\"entityId\":\"$(node -pe 'crypto.randomUUID()')\",\"idempotencyKey\":\"$(node -pe 'crypto.randomUUID()')\",\"deviceId\":\"phone-a\",\"patch\":{\"title\":\"Melk\",\"position\":\"a0\"}}"
+```
+
+```bash
+curl -s "$B/lists/$LIST/changes?since=0" -H "Authorization: Bearer $TOKEN"
+```
+
+Re-sending a mutation with the same `idempotencyKey` returns the original change with
+`"duplicate": true` and does not add a second changelog row — that is [F5.2](docs/SYNC.md)
+working, and is worth seeing once by hand.
+
+Endpoints are listed in [protocol/PROTOCOL.md](protocol/PROTOCOL.md). The Android app has no
+sync code yet, so `curl` is currently the only client.
 
 ### Creating an account
 

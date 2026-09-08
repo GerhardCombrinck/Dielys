@@ -215,3 +215,21 @@ export function bearerToken(request: Request): string | null {
   const match = /^Bearer (.+)$/.exec(header);
   return match === null ? null : (match[1] as string);
 }
+
+/**
+ * A signing key must be present and long enough to be worth signing with.
+ *
+ * Without this check an unset `JWT_SIGNING_KEY` is not an error: `env.X` is
+ * `undefined`, `TextEncoder().encode(undefined)` encodes the literal string
+ * "undefined", and the Worker goes on signing and verifying tokens with a key
+ * anyone can guess. Failing closed is the only safe reading of a missing
+ * secret — see I1, and the same reasoning as `authorizeAdmin`.
+ *
+ * 32 characters is the floor because the key is an HMAC-SHA256 secret; a short
+ * one is brute-forceable offline from a single captured token.
+ */
+export const MIN_SIGNING_KEY_LENGTH = 32;
+
+export function isUsableSigningKey(key: unknown): key is string {
+  return typeof key === "string" && key.length >= MIN_SIGNING_KEY_LENGTH;
+}
