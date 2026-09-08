@@ -22,11 +22,35 @@
   "env": {
     "dev": {
       "name": "dielys-dev",
-      "vars": { "ENVIRONMENT": "dev" }
+      "vars": { "ENVIRONMENT": "dev" },
+      "durable_objects": {
+        "bindings": [
+          { "name": "LIST_ROOM", "class_name": "ListRoom" },
+          { "name": "USERS_ROOM", "class_name": "UsersRoom" }
+        ]
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["ListRoom", "UsersRoom"]
+        }
+      ]
     },
     "prod": {
       "name": "dielys-prod",
-      "vars": { "ENVIRONMENT": "prod" }
+      "vars": { "ENVIRONMENT": "prod" },
+      "durable_objects": {
+        "bindings": [
+          { "name": "LIST_ROOM", "class_name": "ListRoom" },
+          { "name": "USERS_ROOM", "class_name": "UsersRoom" }
+        ]
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["ListRoom", "UsersRoom"]
+        }
+      ]
     }
   }
 }
