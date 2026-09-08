@@ -14,6 +14,17 @@ One repo, two runtimes, one contract:
 - `protocol/` — the wire contract. Both sides depend on it; it depends on nothing.
 - `web/` — deferred, priority 3, not built yet.
 
+## Before you push
+
+```bash
+scripts/verify.sh
+```
+
+Runs everything `ci.yml` runs, locally, in about 40 seconds. CI is a sense check on a clean
+machine — not the place a compile error is meant to be discovered, and not something to
+spend a runner minute on per commit. Push when the change is complete and testable. See
+[B3](docs/CODE_STANDARD.md#standard-b3) and `scripts/AGENTS.md`.
+
 ## Rules most often gotten wrong
 
 - **`protocol/` first.** A wire type does not get declared in `server/src` or hand-written in
@@ -33,6 +44,14 @@ One repo, two runtimes, one contract:
   `wrangler secret put` and are gitignored locally as `.dev.vars`.
 - **`ListRoom` never checks membership.** The Worker authorizes every request against
   `UsersRoom` before forwarding. See [L3](docs/CODE_STANDARD.md#standard-l3).
+- **Login answers the same way for a wrong password and an unknown account** — same status,
+  same body, same timing (the login path hashes even when there is no such user). Three
+  answers would be an account-enumeration oracle. A list you are not a member of is **403,
+  not 404**, for the same reason.
+- **`PASSWORD_ITERATIONS` is 10,000 on purpose**, capped by the free plan's 10 ms CPU budget.
+  It is stored per user so it can be raised without locking anyone out. The real control is
+  that passwords are generated, not chosen. See
+  [L1](docs/CODE_STANDARD.md#the-pbkdf2-work-factor).
 - **FCM payloads carry no list content**, ever — data-only, `{type, listId, seq}`. See
   [M1](docs/CODE_STANDARD.md#standard-m1).
 - **Anything tagged (SYNC) in the standard is a hard line**, not a style preference. Relaxing

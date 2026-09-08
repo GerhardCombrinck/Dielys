@@ -22,9 +22,26 @@ cd Dielys
 ```bash
 cd server
 npm ci
-cp .dev.vars.example .dev.vars   # fill in JWT_SIGNING_KEY etc.
+cp .dev.vars.example .dev.vars   # fill in JWT_SIGNING_KEY and ADMIN_TOKEN
 npm run dev                      # wrangler dev, local Durable Object storage
 ```
+
+`.dev.vars` is gitignored and local-only. For a deployed environment the same two secrets are
+set with `wrangler secret put JWT_SIGNING_KEY --env dev` and `wrangler secret put ADMIN_TOKEN
+--env dev`; both are long random values and neither ever goes in `wrangler.jsonc`
+([I1](docs/CODE_STANDARD.md#standard-i1)).
+
+### Creating an account
+
+There is no public registration ([L2](docs/CODE_STANDARD.md#standard-l2)) — accounts are made
+by hand:
+
+```bash
+DIELYS_URL=https://dielys-dev.dielys.workers.dev DIELYS_ADMIN_TOKEN=... node --experimental-strip-types scripts/create-user.ts you@example.com
+```
+
+It prompts for confirmation and then for the password. Use a generated one — see
+`scripts/AGENTS.md` for why that matters here.
 
 **Protocol** (shared types, no server needed to build it):
 
@@ -56,11 +73,23 @@ cd android
 
 ### Running Tests
 
+Everything CI runs, locally, in about 40 seconds — run this before pushing:
+
+```bash
+scripts/verify.sh
+```
+
+`FAST=1 scripts/verify.sh` skips the Android leg. One component at a time, if you prefer:
+
 ```bash
 cd server && npm test        # Vitest in workerd
 cd protocol && npm test      # Vitest, Node
 cd android && ./gradlew testDebugUnitTest ktlintCheck detekt
 ```
+
+The Android leg needs a JDK 21 and an Android SDK; `scripts/verify.sh` finds them via
+`JAVA_HOME`/`ANDROID_HOME` or `~/.dielys-toolchain/`, and skips that leg with a warning if
+neither is present. See `scripts/AGENTS.md`.
 
 ### Deploying
 

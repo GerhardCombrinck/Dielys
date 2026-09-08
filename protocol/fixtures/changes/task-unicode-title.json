@@ -1,6 +1,7 @@
 {
   "seq": 3,
   "listId": "018f2f6c-6a3e-7c3a-8f1e-000000000001",
+  "entityType": "task",
   "idempotencyKey": "018f2f6c-6a3e-7c3a-8f1e-0000000000a3",
   "deviceId": "018f2f6c-6a3e-7c3a-8f1e-0000000000d2",
   "serverTimestamp": "2026-09-08T09:10:00.000Z",
