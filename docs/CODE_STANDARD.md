@@ -400,14 +400,19 @@ Examples: `14-outbox-drain-backoff`, `31-seq-cursor-crash`
 
 `main` MUST be protected with:
 
-- Require a pull request before merging
+- Require a pull request before merging, with **0 required approving reviews**
 - Require `ci.yml` to pass
 - Require branches to be up to date before merging
 - Require linear history
 - No force pushes, no deletions
 
-Self-review is acceptable on a solo project — the PR exists to run CI and to leave a readable
-record of why, not to satisfy a second pair of eyes that does not exist yet.
+The PR exists to run CI and to leave a readable record of why, not to satisfy a second pair of
+eyes that does not exist yet. Required approvals MUST be **0**, not 1 — GitHub structurally
+refuses to let an author approve their own PR (`GraphQL: Review Can not approve your own pull
+request`), independent of the separate "prevent self-review" ruleset toggle. On a repo with a
+single collaborator, `required_approving_review_count: 1` does not mean "self-review is
+allowed" — it means every PR is permanently unmergeable. Requiring the PR to exist (and pass
+CI) is the actual gate here; approval count is not where the protection lives on a solo repo.
 
 > **Plan dependency:** branch protection and rulesets are available on GitHub Free for **public**
 > repositories only. See the plan dependency note under [J1] — the same caveat applies here, and
