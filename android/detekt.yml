@@ -1,0 +1,15 @@
+build:
+  maxIssues: 0
+
+complexity:
+  LongMethod:
+    threshold: 60
+  LargeClass:
+    threshold: 300
+
+style:
+  ForbiddenComment:
+    active: false
+
+comments:
+  active: false

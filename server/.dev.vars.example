@@ -1,0 +1,2 @@
+JWT_SIGNING_KEY=replace-with-a-long-random-value
+FCM_SERVICE_ACCOUNT_JSON={"type":"service_account","...":"paste the full FCM service account JSON here, single line"}

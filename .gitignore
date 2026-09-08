@@ -1,0 +1,35 @@
+# Secrets
+.dev.vars
+*.keystore
+*.jks
+
+# Workers
+.wrangler/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Android / Gradle
+android/local.properties
+android/app/google-services.json
+android/.gradle/
+android/**/build/
+android/captures/
+*.apk
+*.aab
+.gradle/
+build/
+
+# AI assistant local config
+.claude/
+.mcp.json
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# OS
+.DS_Store
+Thumbs.db

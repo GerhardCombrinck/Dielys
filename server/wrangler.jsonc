@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wonderlys-dev",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "ENVIRONMENT": "dev"
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "LIST_ROOM", "class_name": "ListRoom" },
+      { "name": "USERS_ROOM", "class_name": "UsersRoom" }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["ListRoom", "UsersRoom"]
+    }
+  ],
+  "env": {
+    "dev": {
+      "name": "wonderlys-dev",
+      "vars": { "ENVIRONMENT": "dev" }
+    },
+    "prod": {
+      "name": "wonderlys-prod",
+      "vars": { "ENVIRONMENT": "prod" }
+    }
+  }
+}

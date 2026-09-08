@@ -1,0 +1,24 @@
+{
+  "name": "@wonderlys/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "test": "vitest run",
+    "fix": "biome check --write .",
+    "deploy:dev": "wrangler deploy --env dev",
+    "deploy:prod": "wrangler deploy --env prod"
+  },
+  "dependencies": {
+    "@wonderlys/protocol": "file:../protocol"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.12",
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@cloudflare/workers-types": "^5.20260908.1",
+    "typescript": "^5.6.0",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.129.1"
+  }
+}

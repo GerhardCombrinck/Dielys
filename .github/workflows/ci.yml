@@ -1,0 +1,45 @@
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
+
+jobs:
+  protocol:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'npm', cache-dependency-path: protocol/package-lock.json }
+      - run: npm ci
+        working-directory: protocol
+      - run: npx biome ci .
+        working-directory: protocol
+      - run: npx tsc --noEmit
+        working-directory: protocol
+      - run: npm test
+        working-directory: protocol
+
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'npm', cache-dependency-path: server/package-lock.json }
+      - run: npm ci
+        working-directory: server
+      - run: npx biome ci .
+        working-directory: server
+      - run: npx tsc --noEmit
+        working-directory: server
+      - run: npm test
+        working-directory: server
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: 'temurin', java-version: '21' }
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew ktlintCheck detekt testDebugUnitTest
+        working-directory: android
