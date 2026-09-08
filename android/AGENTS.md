@@ -9,6 +9,11 @@ Needs a local Android SDK (Android Studio, or standalone `cmdline-tools`) with
 `ANDROID_HOME`/`local.properties` pointing at it — not provided by this repo.
 GitHub-hosted CI runners ship one preinstalled; a plain dev machine may not.
 
+Also needs JDK 21 specifically (matches CI's `actions/setup-java` version) —
+`compileOptions`/`kotlinOptions` in `app/build.gradle.kts` target 21, and
+building with an older JDK on `JAVA_HOME`/`PATH` fails with `invalid source
+release: 21`, not a useful error pointing at the real cause.
+
 ```bash
 ./gradlew ktlintCheck detekt testDebugUnitTest
 ```
