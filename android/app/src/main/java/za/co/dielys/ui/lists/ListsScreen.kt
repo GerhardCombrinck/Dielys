@@ -42,7 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import za.co.dielys.data.local.ListEntity
-import za.co.dielys.ui.SyncBanner
+import za.co.dielys.ui.SyncStatus
 import za.co.dielys.ui.TextPrompt
 import za.co.dielys.ui.theme.PillShape
 
@@ -94,6 +94,7 @@ fun ListsScreen(
                         containerColor = MaterialTheme.colorScheme.background,
                     ),
                 actions = {
+                    SyncStatus(pending = pending, stuck = stuck)
                     Box(
                         modifier =
                             Modifier
@@ -114,8 +115,6 @@ fun ListsScreen(
         },
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            SyncBanner(pending = pending, stuck = stuck)
-
             if (rows.isEmpty()) {
                 Empty(onCreate = { creating = true })
             } else {

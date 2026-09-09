@@ -64,7 +64,7 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import za.co.dielys.data.local.TaskEntity
-import za.co.dielys.ui.SyncBanner
+import za.co.dielys.ui.SyncStatus
 import za.co.dielys.ui.TextPrompt
 import za.co.dielys.ui.lists.displayTitle
 import za.co.dielys.ui.theme.PillShape
@@ -121,13 +121,18 @@ fun TaskListScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    SyncStatus(
+                        pending = pending,
+                        stuck = stuck,
+                        labelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
+                    )
+                },
             )
         },
         bottomBar = { AddTaskBar(onAdd = viewModel::add) },
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            SyncBanner(pending = pending, stuck = stuck)
-
             if (board.isEmpty) {
                 Empty()
             } else {
