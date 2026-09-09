@@ -10,6 +10,11 @@ offline-tolerant, syncs over Cloudflare Durable Objects.
 - A Cloudflare account (free plan) for deploying the server
 - `wrangler` CLI (installed via `npm ci` in `server/`)
 
+A freshly-installed `gcloud` won't resolve in a shell (or an AI assistant's tool session) that
+was already open before the install — the installer updates PATH for new processes only. Open
+a new terminal, or call it by full path:
+`"$env:LOCALAPPDATA\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"` on Windows.
+
 ### Getting Started
 
 ```bash
