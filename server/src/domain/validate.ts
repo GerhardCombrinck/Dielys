@@ -28,6 +28,7 @@ import {
   type Mutation,
   type RefreshRequest,
   type RegisterDeviceRequest,
+  type RegisterRequest,
   type TaskPatch,
 } from "@dielys/protocol";
 
@@ -233,6 +234,26 @@ export function validateLoginRequest(input: unknown): Validated<LoginRequest> {
     return fail("password");
   }
   if (input.password.length > MAX_PASSWORD_LENGTH) return fail("password");
+  if (!isId(input.deviceId)) return fail("deviceId");
+  return {
+    ok: true,
+    value: {
+      email: input.email,
+      password: input.password,
+      deviceId: input.deviceId,
+    },
+  };
+}
+
+/**
+ * Public registration (L2, ADR 0004). The minimum length *is* enforced here —
+ * the asymmetry with [validateLoginRequest] is deliberate and is the rule, not
+ * an oversight.
+ */
+export function validateRegisterRequest(input: unknown): Validated<RegisterRequest> {
+  if (!isRecord(input)) return fail("not an object");
+  if (!isEmail(input.email)) return fail("email");
+  if (!isPassword(input.password)) return fail("password too short or too long");
   if (!isId(input.deviceId)) return fail("deviceId");
   return {
     ok: true,

@@ -1,119 +1,50 @@
 package za.co.dielys.data.remote
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerializationException
-import okhttp3.HttpUrl
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.IOException
-import javax.inject.Inject
-import javax.inject.Singleton
-
-private const val HTTP_SERVER_ERROR = 500
-
 /**
- * Login and refresh. Separate from [SyncApi] because these are the two calls that
- * do not carry a bearer token — the client has none yet, or the one it has is dead.
+ * Registration, login and refresh. Separate from [SyncApi] because these are the
+ * calls that do not carry a bearer token — the client has none yet, or the one it
+ * has is dead.
  *
- * `invalid-credentials` covers a wrong password, a wrong email, and an account that
- * does not exist, deliberately: three distinct codes would be an
- * account-enumeration oracle. Nothing here should try to tell them apart.
+ * An interface for the same reason [SyncApi] is one: the result mapping in
+ * `SessionRepository` is where a wrong answer would be silently wrong, and it is
+ * worth testing on the JVM against a fake rather than a socket (H1).
  */
-@Singleton
-class AuthApi
-    @Inject
-    constructor(
-        private val client: OkHttpClient,
-        private val baseUrl: HttpUrl,
-    ) {
-        private val jsonMedia = "application/json".toMediaType()
+interface AuthApi {
+    /**
+     * `POST /auth/login`.
+     *
+     * `invalid-credentials` covers a wrong password, a wrong email, and an
+     * account that does not exist, deliberately: three distinct codes would be an
+     * account-enumeration oracle. Nothing above this should try to tell them
+     * apart.
+     */
+    suspend fun login(
+        email: String,
+        password: String,
+        deviceId: String,
+    ): TokenPair
 
-        suspend fun login(
-            email: String,
-            password: String,
-            deviceId: String,
-        ): TokenPair =
-            post(
-                "login",
-                DielysJson.wire.encodeToString(
-                    LoginRequest.serializer(),
-                    LoginRequest(email, password, deviceId),
-                ),
-            )
+    /**
+     * `POST /auth/register` (L2, ADR 0004). Answers with a session, so a new
+     * account is a signed-in account.
+     *
+     * This one *can* be told apart from a wrong password: `already-exists` means
+     * the email is taken, and there is no honest way for it not to. Accepted, and
+     * rate limited server-side rather than papered over here.
+     */
+    suspend fun register(
+        email: String,
+        password: String,
+        deviceId: String,
+    ): TokenPair
 
-        suspend fun refresh(
-            refreshToken: String,
-            deviceId: String,
-        ): TokenPair =
-            post(
-                "refresh",
-                DielysJson.wire.encodeToString(
-                    RefreshRequest.serializer(),
-                    RefreshRequest(refreshToken, deviceId),
-                ),
-            )
-
-        private suspend fun post(
-            action: String,
-            body: String,
-        ): TokenPair =
-            withContext(Dispatchers.IO) {
-                val url =
-                    baseUrl
-                        .newBuilder()
-                        .addPathSegment("auth")
-                        .addPathSegment(action)
-                        .build()
-                val request =
-                    Request
-                        .Builder()
-                        .url(url)
-                        .post(body.toRequestBody(jsonMedia))
-                        .build()
-
-                val response =
-                    try {
-                        client.newCall(request).execute()
-                    } catch (error: IOException) {
-                        throw ApiException.Transport(error)
-                    }
-
-                response.use {
-                    val text =
-                        try {
-                            it.body.string()
-                        } catch (error: IOException) {
-                            throw ApiException.Transport(error)
-                        }
-                    if (!it.isSuccessful) throw failure(it.code, text)
-                    decode(text)
-                }
-            }
-
-        private fun failure(
-            status: Int,
-            body: String,
-        ): ApiException {
-            val code =
-                try {
-                    DielysJson.wire.decodeFromString(ServerError.serializer(), body).code
-                } catch (_: SerializationException) {
-                    null
-                }
-            return if (status >= HTTP_SERVER_ERROR) {
-                ApiException.Unavailable(status, code)
-            } else {
-                ApiException.Rejected(status, code)
-            }
-        }
-
-        private fun decode(body: String): TokenPair =
-            try {
-                DielysJson.wire.decodeFromString(TokenPair.serializer(), body)
-            } catch (error: SerializationException) {
-                throw ApiException.Unavailable(HTTP_SERVER_ERROR, error.message, error)
-            }
-    }
+    /**
+     * `POST /auth/refresh`. Refresh tokens rotate on every use, so the answer
+     * carries a new one and the presented token is spent — presenting it again is
+     * treated as theft and revokes every session for the user.
+     */
+    suspend fun refresh(
+        refreshToken: String,
+        deviceId: String,
+    ): TokenPair
+}

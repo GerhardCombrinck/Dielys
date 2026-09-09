@@ -19,8 +19,27 @@ function uniqueEmail(): string {
   return `user-${seq}-${crypto.randomUUID()}@dielys.test`;
 }
 
-async function post(path: string, body: unknown, token?: string): Promise<Response> {
-  const headers: Record<string, string> = { "content-type": "application/json" };
+/**
+ * A distinct client per request by default, so one test's attempts do not spend
+ * another's rate-limit allowance (L2, ADR 0004). A test that means to trip a
+ * limit passes the same address twice.
+ */
+let addresses = 0;
+function nextAddress(): string {
+  addresses += 1;
+  return `2001:db8::${addresses.toString(16)}`;
+}
+
+async function post(
+  path: string,
+  body: unknown,
+  token?: string,
+  address: string = nextAddress(),
+): Promise<Response> {
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    "CF-Connecting-IP": address,
+  };
   if (token !== undefined) headers.Authorization = `Bearer ${token}`;
   return SELF.fetch(`https://dielys.test${path}`, {
     method: "POST",
@@ -84,10 +103,124 @@ describe("account creation (L2)", () => {
     const response = await post("/admin/users", { email: uniqueEmail(), password: "short" }, ADMIN);
     expect(response.status).toBe(400);
   });
+});
 
-  it("has no public registration endpoint (L2)", async () => {
-    const response = await post("/auth/register", { email: uniqueEmail(), password: PASSWORD });
-    expect(response.status).toBe(404);
+/** ADR 0004 replaced L2's admin-only registration with a public route. */
+describe("public registration (L2, ADR 0004)", () => {
+  it("creates the account and signs the caller in, in one call", async () => {
+    const email = uniqueEmail();
+    const response = await post("/auth/register", {
+      email,
+      password: PASSWORD,
+      deviceId: "device-a",
+    });
+
+    expect(response.status).toBe(201);
+    const tokens = (await response.json()) as TokenPair;
+    expect(tokens.userId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(tokens.accessToken.split(".")).toHaveLength(3);
+
+    // The session it handed back is a real one, not a placeholder.
+    const memberships = await get("/auth/memberships", tokens.accessToken);
+    expect(memberships.status).toBe(200);
+  });
+
+  it("enforces the minimum password length, where login does not", async () => {
+    const response = await post("/auth/register", {
+      email: uniqueEmail(),
+      password: "short",
+      deviceId: "device-a",
+    });
+    expect(response.status).toBe(400);
+  });
+
+  it("refuses an email that is already taken, case-insensitively", async () => {
+    const email = uniqueEmail();
+    await createUser(email);
+
+    const response = await post("/auth/register", {
+      email: email.toUpperCase(),
+      password: PASSWORD,
+      deviceId: "device-b",
+    });
+    // Knowingly an enumeration oracle, bounded by the rate limit — ADR 0004.
+    expect(response.status).toBe(409);
+  });
+
+  it("signs in on an account made this way", async () => {
+    const email = uniqueEmail();
+    await post("/auth/register", { email, password: PASSWORD, deviceId: "device-a" });
+
+    const tokens = await login(email, "device-b");
+    expect(tokens.accessToken.split(".")).toHaveLength(3);
+  });
+});
+
+describe("auth rate limits (L2, ADR 0004)", () => {
+  /** Same address every time: one client, one bucket. */
+  const from = (n: number) => `198.51.100.${n}`;
+
+  it("stops a client registering over and over", async () => {
+    const client = from(1);
+    const attempt = () =>
+      post(
+        "/auth/register",
+        { email: uniqueEmail(), password: PASSWORD, deviceId: "device-a" },
+        undefined,
+        client,
+      );
+
+    expect((await attempt()).status).toBe(201);
+    expect((await attempt()).status).toBe(201);
+    expect((await attempt()).status).toBe(201);
+
+    const refused = await attempt();
+    expect(refused.status).toBe(429);
+    expect(((await refused.json()) as { code: string }).code).toBe("rate-limited");
+  });
+
+  it("does not spend one client's allowance on another's attempts", async () => {
+    const one = from(2);
+    const two = from(3);
+    const register = (client: string) =>
+      post(
+        "/auth/register",
+        { email: uniqueEmail(), password: PASSWORD, deviceId: "device-a" },
+        undefined,
+        client,
+      );
+
+    for (let i = 0; i < 3; i += 1) expect((await register(one)).status).toBe(201);
+    expect((await register(one)).status).toBe(429);
+    expect((await register(two)).status).toBe(201);
+  });
+
+  it("stops a client guessing passwords", async () => {
+    const client = from(4);
+    const email = uniqueEmail();
+    await createUser(email);
+
+    const guess = () =>
+      post(
+        "/auth/login",
+        { email, password: "wrong-but-long-enough", deviceId: "d" },
+        undefined,
+        client,
+      );
+
+    for (let i = 0; i < 10; i += 1) expect((await guess()).status).toBe(401);
+
+    const refused = await guess();
+    expect(refused.status).toBe(429);
+    // The right password does not get past the limit either — the point is to
+    // stop spending CPU on this client, not to grade the guesses.
+    const correct = await post(
+      "/auth/login",
+      { email, password: PASSWORD, deviceId: "d" },
+      undefined,
+      client,
+    );
+    expect(correct.status).toBe(429);
   });
 });
 

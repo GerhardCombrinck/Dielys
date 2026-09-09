@@ -20,8 +20,27 @@ function uniqueEmail(): string {
   return `device-${seq}-${crypto.randomUUID()}@dielys.test`;
 }
 
-async function post(path: string, body: unknown, token?: string): Promise<Response> {
-  const headers: Record<string, string> = { "content-type": "application/json" };
+/**
+ * A distinct client per request by default, so one test's attempts do not spend
+ * another's rate-limit allowance (L2, ADR 0004). A test that means to trip a
+ * limit passes the same address twice.
+ */
+let addresses = 0;
+function nextAddress(): string {
+  addresses += 1;
+  return `2001:db8::${addresses.toString(16)}`;
+}
+
+async function post(
+  path: string,
+  body: unknown,
+  token?: string,
+  address: string = nextAddress(),
+): Promise<Response> {
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    "CF-Connecting-IP": address,
+  };
   if (token !== undefined) headers.Authorization = `Bearer ${token}`;
   return SELF.fetch(`https://dielys.test${path}`, {
     method: "POST",

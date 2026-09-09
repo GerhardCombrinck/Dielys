@@ -1330,14 +1330,28 @@ therefore a one-line change plus a plan upgrade, at any time.
 
 #### Standard
 
-There is no public registration endpoint. Accounts are created by `scripts/create-user.ts`,
-following [A2](#standard-a2): it MUST print what it is about to do and prompt for confirmation
-before writing to `UsersRoom`.
+`POST /auth/register` is public, per [ADR 0004](adr/0004-open-registration.md). It creates the
+account and issues the same `TokenPair` login does, so registering signs the caller in.
+
+The `ADMIN_TOKEN` route stays alongside it: it is how the first account on a fresh deployment
+is made, and `scripts/create-user.ts` MUST still print what it is about to do and prompt for
+confirmation before writing to `UsersRoom`, following [A2](#standard-a2).
 
 #### Rules
 
-- A public `/auth/register` endpoint is a review blocker unless a new ADR supersedes
-  [ADR 0002](adr/0002-authentication.md) with a reason the user base is expected to grow.
+- The minimum password length MUST be enforced on registration and MUST NOT be enforced on
+  login — rejecting a short *login* tells an attacker their guess was too short to be real.
+- Registration and login MUST both be rate limited. The buckets and windows live in
+  [ADR 0004](adr/0004-open-registration.md); relaxing or removing them is a review blocker.
+- A client MUST be identified for rate limiting by a keyed hash of its address, never by the
+  address itself — a plain digest of an IPv4 address is not an anonymisation, and the address
+  is user data ([D4](#standard-d4)).
+- `already-exists` on registration is a known account-enumeration oracle, accepted in
+  [ADR 0004](adr/0004-open-registration.md) and bounded by the rate limit. **Login MUST stay
+  non-enumerable**: one `invalid-credentials` code for a wrong password, a wrong email and an
+  account that does not exist, with the password hashed even when no such account exists so
+  the two paths cost the same.
+- There is no account deletion endpoint. An abandoned account stays.
 
 ---
 

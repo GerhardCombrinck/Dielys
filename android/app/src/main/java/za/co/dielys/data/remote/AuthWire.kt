@@ -24,6 +24,18 @@ data class LoginRequest(
     val deviceId: String,
 )
 
+/**
+ * `POST /auth/register` (L2, ADR 0004). Same shape as a login and the same
+ * answer — a [TokenPair] — because registering signs you in. Unlike a login,
+ * [MIN_PASSWORD_LENGTH] is enforced here.
+ */
+@Serializable
+data class RegisterRequest(
+    val email: String,
+    val password: String,
+    val deviceId: String,
+)
+
 @Serializable
 data class RefreshRequest(
     val refreshToken: String,

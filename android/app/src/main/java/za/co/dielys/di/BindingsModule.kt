@@ -10,6 +10,8 @@ import za.co.dielys.data.local.PushTokenStore
 import za.co.dielys.data.local.SessionSignal
 import za.co.dielys.data.local.SessionStore
 import za.co.dielys.data.remote.AccessTokens
+import za.co.dielys.data.remote.AuthApi
+import za.co.dielys.data.remote.HttpAuthApi
 import za.co.dielys.data.remote.HttpSyncApi
 import za.co.dielys.data.remote.ListSockets
 import za.co.dielys.data.remote.OkHttpListSockets
@@ -25,6 +27,11 @@ abstract class BindingsModule {
     @Binds
     @Singleton
     abstract fun syncApi(impl: HttpSyncApi): SyncApi
+
+    /** Login, registration and refresh, behind the same kind of seam. */
+    @Binds
+    @Singleton
+    abstract fun authApi(impl: HttpAuthApi): AuthApi
 
     /** The socket half of the same seam, for the same reason (H1). */
     @Binds

@@ -254,3 +254,33 @@ export function selectDevicesForList(sql: SqlStorage, listId: string): DeviceRow
     fcmToken: String(row.fcm_token),
   }));
 }
+
+export interface RateLimitRow {
+  count: number;
+  windowStartedAt: number;
+}
+
+export function selectRateLimit(sql: SqlStorage, bucket: string): RateLimitRow | null {
+  const rows = [
+    ...sql.exec("SELECT count, window_started_at FROM rate_limits WHERE bucket = ?", bucket),
+  ];
+  const row = rows[0];
+  if (row === undefined) return null;
+  return { count: Number(row.count), windowStartedAt: Number(row.window_started_at) };
+}
+
+export function upsertRateLimit(sql: SqlStorage, bucket: string, row: RateLimitRow): void {
+  sql.exec(
+    `INSERT INTO rate_limits (bucket, count, window_started_at) VALUES (?, ?, ?)
+     ON CONFLICT (bucket) DO UPDATE SET count = excluded.count,
+                                        window_started_at = excluded.window_started_at`,
+    bucket,
+    row.count,
+    row.windowStartedAt,
+  );
+}
+
+/** Windows that closed long ago say nothing. Pruned as we go (ADR 0004). */
+export function deleteStaleRateLimits(sql: SqlStorage, before: number): void {
+  sql.exec("DELETE FROM rate_limits WHERE window_started_at < ?", before);
+}

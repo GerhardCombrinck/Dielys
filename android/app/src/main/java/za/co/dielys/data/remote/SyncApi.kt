@@ -35,6 +35,22 @@ interface SyncApi {
     suspend fun memberships(): List<Membership>
 
     /**
+     * `POST /lists/{listId}/invite`. Owner only (L3) — a member asking gets a
+     * 403, which arrives as [ApiException.Rejected].
+     *
+     * The token is a short-lived JWT scoped to this one list, distinct in claim
+     * shape from an access token so it cannot be replayed as one. What carries it
+     * to the other person is a UI concern; the protocol does not care.
+     */
+    suspend fun createInvite(listId: String): CreateInviteResponse
+
+    /**
+     * `POST /invites/accept`, authenticated as the invitee. Accepting one twice
+     * is a no-op rather than an error, so a retry is harmless (L3).
+     */
+    suspend fun acceptInvite(inviteToken: String): AcceptInviteResponse
+
+    /**
      * `POST /devices/token`. Not a sync call, but it belongs to the same
      * transport: it needs the bearer token and the refresh-once-on-401 handling,
      * and a second client for one endpoint would duplicate both.

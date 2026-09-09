@@ -251,4 +251,9 @@ object ErrorCode {
     const val INCOMPLETE_CREATE = "incomplete-create"
     const val INTERNAL = "internal"
     const val INVALID_CREDENTIALS = "invalid-credentials"
+    const val TOKEN_EXPIRED = "token-expired"
+    const val FORBIDDEN = "forbidden"
+    const val NOT_FOUND = "not-found"
+    const val ALREADY_EXISTS = "already-exists"
+    const val RATE_LIMITED = "rate-limited"
 }

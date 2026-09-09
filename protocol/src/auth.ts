@@ -33,6 +33,21 @@ export interface LoginRequest {
   deviceId: string;
 }
 
+/**
+ * `POST /auth/register` (L2, ADR 0004). Same shape as a login, because it ends
+ * the same way: a successful registration returns the `TokenPair` login returns
+ * and the caller is signed in. A second round trip to log in afterwards would be
+ * two chances to fail for one intent.
+ *
+ * Unlike a login, the password here IS strength-checked — see
+ * `MIN_PASSWORD_LENGTH`.
+ */
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  deviceId: string;
+}
+
 export interface RefreshRequest {
   refreshToken: string;
   deviceId: string;
@@ -92,4 +107,11 @@ export type AuthErrorCode =
   | "token-reused"
   | "forbidden"
   | "not-found"
-  | "already-exists";
+  /**
+   * Registration answers this when the email is taken. It is an
+   * account-enumeration oracle and there is no honest way for it not to be —
+   * accepted and bounded by the rate limit, see ADR 0004. Login MUST NOT use it.
+   */
+  | "already-exists"
+  /** Too many attempts in the window (L2, ADR 0004). Answered with a 429. */
+  | "rate-limited";

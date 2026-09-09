@@ -1,6 +1,7 @@
 # 0002 — Authentication: self-issued JWT, admin-seeded accounts, signed invite links
 
-**Status:** Accepted
+**Status:** Accepted; the registration decision superseded by
+[ADR 0004](0004-open-registration.md)
 **Date:** 2026-09-08
 
 ## Context
@@ -50,6 +51,10 @@ port for two user accounts is a dependency this app does not need
   LWW tie-breaks — introduced once, used for both auth and conflict resolution.
 
 ### Registration: admin-seeded, not open signup
+
+> **Superseded by [ADR 0004](0004-open-registration.md).** Registration is now public, and
+> the rate limiting this section's reasoning allowed us to skip is built. The rest of this
+> ADR stands.
 
 There is no public registration endpoint. With exactly two users, open signup is attack
 surface with no product value. Accounts are created by `scripts/create-user.ts`, a script that

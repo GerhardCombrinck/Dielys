@@ -16,11 +16,29 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:theme="@style/Theme.Dielys"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+                A tapped invite link (L3). A custom scheme rather than an https
+                app link, which would need a verified domain and a page to serve
+                it; the cost is that some chat apps will not make it tappable,
+                which is why pasting one has to work too.
+
+                The link carries an invite token and nothing else. It is a bearer
+                credential, so the app treats an arriving one as an offer to join,
+                never as an instruction it acts on without the person seeing it.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="dielys" android:host="invite" />
             </intent-filter>
         </activity>
 

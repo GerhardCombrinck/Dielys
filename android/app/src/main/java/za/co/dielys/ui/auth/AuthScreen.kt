@@ -12,6 +12,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,14 +23,22 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import za.co.dielys.BuildConfig
 
+/**
+ * Sign in, or make an account. One screen, because they differ by a button and a
+ * sentence, and a second screen would be a second place to get the password
+ * field wrong.
+ */
 @Composable
-fun SignInScreen(
-    state: SignInUiState,
+fun AuthScreen(
+    state: AuthUiState,
     onEmail: (String) -> Unit,
     onPassword: (String) -> Unit,
+    onMode: (AuthMode) -> Unit,
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val creating = state.mode == AuthMode.SignUp
+
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
@@ -37,9 +46,12 @@ fun SignInScreen(
     ) {
         Text("Dielys", style = MaterialTheme.typography.displaySmall)
         Text(
-            "Accounts are made by the admin, not here.",
+            if (creating) {
+                "Make an account. Someone can share a list with you once you have one."
+            } else {
+                "Sign in to the lists you share."
+            },
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 8.dp, bottom = 24.dp),
         )
@@ -65,6 +77,15 @@ fun SignInScreen(
             singleLine = true,
             enabled = !state.busy,
             visualTransformation = PasswordVisualTransformation(),
+            // Only when making one: telling somebody signing in that their
+            // password is too short tells an attacker their guess was too short
+            // to be real.
+            supportingText =
+                if (creating) {
+                    { Text("At least ${state.minPasswordLength} characters.") }
+                } else {
+                    null
+                },
             keyboardOptions =
                 KeyboardOptions(
                     keyboardType = KeyboardType.Password,
@@ -86,7 +107,15 @@ fun SignInScreen(
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             }
-            Text("Sign in")
+            Text(if (creating) "Create account" else "Sign in")
+        }
+
+        TextButton(
+            onClick = { onMode(if (creating) AuthMode.SignIn else AuthMode.SignUp) },
+            enabled = !state.busy,
+            modifier = Modifier.padding(top = 4.dp),
+        ) {
+            Text(if (creating) "I already have an account" else "Create an account")
         }
 
         state.problem?.let { problem ->

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
@@ -23,10 +22,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,11 +53,23 @@ fun ListsScreen(
     val lists by viewModel.lists.collectAsStateWithLifecycle()
     val pending by viewModel.pending.collectAsStateWithLifecycle()
     val stuck by viewModel.stuck.collectAsStateWithLifecycle()
+    val invite by viewModel.invite.collectAsStateWithLifecycle()
+    val invitation by viewModel.invitation.collectAsStateWithLifecycle()
+    val joined by viewModel.joined.collectAsStateWithLifecycle()
     var creating by remember { mutableStateOf(false) }
+    var joining by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<ListEntity?>(null) }
+    val snackbars = remember { SnackbarHostState() }
+
+    LaunchedEffect(joined) {
+        val message = joined ?: return@LaunchedEffect
+        snackbars.showSnackbar(message)
+        viewModel.dismissJoined()
+    }
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbars) },
         topBar = {
             TopAppBar(
                 title = { Text("Dielys") },
@@ -66,9 +80,7 @@ fun ListsScreen(
                         actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
                 actions = {
-                    IconButton(onClick = onSignOut) {
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Sign out")
-                    }
+                    ScreenMenu(onJoin = { joining = true }, onSignOut = onSignOut)
                 },
             )
         },
@@ -90,6 +102,7 @@ fun ListsScreen(
                             list = list,
                             onOpen = { onOpen(list.id) },
                             onRename = { renaming = list },
+                            onShare = { viewModel.invite(list) },
                             onDelete = { viewModel.delete(list.id) },
                         )
                         HorizontalDivider()
@@ -118,6 +131,52 @@ fun ListsScreen(
             onConfirm = { viewModel.rename(list.id, it) },
         )
     }
+
+    invite?.let { state ->
+        InviteDialog(state = state, onDismiss = viewModel::dismissInvite)
+    }
+
+    if (joining) {
+        JoinDialog(onDismiss = { joining = false }, onJoin = viewModel::join)
+    }
+
+    if (invitation != null) {
+        InvitationDialog(
+            onAccept = viewModel::acceptInvitation,
+            onDecline = viewModel::declineInvitation,
+        )
+    }
+}
+
+/** Sign out is here rather than on its own icon so joining has somewhere to be. */
+@Composable
+private fun ScreenMenu(
+    onJoin: () -> Unit,
+    onSignOut: () -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+
+    Box {
+        IconButton(onClick = { open = true }) {
+            Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text("Join a list") },
+                onClick = {
+                    open = false
+                    onJoin()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Sign out") },
+                onClick = {
+                    open = false
+                    onSignOut()
+                },
+            )
+        }
+    }
 }
 
 @Composable
@@ -125,6 +184,7 @@ private fun ListRow(
     list: ListEntity,
     onOpen: () -> Unit,
     onRename: () -> Unit,
+    onShare: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
@@ -161,6 +221,17 @@ private fun ListRow(
                         onRename()
                     },
                 )
+                // L3: only the owner may invite, so a list somebody else shared
+                // does not offer it rather than offering it and being refused.
+                if (list.ownedByMe) {
+                    DropdownMenuItem(
+                        text = { Text("Share") },
+                        onClick = {
+                            menuOpen = false
+                            onShare()
+                        },
+                    )
+                }
                 DropdownMenuItem(
                     text = { Text("Delete") },
                     onClick = {
@@ -182,7 +253,7 @@ private fun Empty() {
     ) {
         Text("No lists yet", style = MaterialTheme.typography.titleMedium)
         Text(
-            "Make one with the + button, or wait for a sync to pull the ones you were invited to.",
+            "Make one with the + button, or use the menu to join one you were invited to.",
             style = MaterialTheme.typography.bodyMedium,
         )
     }

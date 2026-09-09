@@ -90,6 +90,32 @@ class HttpSyncApi
                 request(url("auth", "memberships"), body = null),
             ).memberships
 
+        override suspend fun createInvite(listId: String): CreateInviteResponse =
+            decode(
+                CreateInviteResponse.serializer(),
+                request(
+                    url("lists", listId, "invite"),
+                    DielysJson.wire
+                        .encodeToString(
+                            CreateInviteRequest.serializer(),
+                            CreateInviteRequest(listId),
+                        ).toRequestBody(jsonMedia),
+                ),
+            )
+
+        override suspend fun acceptInvite(inviteToken: String): AcceptInviteResponse =
+            decode(
+                AcceptInviteResponse.serializer(),
+                request(
+                    url("invites", "accept"),
+                    DielysJson.wire
+                        .encodeToString(
+                            AcceptInviteRequest.serializer(),
+                            AcceptInviteRequest(inviteToken),
+                        ).toRequestBody(jsonMedia),
+                ),
+            )
+
         private fun url(vararg segments: String): HttpUrl =
             baseUrl.newBuilder().apply { segments.forEach { addPathSegment(it) } }.build()
 

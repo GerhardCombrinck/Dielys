@@ -1,8 +1,10 @@
 package za.co.dielys.data.sync
 
+import za.co.dielys.data.remote.AcceptInviteResponse
 import za.co.dielys.data.remote.ApiException
 import za.co.dielys.data.remote.CatchUpResponse
 import za.co.dielys.data.remote.ChangeEnvelope
+import za.co.dielys.data.remote.CreateInviteResponse
 import za.co.dielys.data.remote.DielysJson
 import za.co.dielys.data.remote.ErrorCode
 import za.co.dielys.data.remote.ListChange
@@ -50,6 +52,15 @@ class FakeSyncApi : SyncApi {
 
     /** Makes device registration fail the way a token the server will not take fails. */
     var rejectPushToken: Boolean = false
+
+    /** Makes the next invite fail the way a 403 for somebody else's list fails (L3). */
+    var rejectInviteWith: String? = null
+
+    /** The invite token this fake hands out, and the only one it will accept. */
+    var inviteToken: String = "invite.header.signature"
+
+    /** Which list [acceptInvite] joins the caller to. Null means the token is dead. */
+    var inviteFor: String? = null
 
     val sentBodies: MutableList<String> = mutableListOf()
     val claims: MutableList<String> = mutableListOf()
@@ -134,6 +145,40 @@ class FakeSyncApi : SyncApi {
         gate()
         if (rejectPushToken) throw ApiException.Rejected(status = 400, code = ErrorCode.MALFORMED)
         pushTokens += fcmToken
+    }
+
+    override suspend fun createInvite(listId: String): CreateInviteResponse {
+        gate()
+        rejectInviteWith?.let { code ->
+            rejectInviteWith = null
+            throw ApiException.Rejected(status = 403, code = code)
+        }
+        inviteFor = listId
+        return CreateInviteResponse(inviteToken = inviteToken, expiresIn = INVITE_TTL_SECONDS)
+    }
+
+    override suspend fun acceptInvite(inviteToken: String): AcceptInviteResponse {
+        gate()
+        val listId = inviteFor
+        if (inviteToken != this.inviteToken || listId == null) {
+            // The server answers 401 for an expired, mistyped or wrong-shaped
+            // invite alike, so the fake does too.
+            throw ApiException.Unauthorized(ErrorCode.UNAUTHORIZED)
+        }
+
+        // L3: accepting twice is a no-op, and says so rather than failing.
+        val already = memberOf.any { it.listId == listId }
+        if (!already) memberOf += Membership(listId = listId, role = MembershipRole.MEMBER)
+        return AcceptInviteResponse(
+            listId = listId,
+            role = MembershipRole.MEMBER,
+            alreadyMember = already,
+        )
+    }
+
+    /** Answers the next invite the way the server answers a non-owner (L3). */
+    fun refuseInviteAsNotOwner() {
+        rejectInviteWith = ErrorCode.FORBIDDEN
     }
 
     /** A change made by the other device, already on the server. */
@@ -235,4 +280,9 @@ class FakeSyncApi : SyncApi {
 
     private fun incompleteCreate(): Nothing =
         throw ApiException.Rejected(status = 400, code = ErrorCode.INCOMPLETE_CREATE)
+
+    private companion object {
+        /** Seven days, matching the server. Nothing here checks it; the server does. */
+        const val INVITE_TTL_SECONDS = 604_800L
+    }
 }

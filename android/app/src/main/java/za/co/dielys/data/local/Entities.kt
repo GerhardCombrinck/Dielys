@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import za.co.dielys.data.remote.MembershipRole
 
 /**
  * The local database is the only thing the UI reads (E1). Everything here is
@@ -25,7 +26,14 @@ data class ListEntity(
     @ColumnInfo(name = "updated_at") val updatedAt: String? = null,
     /** `owner` or `member`, from `/auth/memberships`. Null until that call lands. */
     @ColumnInfo(name = "role") val role: String? = null,
-)
+) {
+    /**
+     * L3: only the owner may invite. Null — a list whose membership has not been
+     * fetched yet — reads as not owned, so the option is missing until the answer
+     * is known rather than offered and then refused.
+     */
+    val ownedByMe: Boolean get() = role == MembershipRole.OWNER
+}
 
 @Entity(
     tableName = "tasks",

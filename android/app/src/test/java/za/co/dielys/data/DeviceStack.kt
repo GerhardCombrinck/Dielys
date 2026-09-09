@@ -25,6 +25,8 @@ class DeviceStack(
     val applier = ChangeApplier(db)
     val push = FakePushTokens()
     val engine = SyncEngine(db, api, applier, push)
+    val sharing = SharingRepository(api, scheduler)
+    val invites = PendingInvite()
     val repo =
         DielysRepository(
             db = db,

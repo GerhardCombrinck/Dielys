@@ -91,13 +91,17 @@ Re-sending a mutation with the same `idempotencyKey` returns the original change
 `"duplicate": true` and does not add a second changelog row — that is [F5.2](docs/SYNC.md)
 working, and is worth seeing once by hand.
 
-Endpoints are listed in [protocol/PROTOCOL.md](protocol/PROTOCOL.md). The Android app has no
-sync code yet, so `curl` is currently the only client.
+Endpoints are listed in [protocol/PROTOCOL.md](protocol/PROTOCOL.md).
 
 ### Creating an account
 
-There is no public registration ([L2](docs/CODE_STANDARD.md#standard-l2)) — accounts are made
-by hand:
+Registration is open ([ADR 0004](docs/adr/0004-open-registration.md)): anyone with the Worker
+URL can make an account from the app's sign-up screen, which is what makes it possible to
+share a list with someone who does not already have one. Both registration and login are rate
+limited per client and, for registration, globally per day.
+
+Accounts can still be made from the command line, which is how the first one on a fresh
+deployment gets made:
 
 ```bash
 DIELYS_URL=https://dielys-dev.dielys.workers.dev DIELYS_ADMIN_TOKEN=... node --experimental-strip-types scripts/create-user.ts you@example.com
@@ -105,6 +109,14 @@ DIELYS_URL=https://dielys-dev.dielys.workers.dev DIELYS_ADMIN_TOKEN=... node --e
 
 It prompts for confirmation and then for the password. Use a generated one — see
 `scripts/AGENTS.md` for why that matters here.
+
+### Sharing a list
+
+The owner of a list shares it from the list's menu. That mints a seven-day invite token
+([L3](docs/CODE_STANDARD.md#standard-l3)) wrapped in a `dielys://invite?t=...` link and hands
+it to the share sheet. The invite is a bearer credential — whoever holds it joins the list —
+so it goes to one person, not into a group chat. Tapping the link on a phone that has the app
+offers to join; the app never joins on its own, because a link is something anyone can send.
 
 **Protocol** (shared types, no server needed to build it):
 

@@ -15,7 +15,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import za.co.dielys.data.DeviceStack
+import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.sync.FakeSyncApi
+import za.co.dielys.domain.InviteLink
 
 /**
  * The lists screen sees what Room holds and nothing else (E1.2), so these run the
@@ -34,7 +36,7 @@ class ListsViewModelTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         phone = DeviceStack(api, "device-a")
-        viewModel = ListsViewModel(phone.repo)
+        viewModel = ListsViewModel(phone.repo, phone.sharing, phone.invites)
     }
 
     @After
@@ -118,6 +120,129 @@ class ListsViewModelTest {
                 assertEquals(2, awaitItem())
             }
         }
+
+    @Test
+    fun `sharing a list turns the invite into a link`() =
+        runTest(dispatcher) {
+            api.inviteToken = "aaa.bbb.ccc"
+
+            viewModel.invite(owned("list-1", "Groceries"))
+
+            val ready = viewModel.invite.value as InviteState.Ready
+            assertEquals("Groceries", ready.listTitle)
+            assertEquals(InviteLink.url("aaa.bbb.ccc"), ready.link)
+        }
+
+    /** L3: the screen hides the option, and the server refuses it anyway. */
+    @Test
+    fun `a list somebody else shared cannot be invited to`() =
+        runTest(dispatcher) {
+            api.refuseInviteAsNotOwner()
+
+            viewModel.invite(owned("list-1", "Groceries"))
+
+            val failed = viewModel.invite.value as InviteState.Failed
+            assertEquals("Only the person who made this list can share it.", failed.message)
+        }
+
+    @Test
+    fun `no connection is not a dead invite`() =
+        runTest(dispatcher) {
+            api.online = false
+
+            viewModel.invite(owned("list-1", "Groceries"))
+
+            val failed = viewModel.invite.value as InviteState.Failed
+            assertEquals("No connection. Try again when you have signal.", failed.message)
+        }
+
+    @Test
+    fun `a pasted message with a link in it joins the list`() =
+        runTest(dispatcher) {
+            api.inviteToken = "aaa.bbb.ccc"
+            api.inviteFor = "list-from-the-other-phone"
+
+            viewModel.join("Join \"Braai\" on Dielys: ${InviteLink.url("aaa.bbb.ccc")}")
+
+            assertEquals("Joined. The list will appear in a moment.", viewModel.joined.value)
+            // H3.12: the list is on the server, not here, so the join asks for a
+            // sync rather than leaving it to the half-hourly worker.
+            assertEquals(1, phone.scheduler.requests)
+        }
+
+    @Test
+    fun `accepting the same invite twice is a no-op, not an error`() =
+        runTest(dispatcher) {
+            api.inviteToken = "aaa.bbb.ccc"
+            api.inviteFor = "list-from-the-other-phone"
+
+            viewModel.join(InviteLink.url("aaa.bbb.ccc"))
+            viewModel.dismissJoined()
+            viewModel.join(InviteLink.url("aaa.bbb.ccc"))
+
+            assertEquals("You are already on that list.", viewModel.joined.value)
+        }
+
+    @Test
+    fun `an expired invite says to ask for a new one`() =
+        runTest(dispatcher) {
+            api.inviteFor = "list-from-the-other-phone"
+
+            viewModel.join(InviteLink.url("some.other.token"))
+
+            assertEquals("That invite has expired. Ask for a new one.", viewModel.joined.value)
+        }
+
+    @Test
+    fun `text with no invite in it never reaches the server`() =
+        runTest(dispatcher) {
+            viewModel.join("see you saturday")
+
+            assertEquals("That does not look like an invite.", viewModel.joined.value)
+            assertEquals(null, api.inviteFor)
+        }
+
+    /**
+     * A link is something a stranger can send, so a tapped one is offered and
+     * never acted on until the person on the phone says so.
+     */
+    @Test
+    fun `a tapped link waits to be accepted`() =
+        runTest(dispatcher) {
+            api.inviteToken = "aaa.bbb.ccc"
+            api.inviteFor = "list-from-the-other-phone"
+
+            phone.invites.offer(InviteLink.url("aaa.bbb.ccc"))
+            assertNotNull(viewModel.invitation.value)
+            assertEquals(null, viewModel.joined.value)
+
+            viewModel.acceptInvitation()
+
+            assertEquals("Joined. The list will appear in a moment.", viewModel.joined.value)
+            assertEquals(null, viewModel.invitation.value)
+        }
+
+    @Test
+    fun `a declined link is gone rather than asked about again`() =
+        runTest(dispatcher) {
+            api.inviteFor = "list-from-the-other-phone"
+            phone.invites.offer(InviteLink.url("aaa.bbb.ccc"))
+
+            viewModel.declineInvitation()
+
+            assertEquals(null, viewModel.invitation.value)
+            assertEquals(null, viewModel.joined.value)
+        }
+
+    /**
+     * A row as the screen would have it, built rather than read: reading Room
+     * first would resume this test off its own dispatcher, and the view model's
+     * work would then be queued behind an assertion instead of done before it.
+     */
+    private fun owned(
+        id: String,
+        title: String,
+    ): ListEntity = ListEntity(id = id, title = title, role = "owner")
 
     private companion object {
         const val LIMIT = 20

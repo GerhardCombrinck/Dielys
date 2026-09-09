@@ -7,6 +7,13 @@ import {
   PASSWORD_ITERATIONS,
   verifyPassword,
 } from "../auth/password.js";
+import {
+  bucketFor,
+  LOGIN_PER_CLIENT,
+  type RateLimit,
+  REGISTER_GLOBAL,
+  REGISTER_PER_CLIENT,
+} from "../auth/ratelimit.js";
 import { log } from "../lib/log.js";
 import {
   FcmSender,
@@ -23,6 +30,7 @@ import {
   deleteDevice,
   deleteExpiredRefreshTokens,
   deleteRefreshTokensForUser,
+  deleteStaleRateLimits,
   insertMembership,
   insertRefreshToken,
   insertUser,
@@ -30,11 +38,13 @@ import {
   selectDevicesForList,
   selectMembership,
   selectMemberships,
+  selectRateLimit,
   selectRefreshToken,
   selectUserByEmail,
   selectUserById,
   updateUserPassword,
   upsertDevice,
+  upsertRateLimit,
 } from "../storage/users.js";
 
 /** 30 days (L1). */
@@ -47,6 +57,13 @@ export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
  * not the place to find out.
  */
 const MAX_WAKE_TARGETS = 32;
+
+/**
+ * A window that closed this long ago cannot affect any limit, so its row is
+ * dead weight. The longest window in use, by construction — a shorter value
+ * here would silently reset the daily registration ceiling.
+ */
+const RATE_LIMIT_RETENTION_MS = REGISTER_GLOBAL.windowMs;
 
 export type UsersResult<T> = { ok: true; value: T } | { ok: false; code: AuthErrorCode };
 
@@ -92,8 +109,13 @@ export class UsersRoom extends DurableObject {
   }
 
   /**
-   * There is no public registration endpoint (L2) — this is reached only by
-   * the Worker's admin route, which `scripts/create-user.ts` calls.
+   * Creates the account and nothing else. Reached by the `ADMIN_TOKEN` route,
+   * which is how the first account on a fresh deployment is made, and by
+   * [register], which is the public path (L2, ADR 0004).
+   *
+   * Rate limiting is the caller's job, not this method's: the admin route is
+   * already behind a secret, and limiting it would mean a held secret could
+   * lock itself out.
    */
   async createUser(email: string, password: string, now: number): Promise<UsersResult<string>> {
     const normalized = normalizeEmail(email);
@@ -117,12 +139,53 @@ export class UsersRoom extends DurableObject {
     return { ok: true, value: id };
   }
 
+  /**
+   * Public registration (L2, ADR 0004). Creates the account and signs the
+   * caller in, because a second round trip to log in afterwards would be two
+   * chances to fail for one intent.
+   *
+   * Both limits are consumed before the password is hashed. PBKDF2 is the
+   * expensive thing on this path, and a limiter that runs after it has already
+   * paid for the request it was meant to refuse.
+   *
+   * `already-exists` here is an account-enumeration oracle. It is accepted, and
+   * bounded by [REGISTER_PER_CLIENT] — see ADR 0004. Login must not leak the
+   * same thing, and does not.
+   */
+  async register(
+    email: string,
+    password: string,
+    deviceId: string,
+    clientKey: string,
+    now: number,
+  ): Promise<UsersResult<Session>> {
+    if (!this.consume(REGISTER_PER_CLIENT, clientKey, now)) {
+      return { ok: false, code: "rate-limited" };
+    }
+    if (!this.consume(REGISTER_GLOBAL, "all", now)) {
+      log("warn", "usersroom.register.ceiling", {});
+      return { ok: false, code: "rate-limited" };
+    }
+
+    const created = await this.createUser(email, password, now);
+    if (!created.ok) return created;
+
+    return { ok: true, value: await this.issueSession(created.value, deviceId, now) };
+  }
+
   async login(
     email: string,
     password: string,
     deviceId: string,
+    clientKey: string,
     now: number,
   ): Promise<UsersResult<Session>> {
+    // Before the hash, and before the lookup: a limiter that runs afterwards
+    // has already spent the CPU it exists to protect.
+    if (!this.consume(LOGIN_PER_CLIENT, clientKey, now)) {
+      return { ok: false, code: "rate-limited" };
+    }
+
     const user = selectUserByEmail(this.sql, normalizeEmail(email));
 
     if (user === null) {
@@ -372,6 +435,30 @@ export class UsersRoom extends DurableObject {
    * bootstrapping a second time without an explicit token. */
   async userCount(): Promise<number> {
     return countUsers(this.sql);
+  }
+
+  /**
+   * Fixed window: the first attempt opens one, and everything inside it counts
+   * against the same allowance until it closes. Returns whether this attempt is
+   * within the limit.
+   *
+   * An attempt over the limit still increments, so hammering keeps the window
+   * shut rather than rolling it — which is the point of refusing.
+   */
+  private consume(limit: RateLimit, clientKey: string, now: number): boolean {
+    const bucket = bucketFor(limit, clientKey);
+    return this.ctx.storage.transactionSync(() => {
+      deleteStaleRateLimits(this.sql, now - RATE_LIMIT_RETENTION_MS);
+
+      const current = selectRateLimit(this.sql, bucket);
+      const open = current !== null && now - current.windowStartedAt < limit.windowMs;
+      const next = open
+        ? { count: current.count + 1, windowStartedAt: current.windowStartedAt }
+        : { count: 1, windowStartedAt: now };
+
+      upsertRateLimit(this.sql, bucket, next);
+      return next.count <= limit.limit;
+    });
   }
 
   private async issueSession(userId: string, deviceId: string, now: number): Promise<Session> {
