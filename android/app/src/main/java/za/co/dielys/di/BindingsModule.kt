@@ -7,9 +7,12 @@ import dagger.hilt.components.SingletonComponent
 import za.co.dielys.data.SessionRepository
 import za.co.dielys.data.local.DeviceIdentity
 import za.co.dielys.data.local.PushTokenStore
+import za.co.dielys.data.local.SessionSignal
 import za.co.dielys.data.local.SessionStore
 import za.co.dielys.data.remote.AccessTokens
 import za.co.dielys.data.remote.HttpSyncApi
+import za.co.dielys.data.remote.ListSockets
+import za.co.dielys.data.remote.OkHttpListSockets
 import za.co.dielys.data.remote.SyncApi
 import za.co.dielys.data.sync.SyncScheduler
 import za.co.dielys.data.sync.WorkManagerSyncScheduler
@@ -22,6 +25,11 @@ abstract class BindingsModule {
     @Binds
     @Singleton
     abstract fun syncApi(impl: HttpSyncApi): SyncApi
+
+    /** The socket half of the same seam, for the same reason (H1). */
+    @Binds
+    @Singleton
+    abstract fun listSockets(impl: OkHttpListSockets): ListSockets
 
     @Binds
     @Singleton
@@ -42,4 +50,14 @@ abstract class BindingsModule {
     @Binds
     @Singleton
     abstract fun pushTokenStore(impl: SessionStore): PushTokenStore
+
+    /**
+     * Third face, watched rather than read. Deliberately not bound to
+     * [SessionRepository]: the socket supervisor needs both this and the access
+     * token, and taking both from the repository would close a dependency cycle
+     * through [HttpSyncApi].
+     */
+    @Binds
+    @Singleton
+    abstract fun sessionSignal(impl: SessionStore): SessionSignal
 }

@@ -8,6 +8,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import za.co.dielys.BuildConfig
@@ -58,6 +61,19 @@ object DataModule {
             // OkHttp retrying underneath would hide a failure the drain needs to see.
             .retryOnConnectionFailure(false)
             .build()
+
+    /**
+     * `SupervisorJob` so one failed child cannot take the rest of the process's
+     * long-lived work with it, and `Default` because nothing on it blocks — the
+     * socket reads on OkHttp's own threads and the database on Room's.
+     *
+     * Never cancelled. It is the process's scope, and the process ending is what
+     * ends it.
+     */
+    @Provides
+    @Singleton
+    @ApplicationScope
+    fun applicationScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     @Provides
     @Singleton

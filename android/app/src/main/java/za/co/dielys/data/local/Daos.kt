@@ -27,6 +27,14 @@ interface ListDao {
     @Query("SELECT id FROM lists ORDER BY id")
     suspend fun knownIds(): List<String>
 
+    /**
+     * The same set, watched. This is how a list joined by invite gets a socket
+     * without anything telling the socket supervisor about it: list discovery
+     * writes the row and the query emits.
+     */
+    @Query("SELECT id FROM lists ORDER BY id")
+    fun observeKnownIds(): Flow<List<String>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(list: ListEntity)
 

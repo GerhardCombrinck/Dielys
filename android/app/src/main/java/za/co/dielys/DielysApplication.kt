@@ -5,7 +5,9 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
 import za.co.dielys.data.push.PushTokens
+import za.co.dielys.data.sync.ForegroundWatch
 import za.co.dielys.data.sync.SyncScheduler
+import za.co.dielys.data.sync.SyncSockets
 import javax.inject.Inject
 
 /**
@@ -26,6 +28,12 @@ class DielysApplication :
     @Inject
     lateinit var pushTokens: PushTokens
 
+    @Inject
+    lateinit var sockets: SyncSockets
+
+    @Inject
+    lateinit var foreground: ForegroundWatch
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
@@ -42,5 +50,10 @@ class DielysApplication :
         // install is never. This is how a registration the server lost gets sent
         // again (M2).
         pushTokens.refresh()
+        // The socket is the latency path and nothing else — it opens only while
+        // somebody is looking at the app, and closes when they stop. Everything
+        // above still works with it never connecting at all.
+        registerActivityLifecycleCallbacks(foreground)
+        sockets.start()
     }
 }

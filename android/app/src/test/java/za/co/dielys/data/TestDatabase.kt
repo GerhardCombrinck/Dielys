@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import za.co.dielys.data.local.DielysDatabase
+import java.util.concurrent.Executor
 
 /**
  * A real Room database on the JVM.
@@ -17,10 +18,22 @@ import za.co.dielys.data.local.DielysDatabase
  * app uses. Robolectric backs that with real SQLite, so byte-for-byte BINARY
  * collation -- which the whole ordering contract rests on -- is the real thing.
  */
-fun inMemoryDatabase(): DielysDatabase =
+fun inMemoryDatabase(queryExecutor: Executor? = null): DielysDatabase =
     Room
         .inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext<Context>(),
             DielysDatabase::class.java,
         ).allowMainThreadQueries()
+        .apply { if (queryExecutor != null) setQueryExecutor(queryExecutor) }
         .build()
+
+/**
+ * Runs Room's queries and its invalidation callbacks on whatever thread asked for
+ * them, so a `Flow` emits inside the test's dispatcher instead of arriving from a
+ * pool thread whenever it gets there.
+ *
+ * Only for tests that assert on *when* an emission happens. The default executor
+ * is the honest one for everything else, and this one would deadlock on nested
+ * transactions.
+ */
+val directExecutor = Executor { it.run() }

@@ -3,6 +3,9 @@ package za.co.dielys.data.local
 import android.content.Context
 import android.content.SharedPreferences
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import za.co.dielys.domain.Uuid7
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -38,6 +41,21 @@ interface PushTokenStore {
 }
 
 /**
+ * Whether there is a session, as something that can be watched.
+ *
+ * The socket supervisor has to react to a sign-in and a sign-out, and it cannot
+ * be told: it would have to be injected into [za.co.dielys.data.SessionRepository]
+ * to be told, and that repository is already what hands out the access token the
+ * supervisor uses — a cycle Dagger would refuse. Watching the one piece of state
+ * both of them care about breaks it, and leaves the supervisor a reaction to
+ * state rather than a thing with an on switch somebody has to remember to flip.
+ */
+interface SessionSignal {
+    /** True while a refresh token exists. Access tokens expire; sessions do not. */
+    val signedIn: StateFlow<Boolean>
+}
+
+/**
  * Device identity and the current session, in preferences rather than the database
  * — they must survive a schema problem that the database might not, and none of it
  * is queried or joined.
@@ -52,9 +70,14 @@ class SessionStore
     constructor(
         @ApplicationContext context: Context,
     ) : DeviceIdentity,
-        PushTokenStore {
+        PushTokenStore,
+        SessionSignal {
         private val prefs: SharedPreferences =
             context.getSharedPreferences("dielys-session", Context.MODE_PRIVATE)
+
+        private val session = MutableStateFlow(prefs.getString(KEY_REFRESH_TOKEN, null) != null)
+
+        override val signedIn: StateFlow<Boolean> = session.asStateFlow()
 
         @get:Synchronized
         override val deviceId: String
@@ -67,9 +90,17 @@ class SessionStore
             get() = prefs.getString(KEY_ACCESS_TOKEN, null)
             set(value) = prefs.edit().putString(KEY_ACCESS_TOKEN, value).apply()
 
+        /**
+         * The one write that decides whether there is a session, so it is also the
+         * one that moves [signedIn]. Setting it anywhere else would let the two
+         * disagree.
+         */
         var refreshToken: String?
             get() = prefs.getString(KEY_REFRESH_TOKEN, null)
-            set(value) = prefs.edit().putString(KEY_REFRESH_TOKEN, value).apply()
+            set(value) {
+                prefs.edit().putString(KEY_REFRESH_TOKEN, value).apply()
+                session.value = value != null
+            }
 
         var userId: String?
             get() = prefs.getString(KEY_USER_ID, null)
@@ -100,6 +131,7 @@ class SessionStore
                 .remove(KEY_USER_ID)
                 .remove(KEY_PUSH_TOKEN_SENT)
                 .apply()
+            session.value = false
         }
 
         private companion object {
