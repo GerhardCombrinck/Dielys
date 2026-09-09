@@ -124,6 +124,14 @@ TypeScript half, and pretending otherwise would make the script useless there. R
 `android/local.properties` is gitignored and points at the same SDK; it is per-machine and
 is not something to commit.
 
+### If a run takes tens of minutes
+
+Check for a running emulator first. `vitest-pool-workers` starts several `workerd`
+processes, and two AVDs will happily take every core on a four-core machine — a run that
+finishes in 22 seconds otherwise took over half an hour alongside them. Nothing is hung
+and nothing reports it, because `verify.sh | tail` shows no output at all until the run
+ends. Shut the emulators down (`adb -s emulator-5554 emu kill`) rather than waiting.
+
 ### If `npm ci` fails with EPERM or EBUSY
 
 Windows only, and self-inflicted: a running `wrangler dev` holds

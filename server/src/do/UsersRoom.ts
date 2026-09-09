@@ -328,7 +328,16 @@ export class UsersRoom extends DurableObject {
       .slice(0, MAX_WAKE_TARGETS)
       .map((device) => ({ deviceId: device.deviceId, fcmToken: device.fcmToken }));
 
-    if (targets.length === 0) return;
+    // Logged on both sides of the decision, because a successful send says
+    // nothing on its own: without this, "no wake in the log" cannot be told
+    // apart from "every member device was already connected", and the two have
+    // opposite meanings when a phone did not hear about a change.
+    if (targets.length === 0) {
+      log("info", "usersroom.wake.skipped", { listId, seq, connected: already.size });
+      return;
+    }
+
+    log("info", "usersroom.wake.sent", { listId, seq, count: targets.length });
 
     this.ctx.waitUntil(
       sender.wake(targets, wakeData(listId, seq), Date.now()).then((gone) => {
