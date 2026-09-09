@@ -13,7 +13,7 @@ import kotlinx.serialization.Serializable
  */
 
 const val MAX_EMAIL_LENGTH = 320
-const val MIN_PASSWORD_LENGTH = 12
+const val MIN_PASSWORD_LENGTH = 10
 const val MAX_PASSWORD_LENGTH = 1024
 
 @Serializable

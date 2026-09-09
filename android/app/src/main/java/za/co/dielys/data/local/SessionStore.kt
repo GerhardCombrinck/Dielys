@@ -106,6 +106,14 @@ class SessionStore
             get() = prefs.getString(KEY_USER_ID, null)
             set(value) = prefs.edit().putString(KEY_USER_ID, value).apply()
 
+        /**
+         * Not sent by the server on login or refresh — kept from the sign-in
+         * form so Settings has something to show.
+         */
+        var email: String?
+            get() = prefs.getString(KEY_EMAIL, null)
+            set(value) = prefs.edit().putString(KEY_EMAIL, value).apply()
+
         override var pushToken: String?
             get() = prefs.getString(KEY_PUSH_TOKEN, null)
             set(value) = prefs.edit().putString(KEY_PUSH_TOKEN, value).apply()
@@ -129,6 +137,7 @@ class SessionStore
                 .remove(KEY_ACCESS_TOKEN)
                 .remove(KEY_REFRESH_TOKEN)
                 .remove(KEY_USER_ID)
+                .remove(KEY_EMAIL)
                 .remove(KEY_PUSH_TOKEN_SENT)
                 .apply()
             session.value = false
@@ -139,6 +148,7 @@ class SessionStore
             const val KEY_ACCESS_TOKEN = "access-token"
             const val KEY_REFRESH_TOKEN = "refresh-token"
             const val KEY_USER_ID = "user-id"
+            const val KEY_EMAIL = "email"
             const val KEY_PUSH_TOKEN = "push-token"
             const val KEY_PUSH_TOKEN_SENT = "push-token-sent"
         }

@@ -14,7 +14,7 @@ export const MAX_EMAIL_LENGTH = 320; // RFC 5321 local@domain maximum
  * password manager, which is what actually makes the PBKDF2 work factor a
  * non-issue — see the note on PASSWORD_ITERATIONS in server/src/auth/password.ts.
  */
-export const MIN_PASSWORD_LENGTH = 12;
+export const MIN_PASSWORD_LENGTH = 10;
 
 /**
  * HMAC folds an over-long key by hashing it, so a megabyte password costs the

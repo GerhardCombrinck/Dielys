@@ -87,10 +87,14 @@ Where Dielys is and what comes next. Short by design — the standard is in
 
 ## Next
 
-- [ ] **Dev shakedown** — run the debug build against `dielys-dev` on two phones and work
-      through H3 by hand. The parts a JVM test cannot reach are the drag gesture, the keyboard,
-      and what a real flaky signal does to the drain. Needs `android/app/google-services.json`
-      from the `dielys` Firebase project dropped into place first.
+- [x] **Dev shakedown** — ran the debug build against `dielys-dev` on two phones by hand:
+      offline add/reorder on both, double-tick convergence, delete-vs-rename race, and FCM
+      wake push to a backgrounded phone. All twelve H3 scenarios held up outside the JVM tests.
+- [ ] **Visual redesign** (Navy/Sand/Amber, "Die Lys" wordmark) — login, lists, and task-list
+      screens rebuilt in Compose from the design handoff in `docs/`, plus a password-visibility
+      toggle, a settings screen with account details, join-a-list moved there, and a
+      collapsible Done section. Needs a look on a real phone before this is called finished —
+      the handoff's pixel values were followed but never checked against the mock on-device.
 - [ ] **Prod** — `dielys-prod` has never been deployed. Needs its own secrets and a smoke run.
 
 ## Open questions

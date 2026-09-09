@@ -86,6 +86,9 @@ class SessionRepository
 
         val deviceId: String get() = store.deviceId
 
+        /** Set from the sign-in form on success — the server never returns it. */
+        val email: String? get() = store.email
+
         fun isSignedIn(): Boolean = store.refreshToken != null
 
         /**
@@ -136,6 +139,7 @@ class SessionRepository
                 store.accessToken = pair.accessToken
                 store.refreshToken = pair.refreshToken
                 store.userId = pair.userId
+                store.email = email
                 scheduler.requestSync()
                 SignInResult.Success
             } catch (error: ApiException.Rejected) {
@@ -172,6 +176,7 @@ class SessionRepository
                 store.accessToken = pair.accessToken
                 store.refreshToken = pair.refreshToken
                 store.userId = pair.userId
+                store.email = email
                 scheduler.requestSync()
                 SignUpResult.Success
             } catch (error: ApiException.Rejected) {

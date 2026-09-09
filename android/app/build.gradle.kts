@@ -100,6 +100,9 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
+    // Extended set, for icons core doesn't have (e.g. Visibility/VisibilityOff
+    // on the password field). R8 strips the ones the app doesn't reference.
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.activity:activity-compose:1.9.2")
     // Both are already on the runtime classpath transitively, but the UI calls
     // them directly — `viewModel()` and `collectAsStateWithLifecycle()` — and a
