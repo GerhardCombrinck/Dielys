@@ -7,6 +7,7 @@ Utility and maintenance scripts. POSIX `sh` or Node only — CI runs on Linux
 |-------------------|--------------------------------------------------------------|--------------------|
 | `verify.sh`       | Runs everything `ci.yml` runs, locally. Use before every push ([B3](../docs/CODE_STANDARD.md#standard-b3)). | No |
 | `smoke.sh`        | End-to-end check against a running server — local, dev or prod. Run after a deploy. | Creates two throwaway accounts, one list and two device rows |
+| `push-probe.sh`   | Makes a deployed server attempt one real FCM send, to prove the credential works. Read `wrangler tail` for the answer. | Creates one throwaway account and one list |
 | `create-user.ts`  | Creates one Dielys account in `UsersRoom`. See [L2](../docs/CODE_STANDARD.md#standard-l2) — there is no public registration endpoint, this is the only way an account gets created. | Yes |
 
 A script that touches production data MUST print what it is about to do and prompt for
@@ -48,6 +49,33 @@ it at prod.
 
 `scripts/verify.sh` proves the code is right before a push; this proves the
 deployment is right after one. Neither replaces the other.
+
+## push-probe.sh
+
+```sh
+npx wrangler tail --env dev --format pretty   # in one window
+DIELYS_ADMIN_TOKEN=... scripts/push-probe.sh https://dielys-dev.dielys.workers.dev
+```
+
+`smoke.sh` proves `/devices/token` stores a token. It cannot prove the server can
+then authenticate to Google, because the send is best-effort and off the response
+path (M2) — a mutation acks whether or not the push went anywhere. This drives
+that path deliberately.
+
+It registers an FCM token that is invalid on purpose and then writes from a second
+device on the same account. **`fcm.send.rejected` with status 400 is the pass**: FCM
+only objects to a token after it has authenticated the request, matched the project
+and accepted the body, so a 400 proves everything a credential can be wrong about.
+No `usersroom.device.dropped` follows it, and should not — a device row is deleted
+on 404 and never on 400 (ADR 0003), because a 400 can be our own malformed request.
+
+`fcm.send.unregistered` is out of reach here. That needs a token FCM recognises as
+well-formed but no longer registered, which only a real wiped device produces; the
+server suite covers the 404 path instead. The script prints what each other log line
+means.
+
+The script itself cannot fail on a credential problem, and does not pretend to —
+it exits 0 as long as the HTTP contract held, and hands you the tail to read.
 
 ## create-user.ts
 
