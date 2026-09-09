@@ -85,6 +85,14 @@ interface OutboxDao {
     @Query("SELECT COUNT(*) FROM outbox WHERE dead = 0")
     fun observePendingCount(): Flow<Int>
 
+    /**
+     * Rows the server refused for a reason no retry fixes. They are kept rather
+     * than deleted, which only helps if something says so — so the UI shows this.
+     * A stuck edit the user cannot see is the same as a lost one.
+     */
+    @Query("SELECT COUNT(*) FROM outbox WHERE dead = 1")
+    fun observeDeadCount(): Flow<Int>
+
     @Insert
     suspend fun enqueue(row: OutboxEntity): Long
 

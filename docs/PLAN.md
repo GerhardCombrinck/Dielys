@@ -40,11 +40,18 @@ Where Dielys is and what comes next. Short by design — the standard is in
       settles the `(position, id)` tie the same way the phone will.
 - [x] **Cross-language wire check** — `WireFormatTest` round-trips every fixture in
       `protocol/fixtures/` through the Kotlin types, and Konsist enforces the E1 layer rules.
+- [x] **Compose UI** — sign in, list of lists, list detail, add/tick/star/rename/delete, and
+      long-press drag to reorder. Every screen reads Room and writes through the repository;
+      nothing on a screen touches the network. No navigation library — the back stack is one
+      nullable list id. Also closes two gaps the UI made visible: `/auth/memberships` is now
+      pulled on every sync, so a second phone actually discovers the household's lists, and a
+      dead outbox row is shown rather than merely kept.
 
 ## Next
 
-- [ ] **Compose UI** — list of lists, list detail, add/tick/star/reorder. Nothing beyond a
-      placeholder exists.
+- [ ] **Dev shakedown** — run the debug build against `dielys-dev` on two phones and work
+      through H3 by hand. The parts a JVM test cannot reach are the drag gesture, the keyboard,
+      and what a real flaky signal does to the drain.
 - [ ] **FCM** (section M) — data-only payloads carrying `{type, listId, seq}` and no list
       content, device tokens not topics.
 - [ ] **Prod** — `dielys-prod` has never been deployed. Needs its own secrets and a smoke run.

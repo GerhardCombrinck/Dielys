@@ -2,6 +2,7 @@ package za.co.dielys.data.sync
 
 import androidx.room.withTransaction
 import za.co.dielys.data.local.DielysDatabase
+import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.local.OutboxEntity
 import za.co.dielys.data.remote.ApiException
 import za.co.dielys.data.remote.SyncApi
@@ -45,7 +46,46 @@ class SyncEngine
         suspend fun sync(): SyncOutcome {
             val drained = drainOutbox()
             if (drained != SyncOutcome.Success) return drained
+            val discovered = discoverLists()
+            if (discovered != SyncOutcome.Success) return discovered
             return catchUpAll()
+        }
+
+        /**
+         * The only way a device hears about a list somebody else created and
+         * invited it to. Catch-up asks per list and a list this device has never
+         * heard of has no cursor to ask with, so without this a fresh install
+         * would sign in successfully and show nothing at all.
+         *
+         * A newly discovered list goes in with an empty title: the changelog pull
+         * that follows carries the `list-created` change that names it, and until
+         * that lands the screen says so rather than inventing a name.
+         */
+        suspend fun discoverLists(): SyncOutcome {
+            val memberships =
+                try {
+                    api.memberships()
+                } catch (error: ApiException) {
+                    return error.toOutcome()
+                }
+
+            for (membership in memberships) {
+                val known = db.lists().find(membership.listId)
+                when {
+                    known == null ->
+                        db.lists().upsert(
+                            ListEntity(
+                                id = membership.listId,
+                                title = "",
+                                role = membership.role,
+                            ),
+                        )
+
+                    known.role != membership.role ->
+                        db.lists().setRole(membership.listId, membership.role)
+                }
+            }
+            return SyncOutcome.Success
         }
 
         /**

@@ -8,6 +8,7 @@ import za.co.dielys.data.remote.ErrorCode
 import za.co.dielys.data.remote.ListChange
 import za.co.dielys.data.remote.ListMutation
 import za.co.dielys.data.remote.Membership
+import za.co.dielys.data.remote.MembershipRole
 import za.co.dielys.data.remote.Mutation
 import za.co.dielys.data.remote.MutationAck
 import za.co.dielys.data.remote.SyncApi
@@ -49,6 +50,13 @@ class FakeSyncApi : SyncApi {
 
     val sentBodies: MutableList<String> = mutableListOf()
     val claims: MutableList<String> = mutableListOf()
+
+    /**
+     * What `GET /auth/memberships` answers. Claiming a list adds a row, the way
+     * the server does; a test can also add one directly to stand for an invite
+     * the other device accepted.
+     */
+    val memberOf: MutableList<Membership> = mutableListOf()
 
     private val heads = mutableMapOf<String, Long>()
     private val changelog = mutableMapOf<String, MutableList<ChangeEnvelope>>()
@@ -106,9 +114,15 @@ class FakeSyncApi : SyncApi {
     override suspend fun claimList(listId: String) {
         gate()
         claims += listId
+        if (memberOf.none { it.listId == listId }) {
+            memberOf += Membership(listId = listId, role = MembershipRole.OWNER)
+        }
     }
 
-    override suspend fun memberships(): List<Membership> = emptyList()
+    override suspend fun memberships(): List<Membership> {
+        gate()
+        return memberOf.toList()
+    }
 
     /** A change made by the other device, already on the server. */
     fun otherDevice(mutation: Mutation): ChangeEnvelope = record(mutation)

@@ -18,6 +18,26 @@ release: 21`, not a useful error pointing at the real cause.
 ./gradlew ktlintCheck detekt testDebugUnitTest
 ```
 
+## The UI layer
+
+Compose only, and it reads Room and nothing else. A screen that reaches
+`data/remote` fails `ArchitectureTest` — including indirectly, which is why
+`SessionRepository.signIn` returns a `SignInResult` instead of letting an
+`ApiException` out.
+
+**There is no navigation library.** The whole back stack is one nullable list id
+in `ui/DielysApp.kt`. Add `navigation-compose` when there is a deep link or a
+second way into a screen, not before.
+
+Composables are named `TaskRow`, not `taskRow`. Both linters are configured for
+that and for nothing else: `ktlint_function_naming_ignore_when_annotated_with =
+Composable` in the root `.editorconfig`, and `ignoreAnnotated: ['Composable']`
+on `FunctionNaming`, `LongMethod` and `LongParameterList` in `detekt.yml`.
+
+Icons come from `androidx.compose.material:material-icons-core`, which is *not*
+pulled in by material3 — a missing `Icons` reference means that line was
+dropped. It carries only the ~40 core icons; anything else has to be drawn.
+
 ## Toolchain: AGP 9 has built-in Kotlin
 
 **There is deliberately no `org.jetbrains.kotlin.android` plugin in this

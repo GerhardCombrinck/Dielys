@@ -1,9 +1,18 @@
 build:
   maxIssues: 0
 
+# A @Composable is declarative markup, not procedure: its parameters are the
+# state it is given and the events it sends back, and its length is the shape of
+# what it draws. Counting either the way you would count a function that computes
+# something produces the wrong answer, and the fix it pushes for — bundling
+# unrelated callbacks into a holder, or splitting a layout mid-tree — makes the
+# code worse. These three counters are waived for Composables and for nothing else.
 complexity:
   LongMethod:
     threshold: 60
+    ignoreAnnotated: ['Composable']
+  LongParameterList:
+    ignoreAnnotated: ['Composable']
   LargeClass:
     threshold: 300
   # `Position` is a line-for-line port of `server/src/domain/position.ts`. The two
@@ -22,6 +31,10 @@ complexity:
 style:
   ForbiddenComment:
     active: false
+  # A colour literal assigned to a named property is already the named constant
+  # this rule asks for; detekt just cannot see through the `Color(...)` call.
+  MagicNumber:
+    ignorePropertyDeclaration: true
   # Guard clauses. The ported fractional-index functions return early because the
   # reference implementation does, and the HTTP mapping reads as a table.
   ReturnCount:
@@ -43,3 +56,9 @@ performance:
 
 comments:
   active: false
+
+naming:
+  # `TaskRow`, not `taskRow`. A Composable that emits UI is named for the thing it
+  # emits — the convention throughout Compose and androidx itself.
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']

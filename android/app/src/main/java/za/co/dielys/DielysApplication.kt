@@ -30,5 +30,9 @@ class DielysApplication :
         // A floor under the push path: a dropped FCM message must not leave a list
         // permanently behind (H3.12).
         scheduler.schedulePeriodicSync()
+        // And once now. Opening the app is the moment somebody is looking at it,
+        // which is the worst moment to be up to half an hour out of date. Costs
+        // nothing when there is no session: the drain fails on the first 401.
+        scheduler.requestSync()
     }
 }

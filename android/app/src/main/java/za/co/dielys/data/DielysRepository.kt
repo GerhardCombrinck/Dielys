@@ -49,6 +49,9 @@ class DielysRepository
 
         fun observePendingCount(): Flow<Int> = db.outbox().observePendingCount()
 
+        /** Edits the server refused for good. Surfaced so they are not silent. */
+        fun observeStuckCount(): Flow<Int> = db.outbox().observeDeadCount()
+
         /**
          * List ids are client-generated (F5.1), so the server cannot grant ownership
          * at creation time. The client picks a UUIDv7 and claims it, then names it.
