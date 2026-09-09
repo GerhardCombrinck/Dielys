@@ -6,11 +6,29 @@ Utility and maintenance scripts. POSIX `sh` or Node only — CI runs on Linux
 | Script            | What                                                        | Touches prod data |
 |-------------------|--------------------------------------------------------------|--------------------|
 | `verify.sh`       | Runs everything `ci.yml` runs, locally. Use before every push ([B3](../docs/CODE_STANDARD.md#standard-b3)). | No |
-| `smoke.sh`        | End-to-end check against a running server — local, dev or prod. Run after a deploy. | Creates two throwaway accounts and one list |
+| `smoke.sh`        | End-to-end check against a running server — local, dev or prod. Run after a deploy. | Creates two throwaway accounts, one list and two device rows |
 | `create-user.ts`  | Creates one Dielys account in `UsersRoom`. See [L2](../docs/CODE_STANDARD.md#standard-l2) — there is no public registration endpoint, this is the only way an account gets created. | Yes |
 
 A script that touches production data MUST print what it is about to do and prompt for
 confirmation before doing it. Anything run by hand more than twice becomes a script here.
+
+## Running these on Windows
+
+Use **Git Bash**, not PowerShell and not WSL. `bash` on a default Windows PATH resolves to
+`C:\WINDOWS\system32\bash.exe`, which is the WSL launcher and fails with "no installed
+distributions" on a machine that has never set WSL up — a confusing error, because the shell
+it names does exist, just not the one you wanted.
+
+Either open Git Bash directly, or call it by path from PowerShell so the current environment
+carries over:
+
+```powershell
+& "C:\Program Files\Git\bin\bash.exe" scripts/smoke.sh https://dielys-dev.dielys.workers.dev
+```
+
+Three differences from PowerShell: paths are `/c/repos/Dielys`, environment variables are
+`export NAME='value'`, and paste is Shift+Insert. Git Bash is also what `verify.sh` assumes
+and closest to the Linux shell CI runs, so a script that works there works in CI.
 
 ## smoke.sh
 
@@ -18,10 +36,10 @@ confirmation before doing it. Anything run by hand more than twice becomes a scr
 DIELYS_ADMIN_TOKEN=... scripts/smoke.sh https://dielys-dev.dielys.workers.dev
 ```
 
-23 checks over the whole contract: login, list claim, mutation, an idempotent
+27 checks over the whole contract: login, list claim, mutation, an idempotent
 retry that must return the original result at the same seq without adding a
-changelog row, catch-up, invite mint and accept, and refresh rotation with
-replay detection. Exits non-zero on the first disagreement and prints the body.
+changelog row, catch-up, invite mint and accept, push-token registration, and
+refresh rotation with replay detection. Exits non-zero on the first disagreement and prints the body.
 
 It is not read-only: it creates two `smoke-*@dielys.test` accounts and one list
 per run, and names them at the end. Nothing deletes them — there is no account

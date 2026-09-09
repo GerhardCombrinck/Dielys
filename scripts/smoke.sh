@@ -2,8 +2,9 @@
 # End-to-end smoke test against a running Dielys server: local, dev or prod.
 #
 # Creates two disposable accounts, then drives the whole contract — login, list
-# claim, mutation, idempotent retry, catch-up, invite, accept, refresh rotation
-# and replay detection — asserting the response at each step.
+# claim, mutation, idempotent retry, catch-up, invite, accept, push-token
+# registration, refresh rotation and replay detection — asserting the response at
+# each step.
 #
 # POSIX sh (A2). Needs curl and node.
 #
@@ -174,6 +175,27 @@ check "a member cannot mint further invites" 403 "$(code_of "$R")" "$(body_of "$
 R=$(req -X POST "$BASE/invites/accept" -H "Authorization: Bearer $TOKEN_B" -H "$JSON" \
   -d "{\"inviteToken\":\"$TOKEN_B\"}")
 check "an access token cannot be redeemed as an invite" 401 "$(code_of "$R")" "$(body_of "$R")"
+
+# M2. The token is filed under the device id in the caller's own access token,
+# so there is nothing in the body that could aim it at somebody else's phone.
+# 204 and no body: the server either filed it or said why it would not.
+R=$(req -X POST "$BASE/devices/token" -H "Authorization: Bearer $TOKEN_A" -H "$JSON" \
+  -d "{\"fcmToken\":\"smoke-fcm-$SUFFIX\"}")
+check "register a push token" 204 "$(code_of "$R")" "$(body_of "$R")"
+
+# FCM re-issues tokens. The second replaces the first rather than adding a row,
+# or a phone keeps being woken through a registration it has already dropped.
+R=$(req -X POST "$BASE/devices/token" -H "Authorization: Bearer $TOKEN_A" -H "$JSON" \
+  -d "{\"fcmToken\":\"smoke-fcm-rotated-$SUFFIX\"}")
+check "a rotated push token replaces the first" 204 "$(code_of "$R")" "$(body_of "$R")"
+
+R=$(req -X POST "$BASE/devices/token" -H "Authorization: Bearer $TOKEN_A" -H "$JSON" \
+  -d '{"fcmToken":""}')
+check "an empty push token is refused" 400 "$(code_of "$R")" "$(body_of "$R")"
+
+R=$(req -X POST "$BASE/devices/token" -H "$JSON" \
+  -d "{\"fcmToken\":\"smoke-fcm-$SUFFIX\"}")
+check "registering a push token needs a session" 401 "$(code_of "$R")" "$(body_of "$R")"
 
 R=$(req -X POST "$BASE/auth/refresh" -H "$JSON" \
   -d "{\"refreshToken\":\"$REFRESH_A\",\"deviceId\":\"smoke-a\"}")
