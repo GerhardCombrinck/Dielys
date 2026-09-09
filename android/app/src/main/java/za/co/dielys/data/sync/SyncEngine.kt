@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import za.co.dielys.data.local.DielysDatabase
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.local.OutboxEntity
+import za.co.dielys.data.local.PushTokenStore
 import za.co.dielys.data.remote.ApiException
 import za.co.dielys.data.remote.SyncApi
 import javax.inject.Inject
@@ -42,13 +43,48 @@ class SyncEngine
         private val db: DielysDatabase,
         private val api: SyncApi,
         private val applier: ChangeApplier,
+        private val push: PushTokenStore,
     ) {
         suspend fun sync(): SyncOutcome {
             val drained = drainOutbox()
             if (drained != SyncOutcome.Success) return drained
             val discovered = discoverLists()
             if (discovered != SyncOutcome.Success) return discovered
-            return catchUpAll()
+            val caught = catchUpAll()
+            if (caught != SyncOutcome.Success) return caught
+            return registerPushToken()
+        }
+
+        /**
+         * Tells the server the FCM token this install holds, when it does not
+         * already have it (M2).
+         *
+         * Last, and never in front of the data path: a device that cannot register
+         * its token is late to hear about changes, while a device that cannot drain
+         * its outbox is holding edits nobody else can see. `WorkManager` retries
+         * the whole run, and every step in it is idempotent.
+         *
+         * The comparison is against what the server has confirmed, not against what
+         * FCM last said, so a registration lost to a dead spot is sent again on the
+         * next run rather than assumed to have landed.
+         */
+        suspend fun registerPushToken(): SyncOutcome {
+            val token = push.pushToken ?: return SyncOutcome.Success
+            if (token == push.pushTokenSent) return SyncOutcome.Success
+
+            return try {
+                api.registerPushToken(token)
+                push.pushTokenSent = token
+                SyncOutcome.Success
+            } catch (_: ApiException.Rejected) {
+                // Refused outright, so no retry can fix it — the same call the
+                // outbox makes when it marks a row dead. Recorded as sent to stop
+                // asking on every sync; the next token FCM issues tries again.
+                push.pushTokenSent = token
+                SyncOutcome.Success
+            } catch (error: ApiException) {
+                error.toOutcome()
+            }
         }
 
         /**

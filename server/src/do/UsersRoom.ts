@@ -8,26 +8,45 @@ import {
   verifyPassword,
 } from "../auth/password.js";
 import { log } from "../lib/log.js";
+import {
+  FcmSender,
+  parseServiceAccount,
+  type ServiceAccount,
+  type WakeTarget,
+  wakeData,
+} from "../push/fcm.js";
 import { applyPendingMigrations, USERS_MIGRATIONS } from "../storage/migrations.js";
 import {
   countListMembers,
   countUsers,
+  type DeviceRow,
+  deleteDevice,
   deleteExpiredRefreshTokens,
   deleteRefreshTokensForUser,
   insertMembership,
   insertRefreshToken,
   insertUser,
   markRefreshTokenUsed,
+  selectDevicesForList,
   selectMembership,
   selectMemberships,
   selectRefreshToken,
   selectUserByEmail,
   selectUserById,
   updateUserPassword,
+  upsertDevice,
 } from "../storage/users.js";
 
 /** 30 days (L1). */
 export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * A ceiling on one fan-out, not a household size. Two people have two phones;
+ * a number this far above that means something is wrong — a runaway
+ * registration loop, say — and an unbounded loop of outbound `fetch` calls is
+ * not the place to find out.
+ */
+const MAX_WAKE_TARGETS = 32;
 
 export type UsersResult<T> = { ok: true; value: T } | { ok: false; code: AuthErrorCode };
 
@@ -54,6 +73,13 @@ export interface Session {
  */
 export class UsersRoom extends DurableObject {
   private readonly sql: SqlStorage;
+  /**
+   * Instance state, never module-level (D3). Null until the first push, and
+   * null forever on a deployment with no FCM credential — where the app still
+   * syncs, just no faster than the half-hourly worker (H3.12).
+   */
+  private sender: FcmSender | null = null;
+  private senderResolved = false;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -244,6 +270,93 @@ export class UsersRoom extends DurableObject {
     });
     log("info", "usersroom.list.claimed", { userId, listId });
     return { ok: true, value: { alreadyMember: false } };
+  }
+
+  // --- Push (M2) ----------------------------------------------------------
+
+  /**
+   * Files this device's FCM token (M2). Called on every sync where the token
+   * the client holds is not the one the server was last told, so it covers
+   * both `onNewToken` and a first install.
+   *
+   * The device id comes from the caller's access token, never from a request
+   * body — see the route in index.ts. Signing in as somebody else on the same
+   * phone re-points the row rather than adding a second one, which is what
+   * stops a handed-on phone being woken for its previous owner.
+   */
+  async registerDevice(
+    userId: string,
+    deviceId: string,
+    fcmToken: string,
+    now: number,
+  ): Promise<void> {
+    this.ctx.storage.transactionSync(() => {
+      upsertDevice(this.sql, { deviceId, userId, fcmToken }, new Date(now).toISOString());
+    });
+    // The token is the address of somebody's phone. Log that one exists, never
+    // what it is (D4).
+    log("info", "usersroom.device.registered", { userId, deviceId });
+  }
+
+  /** Every registered device on this list. Not an authorization check — see
+   * `selectDevicesForList`. Exposed so the fan-out can be tested without a
+   * network. */
+  async devicesForList(listId: string): Promise<DeviceRow[]> {
+    return selectDevicesForList(this.sql, listId);
+  }
+
+  /**
+   * Wakes the member devices that did not already get this change over a
+   * socket (M2).
+   *
+   * `ListRoom` calls this after it has committed, passing the device ids it
+   * knows are connected plus the one that made the write. Membership lives
+   * here, so the fan-out lives here too — and the object that owns the device
+   * rows is also the one that can drop a dead token without a second hop.
+   *
+   * Fire-and-forget by design: this returns as soon as the send is scheduled.
+   * A push is a hint, and a caller that waited for Google before answering the
+   * client would have made a write slower in order to make it no more correct.
+   */
+  async notifyListMembers(listId: string, seq: number, connected: string[]): Promise<void> {
+    const sender = this.fcm();
+    if (sender === null) return;
+
+    const already = new Set(connected);
+    const targets: WakeTarget[] = selectDevicesForList(this.sql, listId)
+      .filter((device) => !already.has(device.deviceId))
+      .slice(0, MAX_WAKE_TARGETS)
+      .map((device) => ({ deviceId: device.deviceId, fcmToken: device.fcmToken }));
+
+    if (targets.length === 0) return;
+
+    this.ctx.waitUntil(
+      sender.wake(targets, wakeData(listId, seq), Date.now()).then((gone) => {
+        // An uninstalled app keeps its row otherwise, and every later write
+        // pays a round trip to be told the same thing again.
+        if (gone.length === 0) return;
+        this.ctx.storage.transactionSync(() => {
+          for (const deviceId of gone) deleteDevice(this.sql, deviceId);
+        });
+        log("info", "usersroom.device.dropped", { count: gone.length });
+      }),
+    );
+  }
+
+  /** Built once per instance, including the decision that there is nothing to
+   * build. Parsing a service account costs nothing, but doing it per push
+   * would hide how often it fails. */
+  private fcm(): FcmSender | null {
+    if (!this.senderResolved) {
+      this.senderResolved = true;
+      const account: ServiceAccount | null = parseServiceAccount(this.env.FCM_SERVICE_ACCOUNT_JSON);
+      if (account === null) {
+        log("info", "usersroom.push.disabled", {});
+      } else {
+        this.sender = new FcmSender(account);
+      }
+    }
+    return this.sender;
   }
 
   /** Whether any account exists at all — used by the admin route to refuse

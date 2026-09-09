@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { PUSH_TYPE_SYNC } from "../src/push.js";
 import {
   type ChangeEnvelope,
   type ClientMessage,
@@ -33,6 +34,7 @@ function load(subdir: string): Array<{ file: string; raw: string; parsed: unknow
 
 const changeFixtures = load("changes");
 const messageFixtures = load("messages");
+const pushFixtures = load("push");
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -44,9 +46,35 @@ describe("protocol fixtures round-trip (F4)", () => {
     expect(messageFixtures.length).toBeGreaterThan(0);
   });
 
-  for (const { file, parsed } of [...changeFixtures, ...messageFixtures]) {
+  for (const { file, parsed } of [...changeFixtures, ...messageFixtures, ...pushFixtures]) {
     it(`${file} round-trips through JSON without data loss`, () => {
       expect(JSON.parse(JSON.stringify(parsed))).toEqual(parsed);
+    });
+  }
+});
+
+/**
+ * M1 is the one payload contract in this protocol that is about what must
+ * *not* be there. The key list below is the whole rule: a wake push carries
+ * three keys, and a task title added to it would fail here rather than reach
+ * Google's servers.
+ */
+describe("wake push fixtures carry nothing but a hint to sync (M1)", () => {
+  it("has a fixture", () => {
+    expect(pushFixtures.length).toBeGreaterThan(0);
+  });
+
+  for (const { file, parsed } of pushFixtures) {
+    it(file, () => {
+      expect(isRecord(parsed)).toBe(true);
+      const payload = parsed as Record<string, unknown>;
+      expect(Object.keys(payload).sort()).toEqual(["listId", "seq", "type"]);
+      expect(payload.type).toBe(PUSH_TYPE_SYNC);
+      expect(typeof payload.listId).toBe("string");
+      // FCM's `data` is map<string, string> — a JSON number cannot travel in
+      // it, so `seq` is a decimal string the client parses back.
+      expect(typeof payload.seq).toBe("string");
+      expect(Number.isSafeInteger(Number(payload.seq))).toBe(true);
     });
   }
 });

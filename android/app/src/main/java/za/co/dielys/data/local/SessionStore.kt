@@ -19,6 +19,25 @@ interface DeviceIdentity {
 }
 
 /**
+ * The FCM registration token, and whether the server has been told about it.
+ *
+ * Separate from the session for the same reason [DeviceIdentity] is: the sync
+ * engine needs these two values and nothing else about a session, and it is
+ * tested on the JVM where there is no `Context` to read preferences with.
+ */
+interface PushTokenStore {
+    /** What FCM last issued this install, or null before it has issued anything. */
+    var pushToken: String?
+
+    /**
+     * The value the server has confirmed. Cleared on sign-out, because the next
+     * account to sign in on this phone has to claim the device row for itself
+     * (M2) — otherwise it would be woken for somebody else's lists.
+     */
+    var pushTokenSent: String?
+}
+
+/**
  * Device identity and the current session, in preferences rather than the database
  * — they must survive a schema problem that the database might not, and none of it
  * is queried or joined.
@@ -32,7 +51,8 @@ class SessionStore
     @Inject
     constructor(
         @ApplicationContext context: Context,
-    ) : DeviceIdentity {
+    ) : DeviceIdentity,
+        PushTokenStore {
         private val prefs: SharedPreferences =
             context.getSharedPreferences("dielys-session", Context.MODE_PRIVATE)
 
@@ -55,13 +75,30 @@ class SessionStore
             get() = prefs.getString(KEY_USER_ID, null)
             set(value) = prefs.edit().putString(KEY_USER_ID, value).apply()
 
-        /** Clears the session but keeps [deviceId] — the device has not changed. */
+        override var pushToken: String?
+            get() = prefs.getString(KEY_PUSH_TOKEN, null)
+            set(value) = prefs.edit().putString(KEY_PUSH_TOKEN, value).apply()
+
+        override var pushTokenSent: String?
+            get() = prefs.getString(KEY_PUSH_TOKEN_SENT, null)
+            set(value) = prefs.edit().putString(KEY_PUSH_TOKEN_SENT, value).apply()
+
+        /**
+         * Clears the session but keeps [deviceId] and [pushToken] — neither the
+         * device nor the token FCM issued it has changed.
+         *
+         * [pushTokenSent] does go, so the next sign-in re-registers. The server
+         * files a push token under the device id, so signing in as somebody else
+         * on this phone has to move that row or it would keep being woken for the
+         * previous account's lists (M2).
+         */
         fun clearSession() {
             prefs
                 .edit()
                 .remove(KEY_ACCESS_TOKEN)
                 .remove(KEY_REFRESH_TOKEN)
                 .remove(KEY_USER_ID)
+                .remove(KEY_PUSH_TOKEN_SENT)
                 .apply()
         }
 
@@ -70,5 +107,7 @@ class SessionStore
             const val KEY_ACCESS_TOKEN = "access-token"
             const val KEY_REFRESH_TOKEN = "refresh-token"
             const val KEY_USER_ID = "user-id"
+            const val KEY_PUSH_TOKEN = "push-token"
+            const val KEY_PUSH_TOKEN_SENT = "push-token-sent"
         }
     }

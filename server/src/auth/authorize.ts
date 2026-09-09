@@ -6,6 +6,7 @@
  * place and cannot drift between two implementations.
  */
 import type { Membership } from "@dielys/protocol";
+import { usersRoom } from "../do/rooms.js";
 import { bearerToken, verifyAccessToken } from "./jwt.js";
 
 export interface Principal {
@@ -28,12 +29,6 @@ export async function authenticate(request: Request, env: Env): Promise<AuthResu
   if (!verified.ok) return { ok: false, code: "unauthorized", status: 401 };
 
   return { ok: true, value: { userId: verified.claims.sub, deviceId: verified.claims.deviceId } };
-}
-
-export function usersRoom(env: Env): DurableObjectStub<import("../do/UsersRoom.js").UsersRoom> {
-  // A singleton by construction: one fixed name, so every Worker isolate in
-  // every colo resolves the same object (L1).
-  return env.USERS_ROOM.get(env.USERS_ROOM.idFromName("users-v1"));
 }
 
 /**

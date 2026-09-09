@@ -71,6 +71,19 @@ class HttpSyncApi
             request(url("lists", listId), "{}".toRequestBody(jsonMedia))
         }
 
+        override suspend fun registerPushToken(fcmToken: String) {
+            // 204, no body. There is nothing to read back: the server either
+            // filed the token under this device or said why it would not.
+            request(
+                url("devices", "token"),
+                DielysJson.wire
+                    .encodeToString(
+                        RegisterDeviceRequest.serializer(),
+                        RegisterDeviceRequest(fcmToken),
+                    ).toRequestBody(jsonMedia),
+            )
+        }
+
         override suspend fun memberships(): List<Membership> =
             decode(
                 MembershipsResponse.serializer(),

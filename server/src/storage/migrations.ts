@@ -13,6 +13,7 @@
 import listV1 from "../../migrations/list/0001_initial.sql";
 import listV2 from "../../migrations/list/0002_list_state.sql";
 import usersV1 from "../../migrations/users/0001_initial.sql";
+import usersV2 from "../../migrations/users/0002_devices.sql";
 
 export interface Migration {
   version: number;
@@ -28,6 +29,7 @@ export const LIST_MIGRATIONS: readonly Migration[] = [
 
 export const USERS_MIGRATIONS: readonly Migration[] = [
   { version: 1, name: "0001_initial", sql: usersV1 },
+  { version: 2, name: "0002_devices", sql: usersV2 },
 ];
 
 /**

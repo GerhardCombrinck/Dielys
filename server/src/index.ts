@@ -3,7 +3,7 @@
  * resolve which DO to talk to, forward.
  */
 import type { ErrorCode } from "@dielys/protocol";
-import { authenticate, authorizeAdmin, authorizeListAccess, usersRoom } from "./auth/authorize.js";
+import { authenticate, authorizeAdmin, authorizeListAccess } from "./auth/authorize.js";
 import {
   ACCESS_TOKEN_TTL_SECONDS,
   INVITE_TOKEN_TTL_SECONDS,
@@ -13,6 +13,7 @@ import {
   verifyInviteToken,
 } from "./auth/jwt.js";
 import { ListRoom } from "./do/ListRoom.js";
+import { usersRoom } from "./do/rooms.js";
 import { UsersRoom } from "./do/UsersRoom.js";
 import {
   parseJson,
@@ -21,6 +22,7 @@ import {
   validateCreateUserRequest,
   validateLoginRequest,
   validateRefreshRequest,
+  validateRegisterDeviceRequest,
 } from "./domain/validate.js";
 import { log } from "./lib/log.js";
 
@@ -60,6 +62,8 @@ export default {
           return await handleRefresh(request, env, now);
         case "/auth/memberships":
           return await handleMemberships(request, env);
+        case "/devices/token":
+          return await handleRegisterDevice(request, env, now);
         case "/admin/users":
           return await handleCreateUser(request, env, now);
         case "/invites/accept":
@@ -181,6 +185,36 @@ async function handleCreateUser(request: Request, env: Env, now: number): Promis
   if (!result.ok) return errorResponse(result.code, result.code === "already-exists" ? 409 : 400);
 
   return Response.json({ userId: result.value }, { status: 201 });
+}
+
+/**
+ * Files this device's FCM token so a change made on the other phone can wake
+ * this one (M2).
+ *
+ * The device id is taken from the access token's `deviceId` claim and never
+ * from the body. A client that could name its own device id could register a
+ * push token against somebody else's phone, which would let it be woken — and
+ * eventually replaced — by an account that does not own it.
+ */
+async function handleRegisterDevice(request: Request, env: Env, now: number): Promise<Response> {
+  if (request.method !== "POST") return errorResponse("malformed", 405);
+
+  const auth = await authenticate(request, env);
+  if (!auth.ok) return errorResponse(auth.code, auth.status);
+
+  const body = await readJson(request);
+  if (body === null) return errorResponse("malformed", 400);
+
+  const parsed = validateRegisterDeviceRequest(body);
+  if (!parsed.ok) return errorResponse("malformed", 400);
+
+  await usersRoom(env).registerDevice(
+    auth.value.userId,
+    auth.value.deviceId,
+    parsed.value.fcmToken,
+    now,
+  );
+  return new Response(null, { status: 204 });
 }
 
 // --- list membership routes ----------------------------------------------

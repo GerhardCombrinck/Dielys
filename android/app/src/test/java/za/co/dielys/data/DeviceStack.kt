@@ -2,6 +2,7 @@ package za.co.dielys.data
 
 import za.co.dielys.data.local.DeviceIdentity
 import za.co.dielys.data.local.DielysDatabase
+import za.co.dielys.data.local.PushTokenStore
 import za.co.dielys.data.sync.ChangeApplier
 import za.co.dielys.data.sync.FakeSyncApi
 import za.co.dielys.data.sync.OutboxFactory
@@ -22,7 +23,8 @@ class DeviceStack(
     val clock = SteppingClock()
     val scheduler = RecordingScheduler()
     val applier = ChangeApplier(db)
-    val engine = SyncEngine(db, api, applier)
+    val push = FakePushTokens()
+    val engine = SyncEngine(db, api, applier, push)
     val repo =
         DielysRepository(
             db = db,
@@ -34,6 +36,15 @@ class DeviceStack(
 
     fun close() = db.close()
 }
+
+/**
+ * The two push values in memory. Preferences need a `Context`; the sync engine only
+ * ever reads one and writes the other (M2).
+ */
+class FakePushTokens(
+    override var pushToken: String? = null,
+    override var pushTokenSent: String? = null,
+) : PushTokenStore
 
 /** A device id without preferences, a `Context`, or a session behind it. */
 class FixedDevice(

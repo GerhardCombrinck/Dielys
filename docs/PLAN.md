@@ -47,13 +47,22 @@ Where Dielys is and what comes next. Short by design — the standard is in
       pulled on every sync, so a second phone actually discovers the household's lists, and a
       dead outbox row is shown rather than merely kept.
 
+- [x] **FCM wake push** (section M) — data-only payloads carrying `{type, listId, seq}` and
+      nothing else, device tokens not topics. A `ListRoom` write hands `UsersRoom` the device
+      ids it can see on sockets; `UsersRoom` owns the membership fan-out, the OAuth token
+      cache and the dead-token cleanup, so `ListRoom` still never learns who a list's members
+      are (L3). `seq` travels as a decimal string because FCM's `data` is `map<string,string>`
+      — the key set and the no-content rule are unchanged. An unset `FCM_SERVICE_ACCOUNT_JSON`
+      is not fail-closed: without it a mutation still commits and the app falls back to the
+      socket and the half-hourly floor (H3.12).
+
 ## Next
 
 - [ ] **Dev shakedown** — run the debug build against `dielys-dev` on two phones and work
       through H3 by hand. The parts a JVM test cannot reach are the drag gesture, the keyboard,
-      and what a real flaky signal does to the drain.
-- [ ] **FCM** (section M) — data-only payloads carrying `{type, listId, seq}` and no list
-      content, device tokens not topics.
+      and what a real flaky signal does to the drain. Needs the two manual credential steps
+      first: create the Firebase project and drop `android/app/google-services.json` in, then
+      `wrangler secret put FCM_SERVICE_ACCOUNT_JSON` for the dev Worker.
 - [ ] **Prod** — `dielys-prod` has never been deployed. Needs its own secrets and a smoke run.
 
 ## Open questions

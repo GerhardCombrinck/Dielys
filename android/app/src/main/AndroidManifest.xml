@@ -25,6 +25,19 @@
         </activity>
 
         <!--
+            The wake push (M1). Data-only and never displayed, so the service does
+            nothing but ask for a sync; anything the user sees is read from Room
+            afterwards. Not exported: only the Play services process delivers here.
+        -->
+        <service
+            android:name=".data.push.DielysMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!--
             WorkManager is configured by DielysApplication instead, so its worker
             factory comes from Hilt and the drain worker can reach the sync engine.
         -->

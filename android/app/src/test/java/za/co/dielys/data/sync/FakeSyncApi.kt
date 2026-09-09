@@ -48,8 +48,14 @@ class FakeSyncApi : SyncApi {
     /** Lowered by tests that need to see catch-up paginate. */
     var pageSize: Int = 500
 
+    /** Makes device registration fail the way a token the server will not take fails. */
+    var rejectPushToken: Boolean = false
+
     val sentBodies: MutableList<String> = mutableListOf()
     val claims: MutableList<String> = mutableListOf()
+
+    /** Every FCM token this fake has been handed, in order, duplicates included. */
+    val pushTokens: MutableList<String> = mutableListOf()
 
     /**
      * What `GET /auth/memberships` answers. Claiming a list adds a row, the way
@@ -122,6 +128,12 @@ class FakeSyncApi : SyncApi {
     override suspend fun memberships(): List<Membership> {
         gate()
         return memberOf.toList()
+    }
+
+    override suspend fun registerPushToken(fcmToken: String) {
+        gate()
+        if (rejectPushToken) throw ApiException.Rejected(status = 400, code = ErrorCode.MALFORMED)
+        pushTokens += fcmToken
     }
 
     /** A change made by the other device, already on the server. */

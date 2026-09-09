@@ -1398,6 +1398,13 @@ catch-up pull can run. It is not a notification system and it is not a transport
   client-side, after sync, from local Room data — never from the push payload directly. This
   is the same rule as [E1](#standard-e1): the UI layer reads from Room, not from the network.
 
+#### As built
+
+FCM's `data` field is `map<string, string>`, so `seq` travels as a decimal string rather than
+a JSON number. The key set, the data-only rule and the no-content rule are unchanged; only the
+encoding of that one field differs. Recorded in [ADR 0003](adr/0003-fcm-wake-push.md) because
+this section is **(SYNC)**.
+
 ---
 
 <a id="standard-m2"></a>
@@ -1433,6 +1440,14 @@ sees this list" instead of two (membership rows and topic subscriptions) that ca
   change — the socket already delivered it. Sending both is not incorrect (the client
   catch-up pull is idempotent per [F5.6](#standard-f5)) but is wasted FCM quota and MUST be
   avoided.
+
+#### As built
+
+The fan-out lives in `UsersRoom`, not in `ListRoom`: a `ListRoom` hands over the device ids it
+can see on sockets and never learns who the members are, which keeps [L3](#standard-l3) true
+by construction. The token is stored in a `devices` table keyed by `device_id` rather than on
+the refresh-token row, because refresh tokens rotate on every use and an FCM token does not.
+Both in [ADR 0003](adr/0003-fcm-wake-push.md).
 
 ---
 

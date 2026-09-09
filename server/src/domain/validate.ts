@@ -18,6 +18,7 @@ import {
   type ListPatch,
   type LoginRequest,
   MAX_EMAIL_LENGTH,
+  MAX_FCM_TOKEN_LENGTH,
   MAX_ID_LENGTH,
   MAX_PASSWORD_LENGTH,
   MAX_POSITION_LENGTH,
@@ -26,6 +27,7 @@ import {
   MIN_PASSWORD_LENGTH,
   type Mutation,
   type RefreshRequest,
+  type RegisterDeviceRequest,
   type TaskPatch,
 } from "@dielys/protocol";
 
@@ -278,4 +280,18 @@ export function validateAcceptInviteRequest(input: unknown): Validated<AcceptInv
     return fail("inviteToken");
   }
   return { ok: true, value: { inviteToken: token } };
+}
+
+/**
+ * `POST /devices/token` (M2). There is deliberately no `deviceId` here — the
+ * one the token is filed under comes from the caller's access token, so a
+ * client cannot register a push token against somebody else's device.
+ */
+export function validateRegisterDeviceRequest(input: unknown): Validated<RegisterDeviceRequest> {
+  if (!isRecord(input)) return fail("not an object");
+  const token = input.fcmToken;
+  if (typeof token !== "string" || token.length === 0 || token.length > MAX_FCM_TOKEN_LENGTH) {
+    return fail("fcmToken");
+  }
+  return { ok: true, value: { fcmToken: token } };
 }

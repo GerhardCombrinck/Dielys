@@ -37,10 +37,18 @@ FCM_SERVICE_ACCOUNT_JSON={}
 `)'
 ```
 
-For a deployed environment the same two secrets are set with `wrangler secret put
+For a deployed environment the same secrets are set with `wrangler secret put
 JWT_SIGNING_KEY --env dev` and `wrangler secret put ADMIN_TOKEN --env dev`; both are long
 random values and neither ever goes in `wrangler.jsonc`
 ([I1](docs/CODE_STANDARD.md#standard-i1)).
+
+`FCM_SERVICE_ACCOUNT_JSON` is the third, and the only optional one: `wrangler secret put
+FCM_SERVICE_ACCOUNT_JSON --env dev`, pasting the whole service-account JSON on one line.
+Without it the Worker runs normally and simply never sends a wake push — a phone then hears
+about a change over its WebSocket, or on the half-hourly sync
+([H3.12](docs/CODE_STANDARD.md#standard-h3)). The Android half needs
+`android/app/google-services.json` from the same Firebase project; it is gitignored, and a
+build without it still works the same way.
 
 ### Local development
 

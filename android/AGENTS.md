@@ -77,10 +77,23 @@ These versions move as a locked set — bumping one alone fails:
 Dependabot will keep proposing these one at a time; each one alone will fail
 CI. They need bumping together, in one PR.
 
-`google-services.json` is not committed (gitignored, project-specific), and
-the `com.google.gms.google-services` plugin is declared at the root (`apply
-false`) but deliberately **not applied** in `app/build.gradle.kts` yet — that
-plugin hard-fails at configuration time without the json file, and FCM isn't
-wired up yet ([M](../docs/CODE_STANDARD.md#m-push-notifications-fcm) is still
-TODO). When FCM setup starts: drop a real `app/google-services.json` in,
-apply the plugin in `app/build.gradle.kts`, then it'll work.
+`google-services.json` is not committed (gitignored, project-specific), so
+`app/build.gradle.kts` applies the `com.google.gms.google-services` plugin
+**only when the file is there** — it hard-fails at configuration time
+without it, and an unconditional `id(...)` would mean nobody could build or
+run the tests without a Firebase project of their own.
+
+A build with no `google-services.json` still runs. There is no default
+`FirebaseApp`, so `PushTokens.refresh()` returns without asking for a token,
+no token is ever registered, and sync falls back to the WebSocket and the
+half-hourly `WorkManager` floor (H3.12). To turn push on for a build, drop a
+real `app/google-services.json` in — nothing else changes.
+
+The push code ([M](../docs/CODE_STANDARD.md#m-push-notifications-fcm)) lives
+in `data/push/`. `DielysMessagingService` is a shell: it hands both events to
+`PushHandler`, which is where the tests are. **There is no notification code
+there and there must not be** — the payload is a hint carrying no list
+content (M1), so anything shown to the user is composed from Room after the
+sync it triggers. Registration is sent from `SyncEngine.sync()` rather than
+from wherever the token arrived, so it inherits the backoff instead of
+needing a retry path of its own.

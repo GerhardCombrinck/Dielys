@@ -10,6 +10,16 @@ plugins {
     id("io.gitlab.arturbosch.detekt")
 }
 
+// Applied only when the file is there. The Google Services plugin hard-fails at
+// configuration time without `google-services.json`, and that file is per-project
+// and gitignored (M2) — so an unconditional `id(...)` would mean nobody could build
+// or run the test suite without a Firebase project of their own. Without it the app
+// still works: no default FirebaseApp, no token, and sync falls back to the socket
+// and the half-hourly floor (H3.12).
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "za.co.dielys"
     compileSdk = 37

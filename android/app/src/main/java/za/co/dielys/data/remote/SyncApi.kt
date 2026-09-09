@@ -33,6 +33,17 @@ interface SyncApi {
 
     /** `GET /auth/memberships`. */
     suspend fun memberships(): List<Membership>
+
+    /**
+     * `POST /devices/token`. Not a sync call, but it belongs to the same
+     * transport: it needs the bearer token and the refresh-once-on-401 handling,
+     * and a second client for one endpoint would duplicate both.
+     *
+     * Sent from the sync run rather than from wherever the token arrived, so a
+     * token that turns up while the phone is in a dead spot is retried with the
+     * same backoff as everything else instead of being lost (M2).
+     */
+    suspend fun registerPushToken(fcmToken: String)
 }
 
 /**

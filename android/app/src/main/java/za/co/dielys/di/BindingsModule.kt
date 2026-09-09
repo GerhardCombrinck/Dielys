@@ -6,6 +6,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import za.co.dielys.data.SessionRepository
 import za.co.dielys.data.local.DeviceIdentity
+import za.co.dielys.data.local.PushTokenStore
 import za.co.dielys.data.local.SessionStore
 import za.co.dielys.data.remote.AccessTokens
 import za.co.dielys.data.remote.HttpSyncApi
@@ -33,4 +34,12 @@ abstract class BindingsModule {
     @Binds
     @Singleton
     abstract fun deviceIdentity(impl: SessionStore): DeviceIdentity
+
+    /**
+     * Same store, second face. The sync engine and the push handler need the two
+     * token fields and nothing else about a session (M2).
+     */
+    @Binds
+    @Singleton
+    abstract fun pushTokenStore(impl: SessionStore): PushTokenStore
 }

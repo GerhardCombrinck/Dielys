@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
+import za.co.dielys.data.push.PushTokens
 import za.co.dielys.data.sync.SyncScheduler
 import javax.inject.Inject
 
@@ -22,6 +23,9 @@ class DielysApplication :
     @Inject
     lateinit var scheduler: SyncScheduler
 
+    @Inject
+    lateinit var pushTokens: PushTokens
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
@@ -34,5 +38,9 @@ class DielysApplication :
         // which is the worst moment to be up to half an hour out of date. Costs
         // nothing when there is no session: the drain fails on the first 401.
         scheduler.requestSync()
+        // FCM only calls onNewToken when it issues one, which for a long-lived
+        // install is never. This is how a registration the server lost gets sent
+        // again (M2).
+        pushTokens.refresh()
     }
 }
