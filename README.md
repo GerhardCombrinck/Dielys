@@ -59,7 +59,11 @@ short a time as possible, and that nothing breaks in between.
 1. Google Cloud console → IAM & Admin → Service Accounts, project `dielys`, the
    `firebase-adminsdk-*@dielys.iam.gserviceaccount.com` account → Keys. Note the key ids and
    dates that are already there; that list is the answer to "was the old one ever revoked".
-2. Add key → Create new key → JSON. It downloads.
+   (`gcloud iam service-accounts keys list --iam-account=firebase-adminsdk-*@dielys.iam.gserviceaccount.com --project=dielys`
+   does the same from a shell, if `gcloud` is installed and authenticated.)
+2. Add key → Create new key → JSON. It downloads. (`gcloud iam service-accounts keys create
+   KEY_FILE.json --iam-account=... --project=dielys` is the shell equivalent — give it a real
+   file path, not `/dev/stdout`; see the warning below.)
 3. Put it in the Worker without it passing through shell history or the process list, and
    flattened to the one line the secret wants:
 
@@ -75,12 +79,25 @@ short a time as possible, and that nothing breaks in between.
    ```
 
    `fcm.send.rejected` with status 400 is the pass.
-6. Only then delete the old key in the console. Doing it before step 5 leaves no way back if
-   the new key was pasted wrong.
+6. Only then delete the old key in the console
+   (or `gcloud iam service-accounts keys delete KEY_ID --iam-account=... --project=dielys`).
+   Doing it before step 5 leaves no way back if the new key was pasted wrong. Some listed keys
+   are `SYSTEM_MANAGED` rather than ones this project created — Google keeps their private key
+   material internally and `keys delete` 404s on them; that is correct, not a bug, and they are
+   not the key in the Worker secret.
 
 Deleting a key is immediate and irreversible: anything still holding it stops working with no
 warning, and it cannot be undeleted. That is the point, but it means step 6 is the last step,
 not the first.
+
+**Do not try to skip step 3's file by piping `gcloud ... keys create /dev/stdout` straight
+into `wrangler secret put`.** On Windows under Git Bash, MSYS rewrites `/dev/stdout` in the
+argument list to `/proc/self/fd/1` before `gcloud` sees it, and gcloud's native Windows Python
+runtime treats that leading `/` as relative to the current drive rather than a symlink to its
+own stdout — so the key gets silently written to a real file at `C:\proc\self\fd\1` instead of
+flowing through the pipe. That is a worse outcome than step 3's documented file, not a better
+one: it leaves a private key sitting at a drive root with a name nobody would think to check.
+Use a real, chosen file path and delete it afterward, exactly as steps 2–4 say.
 
 ### Local development
 
