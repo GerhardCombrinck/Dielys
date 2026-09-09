@@ -3,7 +3,7 @@
  * resolve which DO to talk to, forward.
  */
 import type { ErrorCode } from "@dielys/protocol";
-import { authenticate, authorizeAdmin, authorizeListAccess, usersRoom } from "./auth/authorize.js";
+import { authenticate, authorizeAdmin, authorizeListAccess } from "./auth/authorize.js";
 import {
   ACCESS_TOKEN_TTL_SECONDS,
   INVITE_TOKEN_TTL_SECONDS,
@@ -12,7 +12,9 @@ import {
   signInviteToken,
   verifyInviteToken,
 } from "./auth/jwt.js";
+import { clientAddress, clientKey } from "./auth/ratelimit.js";
 import { ListRoom } from "./do/ListRoom.js";
+import { usersRoom } from "./do/rooms.js";
 import { UsersRoom } from "./do/UsersRoom.js";
 import {
   parseJson,
@@ -21,6 +23,8 @@ import {
   validateCreateUserRequest,
   validateLoginRequest,
   validateRefreshRequest,
+  validateRegisterDeviceRequest,
+  validateRegisterRequest,
 } from "./domain/validate.js";
 import { log } from "./lib/log.js";
 
@@ -54,12 +58,16 @@ export default {
       }
 
       switch (url.pathname) {
+        case "/auth/register":
+          return await handleRegister(request, env, now);
         case "/auth/login":
           return await handleLogin(request, env, now);
         case "/auth/refresh":
           return await handleRefresh(request, env, now);
         case "/auth/memberships":
           return await handleMemberships(request, env);
+        case "/devices/token":
+          return await handleRegisterDevice(request, env, now);
         case "/admin/users":
           return await handleCreateUser(request, env, now);
         case "/invites/accept":
@@ -102,6 +110,61 @@ export default {
 
 // --- auth routes ----------------------------------------------------------
 
+/**
+ * Public registration (L2, ADR 0004). Succeeds into a session, so a new account
+ * is a signed-in account and the client never makes two calls to get one.
+ *
+ * 409 for a taken email is an account-enumeration oracle, knowingly: there is no
+ * honest alternative without email verification, and the rate limit is the
+ * control. Login stays non-enumerable, which is the half that matters.
+ */
+async function handleRegister(request: Request, env: Env, now: number): Promise<Response> {
+  if (request.method !== "POST") return errorResponse("malformed", 405);
+
+  const body = await readJson(request);
+  if (body === null) return errorResponse("malformed", 400);
+
+  const parsed = validateRegisterRequest(body);
+  if (!parsed.ok) return errorResponse("malformed", 400);
+
+  const result = await usersRoom(env).register(
+    parsed.value.email,
+    parsed.value.password,
+    parsed.value.deviceId,
+    await bucketKey(request, env),
+    now,
+  );
+  if (!result.ok) {
+    // The email is never logged — user content (D4).
+    log("info", "worker.register.rejected", { code: result.code });
+    return errorResponse(result.code, registerStatus(result.code));
+  }
+
+  return Response.json(
+    await tokenPair(
+      result.value.userId,
+      parsed.value.deviceId,
+      result.value.refreshToken,
+      env,
+      now,
+    ),
+    { status: 201 },
+  );
+}
+
+function registerStatus(code: ErrorCode): number {
+  if (code === "rate-limited") return 429;
+  return code === "already-exists" ? 409 : 400;
+}
+
+/**
+ * The caller, as the rate limiter sees them: a keyed hash of the address, never
+ * the address (D4, ADR 0004). One HMAC, against PBKDF2's ten thousand rounds.
+ */
+async function bucketKey(request: Request, env: Env): Promise<string> {
+  return clientKey(clientAddress(request), env.JWT_SIGNING_KEY);
+}
+
 async function handleLogin(request: Request, env: Env, now: number): Promise<Response> {
   const body = await readJson(request);
   if (body === null) return errorResponse("malformed", 400);
@@ -113,13 +176,14 @@ async function handleLogin(request: Request, env: Env, now: number): Promise<Res
     login.value.email,
     login.value.password,
     login.value.deviceId,
+    await bucketKey(request, env),
     now,
   );
   if (!result.ok) {
     // Never log the email — user content (D4). Never distinguish "no such
     // account" from "wrong password" in the response.
     log("info", "worker.login.rejected", { code: result.code });
-    return errorResponse(result.code, 401);
+    return errorResponse(result.code, result.code === "rate-limited" ? 429 : 401);
   }
 
   return Response.json(
@@ -181,6 +245,36 @@ async function handleCreateUser(request: Request, env: Env, now: number): Promis
   if (!result.ok) return errorResponse(result.code, result.code === "already-exists" ? 409 : 400);
 
   return Response.json({ userId: result.value }, { status: 201 });
+}
+
+/**
+ * Files this device's FCM token so a change made on the other phone can wake
+ * this one (M2).
+ *
+ * The device id is taken from the access token's `deviceId` claim and never
+ * from the body. A client that could name its own device id could register a
+ * push token against somebody else's phone, which would let it be woken — and
+ * eventually replaced — by an account that does not own it.
+ */
+async function handleRegisterDevice(request: Request, env: Env, now: number): Promise<Response> {
+  if (request.method !== "POST") return errorResponse("malformed", 405);
+
+  const auth = await authenticate(request, env);
+  if (!auth.ok) return errorResponse(auth.code, auth.status);
+
+  const body = await readJson(request);
+  if (body === null) return errorResponse("malformed", 400);
+
+  const parsed = validateRegisterDeviceRequest(body);
+  if (!parsed.ok) return errorResponse("malformed", 400);
+
+  await usersRoom(env).registerDevice(
+    auth.value.userId,
+    auth.value.deviceId,
+    parsed.value.fcmToken,
+    now,
+  );
+  return new Response(null, { status: 204 });
 }
 
 // --- list membership routes ----------------------------------------------

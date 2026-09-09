@@ -13,6 +13,13 @@ export interface UserRow {
   createdAt: string;
 }
 
+/** One phone. See migrations/users/0002_devices.sql for why it is its own row. */
+export interface DeviceRow {
+  deviceId: string;
+  userId: string;
+  fcmToken: string;
+}
+
 export interface RefreshTokenRow {
   tokenHash: string;
   userId: string;
@@ -198,4 +205,82 @@ export function selectMemberships(sql: SqlStorage, userId: string): Membership[]
     // Written by insertMembership from a MembershipRole; SQLite has no enum.
     role: String(row.role) as MembershipRole,
   }));
+}
+
+/**
+ * Files this device's FCM token under its device id, replacing whatever was
+ * there. `ON CONFLICT` on the primary key rather than an INSERT-or-UPDATE pair:
+ * a token refresh and a sign-in as a different user are the same write, and
+ * both have to land as one statement.
+ */
+export function upsertDevice(sql: SqlStorage, device: DeviceRow, updatedAt: string): void {
+  sql.exec(
+    `INSERT INTO devices (device_id, user_id, fcm_token, updated_at) VALUES (?, ?, ?, ?)
+     ON CONFLICT(device_id) DO UPDATE SET
+       user_id = excluded.user_id,
+       fcm_token = excluded.fcm_token,
+       updated_at = excluded.updated_at`,
+    device.deviceId,
+    device.userId,
+    device.fcmToken,
+    updatedAt,
+  );
+}
+
+export function deleteDevice(sql: SqlStorage, deviceId: string): void {
+  sql.exec("DELETE FROM devices WHERE device_id = ?", deviceId);
+}
+
+/**
+ * Every registered device belonging to a member of this list — the fan-out set
+ * for a wake push (M2).
+ *
+ * This is not an authorization query and must never be used as one. It answers
+ * "who should be told", after the Worker has already decided that the writer
+ * was allowed to write.
+ */
+export function selectDevicesForList(sql: SqlStorage, listId: string): DeviceRow[] {
+  const cursor = sql.exec(
+    `SELECT d.device_id, d.user_id, d.fcm_token
+       FROM devices d
+       JOIN memberships m ON m.user_id = d.user_id
+      WHERE m.list_id = ?
+      ORDER BY d.device_id`,
+    listId,
+  );
+  return [...cursor].map((row) => ({
+    deviceId: String(row.device_id),
+    userId: String(row.user_id),
+    fcmToken: String(row.fcm_token),
+  }));
+}
+
+export interface RateLimitRow {
+  count: number;
+  windowStartedAt: number;
+}
+
+export function selectRateLimit(sql: SqlStorage, bucket: string): RateLimitRow | null {
+  const rows = [
+    ...sql.exec("SELECT count, window_started_at FROM rate_limits WHERE bucket = ?", bucket),
+  ];
+  const row = rows[0];
+  if (row === undefined) return null;
+  return { count: Number(row.count), windowStartedAt: Number(row.window_started_at) };
+}
+
+export function upsertRateLimit(sql: SqlStorage, bucket: string, row: RateLimitRow): void {
+  sql.exec(
+    `INSERT INTO rate_limits (bucket, count, window_started_at) VALUES (?, ?, ?)
+     ON CONFLICT (bucket) DO UPDATE SET count = excluded.count,
+                                        window_started_at = excluded.window_started_at`,
+    bucket,
+    row.count,
+    row.windowStartedAt,
+  );
+}
+
+/** Windows that closed long ago say nothing. Pruned as we go (ADR 0004). */
+export function deleteStaleRateLimits(sql: SqlStorage, before: number): void {
+  sql.exec("DELETE FROM rate_limits WHERE window_started_at < ?", before);
 }

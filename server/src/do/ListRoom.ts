@@ -37,6 +37,7 @@ import {
   writeRoomMeta,
 } from "../storage/entities.js";
 import { applyPendingMigrations, LIST_MIGRATIONS } from "../storage/migrations.js";
+import { usersRoom } from "./rooms.js";
 
 /** What a hibernating socket has to remember about its session. */
 interface SocketSession {
@@ -60,6 +61,12 @@ interface SocketSession {
  * Worker's job, checked against UsersRoom before anything reaches here — see
  * docs/adr/0002-authentication.md. Adding a membership check in this class
  * would put the same rule in two places and let them disagree.
+ *
+ * It does reach UsersRoom for one thing: after a write, to have the member
+ * devices that are not on a socket woken by a push (M2). That is fan-out, not
+ * authorization — it happens *after* a change has already been accepted, it
+ * cannot refuse anything, and removing it would cost latency rather than let
+ * anybody in. The membership rule still has exactly one implementation.
  */
 export class ListRoom extends DurableObject {
   private readonly sql: SqlStorage;
@@ -143,6 +150,7 @@ export class ListRoom extends DurableObject {
     // Everyone else finds out over their socket; the caller already has the
     // result in its ack.
     this.broadcast({ type: "change", change: result.change }, null);
+    if (!result.duplicate) this.wakeAbsentDevices(result.change);
     return new Response(JSON.stringify(result), {
       headers: { "content-type": "application/json" },
     });
@@ -277,7 +285,9 @@ export class ListRoom extends DurableObject {
 
     const result = this.applyMutation(mutation.value);
     send(ws, result);
-    if (result.type === "ack") this.broadcast({ type: "change", change: result.change }, ws);
+    if (result.type !== "ack") return;
+    this.broadcast({ type: "change", change: result.change }, ws);
+    if (!result.duplicate) this.wakeAbsentDevices(result.change);
   }
 
   private onCatchUp(ws: WebSocket, raw: unknown): void {
@@ -427,6 +437,40 @@ export class ListRoom extends DurableObject {
       return false;
     }
     return true;
+  }
+
+  /**
+   * Asks UsersRoom to wake the member devices this change did not already
+   * reach (M2).
+   *
+   * A device holding a socket has had the change pushed down it already, and
+   * M2 forbids sending both — so the set of connected device ids is collected
+   * here, where it is known, and everything else is somebody else's problem.
+   * A hibernating socket still counts as connected: the runtime delivers to it
+   * without waking this object, which is the entire point of hibernation.
+   *
+   * Never awaited. The mutation has committed and the client has its ack; a
+   * push that is slow, refused, or impossible because no credential is
+   * configured must not show up as a failed write.
+   */
+  private wakeAbsentDevices(change: ChangeEnvelope): void {
+    // The device that made the write already knows, whether or not it holds a
+    // socket — the outbox drain is an HTTP call with nothing open.
+    const informed: string[] = [change.deviceId];
+    for (const socket of this.ctx.getWebSockets()) {
+      const session = socket.deserializeAttachment() as SocketSession | null;
+      if (session !== null && typeof session.deviceId === "string") {
+        informed.push(session.deviceId);
+      }
+    }
+
+    this.ctx.waitUntil(
+      usersRoom(this.env)
+        .notifyListMembers(change.listId, change.seq, informed)
+        .catch((error: unknown) => {
+          log("warn", "listroom.wake.failed", { listId: change.listId, error: String(error) });
+        }),
+    );
   }
 
   private broadcast(message: ServerMessage, except: WebSocket | null): void {

@@ -28,17 +28,46 @@ Where Dielys is and what comes next. Short by design — the standard is in
       Appends stay two characters for 62 items; `betweenMany` bisects so bulk inserts do not
       nest. Ordering is `(position, id)` — two devices inserting at the same spot offline can
       produce the same key, and the id breaks the tie (H3.9).
+- [x] **Android data layer** — Room schema and DAOs, the outbox, the `WorkManager` drain, and
+      the Kotlin port of the fractional index that reproduces every golden vector. `domain/`,
+      `data/{local,remote,sync}` and `di/` are real; the UI is still a placeholder. Every user
+      action commits its entity and its outbox row in one transaction (F5.7), and the cursor
+      moves only after a change is committed locally (F5.8).
+- [x] **The rest of H3** — 3.1, 3.4 and 3.9 are covered by JVM tests against a fake server:
+      a write made offline drains when the network returns, a drain killed after the server
+      applied replays the same idempotency key without duplicating, and both devices dragging
+      into the same gap converge on one order. Room runs under Robolectric, so real SQLite
+      settles the `(position, id)` tie the same way the phone will.
+- [x] **Cross-language wire check** — `WireFormatTest` round-trips every fixture in
+      `protocol/fixtures/` through the Kotlin types, and Konsist enforces the E1 layer rules.
+- [x] **Compose UI** — sign in, list of lists, list detail, add/tick/star/rename/delete, and
+      long-press drag to reorder. Every screen reads Room and writes through the repository;
+      nothing on a screen touches the network. No navigation library — the back stack is one
+      nullable list id. Also closes two gaps the UI made visible: `/auth/memberships` is now
+      pulled on every sync, so a second phone actually discovers the household's lists, and a
+      dead outbox row is shown rather than merely kept.
+
+- [x] **FCM wake push** (section M) — data-only payloads carrying `{type, listId, seq}` and
+      nothing else, device tokens not topics. A `ListRoom` write hands `UsersRoom` the device
+      ids it can see on sockets; `UsersRoom` owns the membership fan-out, the OAuth token
+      cache and the dead-token cleanup, so `ListRoom` still never learns who a list's members
+      are (L3). `seq` travels as a decimal string because FCM's `data` is `map<string,string>`
+      — the key set and the no-content rule are unchanged. An unset `FCM_SERVICE_ACCOUNT_JSON`
+      is not fail-closed: without it a mutation still commits and the app falls back to the
+      socket and the half-hourly floor (H3.12).
 
 ## Next
 
-- [ ] **Android data layer** — Room schema, DAOs, the outbox, and the drain worker. This is
-      where F5.7 (local write and outbox row in one transaction) and F5.8 (cursor advances
-      only after the local commit) actually live.
-- [ ] **The rest of H3** — 3.1, 3.4, 3.9 are client-side and cannot be tested server-side.
-- [ ] **Compose UI** — list of lists, list detail, add/tick/star/reorder. Nothing beyond a
-      placeholder exists.
-- [ ] **FCM** (section M) — data-only payloads carrying `{type, listId, seq}` and no list
-      content, device tokens not topics.
+- [ ] **Dev shakedown** — run the debug build against `dielys-dev` on two phones and work
+      through H3 by hand. The parts a JVM test cannot reach are the drag gesture, the keyboard,
+      and what a real flaky signal does to the drain. Needs the two manual credential steps
+      first: create the Firebase project and drop `android/app/google-services.json` in, then
+      `wrangler secret put FCM_SERVICE_ACCOUNT_JSON` for the dev Worker.
+- [ ] **Rotate the FCM service-account key** — the key currently in `FCM_SERVICE_ACCOUNT_JSON`
+      on `dielys-dev` was downloaded to disk to get there, so it should be replaced and the old
+      one deleted. Console steps are in the README under "Rotating the FCM key"; it cannot be
+      done from a shell here, there is no gcloud and no local Google credential. Delete the old
+      key last, after `push-probe.sh` proves the new one authenticates.
 - [ ] **Prod** — `dielys-prod` has never been deployed. Needs its own secrets and a smoke run.
 
 ## Open questions

@@ -6,22 +6,52 @@ Utility and maintenance scripts. POSIX `sh` or Node only — CI runs on Linux
 | Script            | What                                                        | Touches prod data |
 |-------------------|--------------------------------------------------------------|--------------------|
 | `verify.sh`       | Runs everything `ci.yml` runs, locally. Use before every push ([B3](../docs/CODE_STANDARD.md#standard-b3)). | No |
-| `smoke.sh`        | End-to-end check against a running server — local, dev or prod. Run after a deploy. | Creates two throwaway accounts and one list |
+| `smoke.sh`        | End-to-end check against a running server — local, dev or prod. Run after a deploy. | Creates two throwaway accounts, one list and two device rows |
+| `push-probe.sh`   | Makes a deployed server attempt one real FCM send, to prove the credential works. Read `wrangler tail` for the answer. | Creates one throwaway account and one list |
 | `create-user.ts`  | Creates one Dielys account in `UsersRoom`. See [L2](../docs/CODE_STANDARD.md#standard-l2) — there is no public registration endpoint, this is the only way an account gets created. | Yes |
 
 A script that touches production data MUST print what it is about to do and prompt for
 confirmation before doing it. Anything run by hand more than twice becomes a script here.
 
+## Running these on Windows
+
+Use **Git Bash**, not PowerShell and not WSL. `bash` on a default Windows PATH resolves to
+`C:\WINDOWS\system32\bash.exe`, which is the WSL launcher and fails with "no installed
+distributions" on a machine that has never set WSL up — a confusing error, because the shell
+it names does exist, just not the one you wanted.
+
+Either open Git Bash directly, or call it by path from PowerShell so the current environment
+carries over:
+
+```powershell
+& "C:\Program Files\Git\bin\bash.exe" scripts/smoke.sh https://dielys-dev.dielys.workers.dev
+```
+
+Three differences from PowerShell: paths are `/c/repos/Dielys`, environment variables are
+`export NAME='value'`, and paste is Shift+Insert. Git Bash is also what `verify.sh` assumes
+and closest to the Linux shell CI runs, so a script that works there works in CI.
+
 ## smoke.sh
 
 ```sh
-DIELYS_ADMIN_TOKEN=... scripts/smoke.sh https://dielys-dev.dielys.workers.dev
+scripts/smoke.sh https://dielys-dev.dielys.workers.dev
 ```
 
-23 checks over the whole contract: login, list claim, mutation, an idempotent
-retry that must return the original result at the same seq without adding a
-changelog row, catch-up, invite mint and accept, and refresh rotation with
-replay detection. Exits non-zero on the first disagreement and prints the body.
+29 checks over the whole contract: registration, login, list claim, mutation, an
+idempotent retry that must return the original result at the same seq without
+adding a changelog row, catch-up, invite mint and accept, push-token
+registration, and refresh rotation with replay detection. Exits non-zero on the
+first disagreement and prints the body.
+
+No admin token any more: registration is public ([ADR 0004](../docs/adr/0004-open-registration.md)),
+so the script makes its own accounts. The one check that still concerns
+`/admin/users` sends no token and expects to be refused, which is how it stays
+honest without holding a secret.
+
+**Once per hour against a deployed environment.** A run spends all three of the
+registrations a client gets per hour, so a second run inside the hour fails at
+the first step and proves nothing. `push-probe.sh` shares that budget. A local
+`wrangler dev` keeps its counters in a throwaway DO, so restarting clears them.
 
 It is not read-only: it creates two `smoke-*@dielys.test` accounts and one list
 per run, and names them at the end. Nothing deletes them — there is no account
@@ -30,6 +60,37 @@ it at prod.
 
 `scripts/verify.sh` proves the code is right before a push; this proves the
 deployment is right after one. Neither replaces the other.
+
+## push-probe.sh
+
+```sh
+npx wrangler tail --env dev --format pretty   # in one window
+scripts/push-probe.sh https://dielys-dev.dielys.workers.dev
+```
+
+`smoke.sh` proves `/devices/token` stores a token. It cannot prove the server can
+then authenticate to Google, because the send is best-effort and off the response
+path (M2) — a mutation acks whether or not the push went anywhere. This drives
+that path deliberately.
+
+It registers an FCM token that is invalid on purpose and then writes from a second
+device on the same account. **`fcm.send.rejected` with status 400 is the pass**: FCM
+only objects to a token after it has authenticated the request, matched the project
+and accepted the body, so a 400 proves everything a credential can be wrong about.
+No `usersroom.device.dropped` follows it, and should not — a device row is deleted
+on 404 and never on 400 (ADR 0003), because a 400 can be our own malformed request.
+
+`fcm.send.unregistered` is out of reach here. That needs a token FCM recognises as
+well-formed but no longer registered, which only a real wiped device produces; the
+server suite covers the 404 path instead. The script prints what each other log line
+means.
+
+The script itself cannot fail on a credential problem, and does not pretend to —
+it exits 0 as long as the HTTP contract held, and hands you the tail to read.
+
+This is also the check to run after rotating the FCM service-account key: a
+`fcm.send.rejected` 400 means the new key authenticated, and anything earlier in
+the log means it did not.
 
 ## create-user.ts
 
@@ -77,6 +138,14 @@ TypeScript half, and pretending otherwise would make the script useless there. R
 
 `android/local.properties` is gitignored and points at the same SDK; it is per-machine and
 is not something to commit.
+
+### If a run takes tens of minutes
+
+Check for a running emulator first. `vitest-pool-workers` starts several `workerd`
+processes, and two AVDs will happily take every core on a four-core machine — a run that
+finishes in 22 seconds otherwise took over half an hour alongside them. Nothing is hung
+and nothing reports it, because `verify.sh | tail` shows no output at all until the run
+ends. Shut the emulators down (`adb -s emulator-5554 emu kill`) rather than waiting.
 
 ### If `npm ci` fails with EPERM or EBUSY
 

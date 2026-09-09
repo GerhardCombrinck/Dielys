@@ -1330,14 +1330,28 @@ therefore a one-line change plus a plan upgrade, at any time.
 
 #### Standard
 
-There is no public registration endpoint. Accounts are created by `scripts/create-user.ts`,
-following [A2](#standard-a2): it MUST print what it is about to do and prompt for confirmation
-before writing to `UsersRoom`.
+`POST /auth/register` is public, per [ADR 0004](adr/0004-open-registration.md). It creates the
+account and issues the same `TokenPair` login does, so registering signs the caller in.
+
+The `ADMIN_TOKEN` route stays alongside it: it is how the first account on a fresh deployment
+is made, and `scripts/create-user.ts` MUST still print what it is about to do and prompt for
+confirmation before writing to `UsersRoom`, following [A2](#standard-a2).
 
 #### Rules
 
-- A public `/auth/register` endpoint is a review blocker unless a new ADR supersedes
-  [ADR 0002](adr/0002-authentication.md) with a reason the user base is expected to grow.
+- The minimum password length MUST be enforced on registration and MUST NOT be enforced on
+  login — rejecting a short *login* tells an attacker their guess was too short to be real.
+- Registration and login MUST both be rate limited. The buckets and windows live in
+  [ADR 0004](adr/0004-open-registration.md); relaxing or removing them is a review blocker.
+- A client MUST be identified for rate limiting by a keyed hash of its address, never by the
+  address itself — a plain digest of an IPv4 address is not an anonymisation, and the address
+  is user data ([D4](#standard-d4)).
+- `already-exists` on registration is a known account-enumeration oracle, accepted in
+  [ADR 0004](adr/0004-open-registration.md) and bounded by the rate limit. **Login MUST stay
+  non-enumerable**: one `invalid-credentials` code for a wrong password, a wrong email and an
+  account that does not exist, with the password hashed even when no such account exists so
+  the two paths cost the same.
+- There is no account deletion endpoint. An abandoned account stays.
 
 ---
 
@@ -1398,6 +1412,13 @@ catch-up pull can run. It is not a notification system and it is not a transport
   client-side, after sync, from local Room data — never from the push payload directly. This
   is the same rule as [E1](#standard-e1): the UI layer reads from Room, not from the network.
 
+#### As built
+
+FCM's `data` field is `map<string, string>`, so `seq` travels as a decimal string rather than
+a JSON number. The key set, the data-only rule and the no-content rule are unchanged; only the
+encoding of that one field differs. Recorded in [ADR 0003](adr/0003-fcm-wake-push.md) because
+this section is **(SYNC)**.
+
 ---
 
 <a id="standard-m2"></a>
@@ -1433,6 +1454,14 @@ sees this list" instead of two (membership rows and topic subscriptions) that ca
   change — the socket already delivered it. Sending both is not incorrect (the client
   catch-up pull is idempotent per [F5.6](#standard-f5)) but is wasted FCM quota and MUST be
   avoided.
+
+#### As built
+
+The fan-out lives in `UsersRoom`, not in `ListRoom`: a `ListRoom` hands over the device ids it
+can see on sockets and never learns who the members are, which keeps [L3](#standard-l3) true
+by construction. The token is stored in a `devices` table keyed by `device_id` rather than on
+the refresh-token row, because refresh tokens rotate on every use and an FCM token does not.
+Both in [ADR 0003](adr/0003-fcm-wake-push.md).
 
 ---
 

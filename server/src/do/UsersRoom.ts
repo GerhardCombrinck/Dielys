@@ -7,27 +7,63 @@ import {
   PASSWORD_ITERATIONS,
   verifyPassword,
 } from "../auth/password.js";
+import {
+  bucketFor,
+  LOGIN_PER_CLIENT,
+  type RateLimit,
+  REGISTER_GLOBAL,
+  REGISTER_PER_CLIENT,
+} from "../auth/ratelimit.js";
 import { log } from "../lib/log.js";
+import {
+  FcmSender,
+  parseServiceAccount,
+  type ServiceAccount,
+  type WakeTarget,
+  wakeData,
+} from "../push/fcm.js";
 import { applyPendingMigrations, USERS_MIGRATIONS } from "../storage/migrations.js";
 import {
   countListMembers,
   countUsers,
+  type DeviceRow,
+  deleteDevice,
   deleteExpiredRefreshTokens,
   deleteRefreshTokensForUser,
+  deleteStaleRateLimits,
   insertMembership,
   insertRefreshToken,
   insertUser,
   markRefreshTokenUsed,
+  selectDevicesForList,
   selectMembership,
   selectMemberships,
+  selectRateLimit,
   selectRefreshToken,
   selectUserByEmail,
   selectUserById,
   updateUserPassword,
+  upsertDevice,
+  upsertRateLimit,
 } from "../storage/users.js";
 
 /** 30 days (L1). */
 export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * A ceiling on one fan-out, not a household size. Two people have two phones;
+ * a number this far above that means something is wrong — a runaway
+ * registration loop, say — and an unbounded loop of outbound `fetch` calls is
+ * not the place to find out.
+ */
+const MAX_WAKE_TARGETS = 32;
+
+/**
+ * A window that closed this long ago cannot affect any limit, so its row is
+ * dead weight. The longest window in use, by construction — a shorter value
+ * here would silently reset the daily registration ceiling.
+ */
+const RATE_LIMIT_RETENTION_MS = REGISTER_GLOBAL.windowMs;
 
 export type UsersResult<T> = { ok: true; value: T } | { ok: false; code: AuthErrorCode };
 
@@ -54,6 +90,13 @@ export interface Session {
  */
 export class UsersRoom extends DurableObject {
   private readonly sql: SqlStorage;
+  /**
+   * Instance state, never module-level (D3). Null until the first push, and
+   * null forever on a deployment with no FCM credential — where the app still
+   * syncs, just no faster than the half-hourly worker (H3.12).
+   */
+  private sender: FcmSender | null = null;
+  private senderResolved = false;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -66,8 +109,13 @@ export class UsersRoom extends DurableObject {
   }
 
   /**
-   * There is no public registration endpoint (L2) — this is reached only by
-   * the Worker's admin route, which `scripts/create-user.ts` calls.
+   * Creates the account and nothing else. Reached by the `ADMIN_TOKEN` route,
+   * which is how the first account on a fresh deployment is made, and by
+   * [register], which is the public path (L2, ADR 0004).
+   *
+   * Rate limiting is the caller's job, not this method's: the admin route is
+   * already behind a secret, and limiting it would mean a held secret could
+   * lock itself out.
    */
   async createUser(email: string, password: string, now: number): Promise<UsersResult<string>> {
     const normalized = normalizeEmail(email);
@@ -91,12 +139,53 @@ export class UsersRoom extends DurableObject {
     return { ok: true, value: id };
   }
 
+  /**
+   * Public registration (L2, ADR 0004). Creates the account and signs the
+   * caller in, because a second round trip to log in afterwards would be two
+   * chances to fail for one intent.
+   *
+   * Both limits are consumed before the password is hashed. PBKDF2 is the
+   * expensive thing on this path, and a limiter that runs after it has already
+   * paid for the request it was meant to refuse.
+   *
+   * `already-exists` here is an account-enumeration oracle. It is accepted, and
+   * bounded by [REGISTER_PER_CLIENT] — see ADR 0004. Login must not leak the
+   * same thing, and does not.
+   */
+  async register(
+    email: string,
+    password: string,
+    deviceId: string,
+    clientKey: string,
+    now: number,
+  ): Promise<UsersResult<Session>> {
+    if (!this.consume(REGISTER_PER_CLIENT, clientKey, now)) {
+      return { ok: false, code: "rate-limited" };
+    }
+    if (!this.consume(REGISTER_GLOBAL, "all", now)) {
+      log("warn", "usersroom.register.ceiling", {});
+      return { ok: false, code: "rate-limited" };
+    }
+
+    const created = await this.createUser(email, password, now);
+    if (!created.ok) return created;
+
+    return { ok: true, value: await this.issueSession(created.value, deviceId, now) };
+  }
+
   async login(
     email: string,
     password: string,
     deviceId: string,
+    clientKey: string,
     now: number,
   ): Promise<UsersResult<Session>> {
+    // Before the hash, and before the lookup: a limiter that runs afterwards
+    // has already spent the CPU it exists to protect.
+    if (!this.consume(LOGIN_PER_CLIENT, clientKey, now)) {
+      return { ok: false, code: "rate-limited" };
+    }
+
     const user = selectUserByEmail(this.sql, normalizeEmail(email));
 
     if (user === null) {
@@ -246,10 +335,130 @@ export class UsersRoom extends DurableObject {
     return { ok: true, value: { alreadyMember: false } };
   }
 
+  // --- Push (M2) ----------------------------------------------------------
+
+  /**
+   * Files this device's FCM token (M2). Called on every sync where the token
+   * the client holds is not the one the server was last told, so it covers
+   * both `onNewToken` and a first install.
+   *
+   * The device id comes from the caller's access token, never from a request
+   * body — see the route in index.ts. Signing in as somebody else on the same
+   * phone re-points the row rather than adding a second one, which is what
+   * stops a handed-on phone being woken for its previous owner.
+   */
+  async registerDevice(
+    userId: string,
+    deviceId: string,
+    fcmToken: string,
+    now: number,
+  ): Promise<void> {
+    this.ctx.storage.transactionSync(() => {
+      upsertDevice(this.sql, { deviceId, userId, fcmToken }, new Date(now).toISOString());
+    });
+    // The token is the address of somebody's phone. Log that one exists, never
+    // what it is (D4).
+    log("info", "usersroom.device.registered", { userId, deviceId });
+  }
+
+  /** Every registered device on this list. Not an authorization check — see
+   * `selectDevicesForList`. Exposed so the fan-out can be tested without a
+   * network. */
+  async devicesForList(listId: string): Promise<DeviceRow[]> {
+    return selectDevicesForList(this.sql, listId);
+  }
+
+  /**
+   * Wakes the member devices that did not already get this change over a
+   * socket (M2).
+   *
+   * `ListRoom` calls this after it has committed, passing the device ids it
+   * knows are connected plus the one that made the write. Membership lives
+   * here, so the fan-out lives here too — and the object that owns the device
+   * rows is also the one that can drop a dead token without a second hop.
+   *
+   * Fire-and-forget by design: this returns as soon as the send is scheduled.
+   * A push is a hint, and a caller that waited for Google before answering the
+   * client would have made a write slower in order to make it no more correct.
+   */
+  async notifyListMembers(listId: string, seq: number, connected: string[]): Promise<void> {
+    const sender = this.fcm();
+    if (sender === null) return;
+
+    const already = new Set(connected);
+    const targets: WakeTarget[] = selectDevicesForList(this.sql, listId)
+      .filter((device) => !already.has(device.deviceId))
+      .slice(0, MAX_WAKE_TARGETS)
+      .map((device) => ({ deviceId: device.deviceId, fcmToken: device.fcmToken }));
+
+    // Logged on both sides of the decision, because a successful send says
+    // nothing on its own: without this, "no wake in the log" cannot be told
+    // apart from "every member device was already connected", and the two have
+    // opposite meanings when a phone did not hear about a change.
+    if (targets.length === 0) {
+      log("info", "usersroom.wake.skipped", { listId, seq, connected: already.size });
+      return;
+    }
+
+    log("info", "usersroom.wake.sent", { listId, seq, count: targets.length });
+
+    this.ctx.waitUntil(
+      sender.wake(targets, wakeData(listId, seq), Date.now()).then((gone) => {
+        // An uninstalled app keeps its row otherwise, and every later write
+        // pays a round trip to be told the same thing again.
+        if (gone.length === 0) return;
+        this.ctx.storage.transactionSync(() => {
+          for (const deviceId of gone) deleteDevice(this.sql, deviceId);
+        });
+        log("info", "usersroom.device.dropped", { count: gone.length });
+      }),
+    );
+  }
+
+  /** Built once per instance, including the decision that there is nothing to
+   * build. Parsing a service account costs nothing, but doing it per push
+   * would hide how often it fails. */
+  private fcm(): FcmSender | null {
+    if (!this.senderResolved) {
+      this.senderResolved = true;
+      const account: ServiceAccount | null = parseServiceAccount(this.env.FCM_SERVICE_ACCOUNT_JSON);
+      if (account === null) {
+        log("info", "usersroom.push.disabled", {});
+      } else {
+        this.sender = new FcmSender(account);
+      }
+    }
+    return this.sender;
+  }
+
   /** Whether any account exists at all — used by the admin route to refuse
    * bootstrapping a second time without an explicit token. */
   async userCount(): Promise<number> {
     return countUsers(this.sql);
+  }
+
+  /**
+   * Fixed window: the first attempt opens one, and everything inside it counts
+   * against the same allowance until it closes. Returns whether this attempt is
+   * within the limit.
+   *
+   * An attempt over the limit still increments, so hammering keeps the window
+   * shut rather than rolling it — which is the point of refusing.
+   */
+  private consume(limit: RateLimit, clientKey: string, now: number): boolean {
+    const bucket = bucketFor(limit, clientKey);
+    return this.ctx.storage.transactionSync(() => {
+      deleteStaleRateLimits(this.sql, now - RATE_LIMIT_RETENTION_MS);
+
+      const current = selectRateLimit(this.sql, bucket);
+      const open = current !== null && now - current.windowStartedAt < limit.windowMs;
+      const next = open
+        ? { count: current.count + 1, windowStartedAt: current.windowStartedAt }
+        : { count: 1, windowStartedAt: now };
+
+      upsertRateLimit(this.sql, bucket, next);
+      return next.count <= limit.limit;
+    });
   }
 
   private async issueSession(userId: string, deviceId: string, now: number): Promise<Session> {

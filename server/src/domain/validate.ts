@@ -18,6 +18,7 @@ import {
   type ListPatch,
   type LoginRequest,
   MAX_EMAIL_LENGTH,
+  MAX_FCM_TOKEN_LENGTH,
   MAX_ID_LENGTH,
   MAX_PASSWORD_LENGTH,
   MAX_POSITION_LENGTH,
@@ -26,6 +27,8 @@ import {
   MIN_PASSWORD_LENGTH,
   type Mutation,
   type RefreshRequest,
+  type RegisterDeviceRequest,
+  type RegisterRequest,
   type TaskPatch,
 } from "@dielys/protocol";
 
@@ -242,6 +245,26 @@ export function validateLoginRequest(input: unknown): Validated<LoginRequest> {
   };
 }
 
+/**
+ * Public registration (L2, ADR 0004). The minimum length *is* enforced here —
+ * the asymmetry with [validateLoginRequest] is deliberate and is the rule, not
+ * an oversight.
+ */
+export function validateRegisterRequest(input: unknown): Validated<RegisterRequest> {
+  if (!isRecord(input)) return fail("not an object");
+  if (!isEmail(input.email)) return fail("email");
+  if (!isPassword(input.password)) return fail("password too short or too long");
+  if (!isId(input.deviceId)) return fail("deviceId");
+  return {
+    ok: true,
+    value: {
+      email: input.email,
+      password: input.password,
+      deviceId: input.deviceId,
+    },
+  };
+}
+
 /** Account creation, where the minimum length *is* enforced (L2). */
 export function validateCreateUserRequest(input: unknown): Validated<{
   email: string;
@@ -278,4 +301,18 @@ export function validateAcceptInviteRequest(input: unknown): Validated<AcceptInv
     return fail("inviteToken");
   }
   return { ok: true, value: { inviteToken: token } };
+}
+
+/**
+ * `POST /devices/token` (M2). There is deliberately no `deviceId` here — the
+ * one the token is filed under comes from the caller's access token, so a
+ * client cannot register a push token against somebody else's device.
+ */
+export function validateRegisterDeviceRequest(input: unknown): Validated<RegisterDeviceRequest> {
+  if (!isRecord(input)) return fail("not an object");
+  const token = input.fcmToken;
+  if (typeof token !== "string" || token.length === 0 || token.length > MAX_FCM_TOKEN_LENGTH) {
+    return fail("fcmToken");
+  }
+  return { ok: true, value: { fcmToken: token } };
 }

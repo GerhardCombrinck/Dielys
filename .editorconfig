@@ -13,6 +13,11 @@ max_line_length = 100
 indent_size = 4
 ij_kotlin_allow_trailing_comma = true
 ij_kotlin_allow_trailing_comma_on_call_site = true
+# A @Composable that emits UI is named like the thing it emits, not like a verb —
+# TaskRow, not taskRow. That is the Compose convention everywhere, including
+# androidx itself, so ktlint's camelCase rule is waived for exactly that case and
+# still applies to every other function.
+ktlint_function_naming_ignore_when_annotated_with = Composable
 
 [*.md]
 trim_trailing_whitespace = false

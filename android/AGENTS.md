@@ -18,6 +18,26 @@ release: 21`, not a useful error pointing at the real cause.
 ./gradlew ktlintCheck detekt testDebugUnitTest
 ```
 
+## The UI layer
+
+Compose only, and it reads Room and nothing else. A screen that reaches
+`data/remote` fails `ArchitectureTest` — including indirectly, which is why
+`SessionRepository.signIn` returns a `SignInResult` instead of letting an
+`ApiException` out.
+
+**There is no navigation library.** The whole back stack is one nullable list id
+in `ui/DielysApp.kt`. Add `navigation-compose` when there is a deep link or a
+second way into a screen, not before.
+
+Composables are named `TaskRow`, not `taskRow`. Both linters are configured for
+that and for nothing else: `ktlint_function_naming_ignore_when_annotated_with =
+Composable` in the root `.editorconfig`, and `ignoreAnnotated: ['Composable']`
+on `FunctionNaming`, `LongMethod` and `LongParameterList` in `detekt.yml`.
+
+Icons come from `androidx.compose.material:material-icons-core`, which is *not*
+pulled in by material3 — a missing `Icons` reference means that line was
+dropped. It carries only the ~40 core icons; anything else has to be drawn.
+
 ## Toolchain: AGP 9 has built-in Kotlin
 
 **There is deliberately no `org.jetbrains.kotlin.android` plugin in this
@@ -57,10 +77,23 @@ These versions move as a locked set — bumping one alone fails:
 Dependabot will keep proposing these one at a time; each one alone will fail
 CI. They need bumping together, in one PR.
 
-`google-services.json` is not committed (gitignored, project-specific), and
-the `com.google.gms.google-services` plugin is declared at the root (`apply
-false`) but deliberately **not applied** in `app/build.gradle.kts` yet — that
-plugin hard-fails at configuration time without the json file, and FCM isn't
-wired up yet ([M](../docs/CODE_STANDARD.md#m-push-notifications-fcm) is still
-TODO). When FCM setup starts: drop a real `app/google-services.json` in,
-apply the plugin in `app/build.gradle.kts`, then it'll work.
+`google-services.json` is not committed (gitignored, project-specific), so
+`app/build.gradle.kts` applies the `com.google.gms.google-services` plugin
+**only when the file is there** — it hard-fails at configuration time
+without it, and an unconditional `id(...)` would mean nobody could build or
+run the tests without a Firebase project of their own.
+
+A build with no `google-services.json` still runs. There is no default
+`FirebaseApp`, so `PushTokens.refresh()` returns without asking for a token,
+no token is ever registered, and sync falls back to the WebSocket and the
+half-hourly `WorkManager` floor (H3.12). To turn push on for a build, drop a
+real `app/google-services.json` in — nothing else changes.
+
+The push code ([M](../docs/CODE_STANDARD.md#m-push-notifications-fcm)) lives
+in `data/push/`. `DielysMessagingService` is a shell: it hands both events to
+`PushHandler`, which is where the tests are. **There is no notification code
+there and there must not be** — the payload is a hint carrying no list
+content (M1), so anything shown to the user is composed from Room after the
+sync it triggers. Registration is sent from `SyncEngine.sync()` rather than
+from wherever the token arrived, so it inherits the backoff instead of
+needing a retry path of its own.

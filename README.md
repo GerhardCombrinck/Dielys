@@ -37,10 +37,50 @@ FCM_SERVICE_ACCOUNT_JSON={}
 `)'
 ```
 
-For a deployed environment the same two secrets are set with `wrangler secret put
+For a deployed environment the same secrets are set with `wrangler secret put
 JWT_SIGNING_KEY --env dev` and `wrangler secret put ADMIN_TOKEN --env dev`; both are long
 random values and neither ever goes in `wrangler.jsonc`
 ([I1](docs/CODE_STANDARD.md#standard-i1)).
+
+`FCM_SERVICE_ACCOUNT_JSON` is the third, and the only optional one: `wrangler secret put
+FCM_SERVICE_ACCOUNT_JSON --env dev`, pasting the whole service-account JSON on one line.
+Without it the Worker runs normally and simply never sends a wake push — a phone then hears
+about a change over its WebSocket, or on the half-hourly sync
+([H3.12](docs/CODE_STANDARD.md#standard-h3)). The Android half needs
+`android/app/google-services.json` from the same Firebase project; it is gitignored, and a
+build without it still works the same way.
+
+#### Rotating the FCM key
+
+The service-account JSON contains a private key. It has to touch the disk to get from the
+Google console into a Worker secret, so the point of this order is that it touches it for as
+short a time as possible, and that nothing breaks in between.
+
+1. Google Cloud console → IAM & Admin → Service Accounts, project `dielys`, the
+   `firebase-adminsdk-*@dielys.iam.gserviceaccount.com` account → Keys. Note the key ids and
+   dates that are already there; that list is the answer to "was the old one ever revoked".
+2. Add key → Create new key → JSON. It downloads.
+3. Put it in the Worker without it passing through shell history or the process list, and
+   flattened to the one line the secret wants:
+
+   ```bash
+   node -p 'JSON.stringify(require(process.argv[1]))' /path/to/downloaded-key.json | npx wrangler secret put FCM_SERVICE_ACCOUNT_JSON --env dev
+   ```
+
+4. Delete the downloaded file. Then empty the recycle bin — a key in there is still a key.
+5. Verify the new one actually authenticates, with `wrangler tail --env dev` in one window:
+
+   ```bash
+   scripts/push-probe.sh https://dielys-dev.dielys.workers.dev
+   ```
+
+   `fcm.send.rejected` with status 400 is the pass.
+6. Only then delete the old key in the console. Doing it before step 5 leaves no way back if
+   the new key was pasted wrong.
+
+Deleting a key is immediate and irreversible: anything still holding it stops working with no
+warning, and it cannot be undeleted. That is the point, but it means step 6 is the last step,
+not the first.
 
 ### Local development
 
@@ -83,13 +123,17 @@ Re-sending a mutation with the same `idempotencyKey` returns the original change
 `"duplicate": true` and does not add a second changelog row — that is [F5.2](docs/SYNC.md)
 working, and is worth seeing once by hand.
 
-Endpoints are listed in [protocol/PROTOCOL.md](protocol/PROTOCOL.md). The Android app has no
-sync code yet, so `curl` is currently the only client.
+Endpoints are listed in [protocol/PROTOCOL.md](protocol/PROTOCOL.md).
 
 ### Creating an account
 
-There is no public registration ([L2](docs/CODE_STANDARD.md#standard-l2)) — accounts are made
-by hand:
+Registration is open ([ADR 0004](docs/adr/0004-open-registration.md)): anyone with the Worker
+URL can make an account from the app's sign-up screen, which is what makes it possible to
+share a list with someone who does not already have one. Both registration and login are rate
+limited per client and, for registration, globally per day.
+
+Accounts can still be made from the command line, which is how the first one on a fresh
+deployment gets made:
 
 ```bash
 DIELYS_URL=https://dielys-dev.dielys.workers.dev DIELYS_ADMIN_TOKEN=... node --experimental-strip-types scripts/create-user.ts you@example.com
@@ -97,6 +141,14 @@ DIELYS_URL=https://dielys-dev.dielys.workers.dev DIELYS_ADMIN_TOKEN=... node --e
 
 It prompts for confirmation and then for the password. Use a generated one — see
 `scripts/AGENTS.md` for why that matters here.
+
+### Sharing a list
+
+The owner of a list shares it from the list's menu. That mints a seven-day invite token
+([L3](docs/CODE_STANDARD.md#standard-l3)) wrapped in a `dielys://invite?t=...` link and hands
+it to the share sheet. The invite is a bearer credential — whoever holds it joins the list —
+so it goes to one person, not into a group chat. Tapping the link on a phone that has the app
+offers to join; the app never joins on its own, because a link is something anyone can send.
 
 **Protocol** (shared types, no server needed to build it):
 

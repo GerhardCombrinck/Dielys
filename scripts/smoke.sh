@@ -1,29 +1,31 @@
 #!/bin/sh
 # End-to-end smoke test against a running Dielys server: local, dev or prod.
 #
-# Creates two disposable accounts, then drives the whole contract — login, list
-# claim, mutation, idempotent retry, catch-up, invite, accept, refresh rotation
-# and replay detection — asserting the response at each step.
+# Creates two disposable accounts, then drives the whole contract — registration,
+# login, list claim, mutation, idempotent retry, catch-up, invite, accept,
+# push-token registration, refresh rotation and replay detection — asserting the
+# response at each step.
 #
 # POSIX sh (A2). Needs curl and node.
 #
-#   DIELYS_ADMIN_TOKEN=... scripts/smoke.sh http://127.0.0.1:8787
-#   DIELYS_ADMIN_TOKEN=... scripts/smoke.sh https://dielys-dev.dielys.workers.dev
+#   scripts/smoke.sh http://127.0.0.1:8787
+#   scripts/smoke.sh https://dielys-dev.dielys.workers.dev
 #
-# The admin token is the ADMIN_TOKEN Worker secret for that environment. Pass it
-# in the environment, never as an argument — argv lands in shell history and in
-# the process list.
+# ONCE PER HOUR against a deployed environment. Registration is rate limited to
+# three per client per hour (ADR 0004) and a run spends all three, so a second
+# run inside the hour fails on the first registration and means nothing. Against
+# a local `wrangler dev` the counter lives in a throwaway DO, so restarting it
+# clears them.
+#
+# No admin token needed since registration opened; the one check that still
+# concerns `/admin/users` sends no token and expects to be refused. Nothing here
+# should ever be given a real secret as an argument — argv lands in shell history
+# and in the process list.
 
 set -eu
 
 BASE="${1:-${DIELYS_URL:-http://127.0.0.1:8787}}"
-ADMIN="${DIELYS_ADMIN_TOKEN:-}"
 JSON='content-type: application/json'
-
-if [ -z "$ADMIN" ]; then
-  echo "DIELYS_ADMIN_TOKEN must be set (the ADMIN_TOKEN secret for $BASE)." >&2
-  exit 2
-fi
 
 GREEN=''
 RED=''
@@ -92,17 +94,36 @@ printf '%ssmoke: %s%s\n\n' "$DIM" "$BASE" "$RESET"
 R=$(req "$BASE/health")
 check "health" 200 "$(code_of "$R")" "$(body_of "$R")"
 
-R=$(req -X POST "$BASE/admin/users" -H "Authorization: Bearer $ADMIN" -H "$JSON" \
-  -d "{\"email\":\"$EMAIL_A\",\"password\":\"$PASS\"}")
-check "create account (owner)" 201 "$(code_of "$R")" "$(body_of "$R")"
+# L2 / ADR 0004: registration is public, and it answers with a session rather
+# than making a brand new account log in again for what is one intent.
+R=$(req -X POST "$BASE/auth/register" -H "$JSON" \
+  -d "{\"email\":\"$EMAIL_A\",\"password\":\"$PASS\",\"deviceId\":\"smoke-a\"}")
+check "register (owner)" 201 "$(code_of "$R")" "$(body_of "$R")"
+expect "registering signs you in" "$(field "$(body_of "$R")" '.accessToken.length > 0')" "true"
 
-R=$(req -X POST "$BASE/admin/users" -H "Authorization: Bearer $ADMIN" -H "$JSON" \
-  -d "{\"email\":\"$EMAIL_B\",\"password\":\"$PASS\"}")
-check "create account (partner)" 201 "$(code_of "$R")" "$(body_of "$R")"
+R=$(req -X POST "$BASE/auth/register" -H "$JSON" \
+  -d "{\"email\":\"$EMAIL_B\",\"password\":\"$PASS\",\"deviceId\":\"smoke-b\"}")
+check "register (partner)" 201 "$(code_of "$R")" "$(body_of "$R")"
 
+# A knowingly accepted enumeration oracle, bounded by the limiter rather than
+# hidden behind a lie the client would then have to keep telling (ADR 0004).
+R=$(req -X POST "$BASE/auth/register" -H "$JSON" \
+  -d "{\"email\":\"$EMAIL_A\",\"password\":\"$PASS\",\"deviceId\":\"smoke-a\"}")
+check "registering a taken email says so" 409 "$(code_of "$R")" "$(body_of "$R")"
+expect "taken email error code" "$(field "$(body_of "$R")" '.code')" "already-exists"
+
+# Refused before the limiter is consumed, so a fat-fingered password costs
+# nothing but the round trip.
+R=$(req -X POST "$BASE/auth/register" -H "$JSON" \
+  -d "{\"email\":\"short-$SUFFIX@dielys.test\",\"password\":\"short\",\"deviceId\":\"smoke-a\"}")
+check "a short password is refused" 400 "$(code_of "$R")" "$(body_of "$R")"
+
+# The admin route stays: it is how the first account on a fresh deployment gets
+# made. No token is sent here on purpose — this asserts it is still guarded
+# without this script ever needing to hold one.
 R=$(req -X POST "$BASE/admin/users" -H "$JSON" \
   -d "{\"email\":\"nope-$SUFFIX@dielys.test\",\"password\":\"$PASS\"}")
-check "account creation needs the admin token" 401 "$(code_of "$R")" "$(body_of "$R")"
+check "the admin route still needs its token" 401 "$(code_of "$R")" "$(body_of "$R")"
 
 R=$(req -X POST "$BASE/auth/login" -H "$JSON" \
   -d "{\"email\":\"$EMAIL_A\",\"password\":\"$PASS\",\"deviceId\":\"smoke-a\"}")
@@ -174,6 +195,27 @@ check "a member cannot mint further invites" 403 "$(code_of "$R")" "$(body_of "$
 R=$(req -X POST "$BASE/invites/accept" -H "Authorization: Bearer $TOKEN_B" -H "$JSON" \
   -d "{\"inviteToken\":\"$TOKEN_B\"}")
 check "an access token cannot be redeemed as an invite" 401 "$(code_of "$R")" "$(body_of "$R")"
+
+# M2. The token is filed under the device id in the caller's own access token,
+# so there is nothing in the body that could aim it at somebody else's phone.
+# 204 and no body: the server either filed it or said why it would not.
+R=$(req -X POST "$BASE/devices/token" -H "Authorization: Bearer $TOKEN_A" -H "$JSON" \
+  -d "{\"fcmToken\":\"smoke-fcm-$SUFFIX\"}")
+check "register a push token" 204 "$(code_of "$R")" "$(body_of "$R")"
+
+# FCM re-issues tokens. The second replaces the first rather than adding a row,
+# or a phone keeps being woken through a registration it has already dropped.
+R=$(req -X POST "$BASE/devices/token" -H "Authorization: Bearer $TOKEN_A" -H "$JSON" \
+  -d "{\"fcmToken\":\"smoke-fcm-rotated-$SUFFIX\"}")
+check "a rotated push token replaces the first" 204 "$(code_of "$R")" "$(body_of "$R")"
+
+R=$(req -X POST "$BASE/devices/token" -H "Authorization: Bearer $TOKEN_A" -H "$JSON" \
+  -d '{"fcmToken":""}')
+check "an empty push token is refused" 400 "$(code_of "$R")" "$(body_of "$R")"
+
+R=$(req -X POST "$BASE/devices/token" -H "$JSON" \
+  -d "{\"fcmToken\":\"smoke-fcm-$SUFFIX\"}")
+check "registering a push token needs a session" 401 "$(code_of "$R")" "$(body_of "$R")"
 
 R=$(req -X POST "$BASE/auth/refresh" -H "$JSON" \
   -d "{\"refreshToken\":\"$REFRESH_A\",\"deviceId\":\"smoke-a\"}")
