@@ -76,7 +76,18 @@ interface TaskDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(task: TaskEntity)
+
+    /** Feeds the count on the lists screen's row — every non-deleted task, done ones included. */
+    @Query(
+        "SELECT list_id AS listId, COUNT(*) AS count FROM tasks WHERE deleted_at IS NULL GROUP BY list_id",
+    )
+    fun observeCountsByList(): Flow<List<ListItemCount>>
 }
+
+data class ListItemCount(
+    val listId: String,
+    val count: Int,
+)
 
 @Dao
 interface OutboxDao {

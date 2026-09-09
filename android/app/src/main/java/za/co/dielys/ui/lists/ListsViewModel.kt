@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import za.co.dielys.data.DielysRepository
@@ -18,6 +19,13 @@ import za.co.dielys.data.SharingRepository
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.domain.InviteLink
 import javax.inject.Inject
+
+/** A list row, with the item count the screen shows — joined from the tasks table
+ * rather than carried on [ListEntity] itself, since nothing else needs it. */
+data class ListRow(
+    val list: ListEntity,
+    val itemCount: Int,
+)
 
 /** The invite dialog, from the moment it opens to the moment it has a link. */
 sealed interface InviteState {
@@ -53,7 +61,11 @@ class ListsViewModel
         private val sharing: SharingRepository,
         private val invites: PendingInvite,
     ) : ViewModel() {
-        val lists: StateFlow<List<ListEntity>> = repo.observeLists().asState(emptyList())
+        val lists: StateFlow<List<ListRow>> =
+            combine(repo.observeLists(), repo.observeItemCounts()) { lists, counts ->
+                val byListId = counts.associate { it.listId to it.count }
+                lists.map { ListRow(it, byListId[it.id] ?: 0) }
+            }.asState(emptyList())
 
         /** Edits made on this device that the server has not acknowledged yet. */
         val pending: StateFlow<Int> = repo.observePendingCount().asState(0)

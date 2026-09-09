@@ -47,7 +47,7 @@ fun InviteDialog(
         confirmButton = {
             if (state is InviteState.Ready) {
                 TextButton(onClick = {
-                    context.shareInvite(state.listTitle, state.link)
+                    context.shareInvite(state.link)
                     onDismiss()
                 }) {
                     Text("Send invite")
@@ -93,15 +93,17 @@ private fun Ready(listTitle: String) {
  * screenshot of this dialog would be enough to join the list — and there is
  * nothing a person can usefully do with the text that the share sheet does not
  * do better.
+ *
+ * The shared text is the bare link, nothing around it: the custom `dielys://`
+ * scheme does not get auto-linked by most chat apps (see `InviteLink`), so the
+ * recipient has to copy the text and paste it into `JoinDialog`. Any words
+ * around the link would have to be trimmed off first.
  */
-private fun Context.shareInvite(
-    listTitle: String,
-    link: String,
-) {
+private fun Context.shareInvite(link: String) {
     val intent =
         Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, "Join \"$listTitle\" on Dielys: $link")
+            putExtra(Intent.EXTRA_TEXT, link)
         }
     startActivity(Intent.createChooser(intent, "Send invite"))
 }

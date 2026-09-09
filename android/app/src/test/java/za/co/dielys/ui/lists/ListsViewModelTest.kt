@@ -51,14 +51,14 @@ class ListsViewModelTest {
             api.online = false
 
             viewModel.lists.test {
-                assertEquals(emptyList<String>(), awaitItem().map { it.title })
+                assertEquals(emptyList<String>(), awaitItem().map { it.list.title })
                 viewModel.create("  Groceries  ")
 
                 val shown = awaitItem()
-                assertEquals(listOf("Groceries"), shown.map { it.title })
+                assertEquals(listOf("Groceries"), shown.map { it.list.title })
                 // No server timestamp yet: the row is an optimistic local write,
                 // which is what the screen labels "Not synced yet".
-                assertEquals(null, shown.single().updatedAt)
+                assertEquals(null, shown.single().list.updatedAt)
             }
 
             // The claim and the rename, both queued with the entity (F5.7).
@@ -93,10 +93,10 @@ class ListsViewModelTest {
             viewModel.lists.test {
                 // `stateIn` hands the screen its initial value before Room has
                 // answered — the empty frame a real screen paints for an instant.
-                assertEquals(emptyList<String>(), awaitItem().map { it.title })
-                assertEquals(listOf("Braai"), awaitItem().map { it.title })
+                assertEquals(emptyList<String>(), awaitItem().map { it.list.title })
+                assertEquals(listOf("Braai"), awaitItem().map { it.list.title })
                 viewModel.delete(id)
-                assertEquals(emptyList<String>(), awaitItem().map { it.title })
+                assertEquals(emptyList<String>(), awaitItem().map { it.list.title })
             }
 
             // F5.3: a delete is a tombstone. The row is still there, still known

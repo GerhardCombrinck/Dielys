@@ -47,6 +47,9 @@ class SessionViewModel
         private val _signedIn = MutableStateFlow(sessions.isSignedIn())
         val signedIn: StateFlow<Boolean> = _signedIn.asStateFlow()
 
+        /** Set from the sign-in form on success — there is no display name, just this. */
+        val email: String? get() = sessions.email
+
         private val _form = MutableStateFlow(blank())
         val form: StateFlow<AuthUiState> = _form.asStateFlow()
 

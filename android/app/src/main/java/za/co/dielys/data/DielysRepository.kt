@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import za.co.dielys.data.local.DeviceIdentity
 import za.co.dielys.data.local.DielysDatabase
 import za.co.dielys.data.local.ListEntity
+import za.co.dielys.data.local.ListItemCount
 import za.co.dielys.data.local.OutboxEntity
 import za.co.dielys.data.local.TaskEntity
 import za.co.dielys.data.remote.ListPatch
@@ -46,6 +47,9 @@ class DielysRepository
         fun observeList(listId: String): Flow<ListEntity?> = db.lists().observe(listId)
 
         fun observeTasks(listId: String): Flow<List<TaskEntity>> = db.tasks().observeInList(listId)
+
+        /** For the item count on each row of the lists screen. */
+        fun observeItemCounts(): Flow<List<ListItemCount>> = db.tasks().observeCountsByList()
 
         fun observePendingCount(): Flow<Int> = db.outbox().observePendingCount()
 

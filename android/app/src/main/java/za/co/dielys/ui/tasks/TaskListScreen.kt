@@ -1,7 +1,11 @@
 package za.co.dielys.ui.tasks
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,18 +14,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,6 +52,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.ImeAction
@@ -53,9 +64,10 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import za.co.dielys.data.local.TaskEntity
-import za.co.dielys.ui.SyncBanner
+import za.co.dielys.ui.SyncStatus
 import za.co.dielys.ui.TextPrompt
 import za.co.dielys.ui.lists.displayTitle
+import za.co.dielys.ui.theme.PillShape
 
 /**
  * One list. Everything on it comes from Room and every action writes to Room —
@@ -109,13 +121,18 @@ fun TaskListScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    SyncStatus(
+                        pending = pending,
+                        stuck = stuck,
+                        labelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
+                    )
+                },
             )
         },
         bottomBar = { AddTaskBar(onAdd = viewModel::add) },
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            SyncBanner(pending = pending, stuck = stuck)
-
             if (board.isEmpty) {
                 Empty()
             } else {
@@ -190,6 +207,9 @@ private fun Tasks(
     val moveRow = rememberUpdatedState(onDragMove)
     val end = rememberUpdatedState(onDragEnd)
     val cancel = rememberUpdatedState(onDragCancel)
+    // Default expanded: a person who just finished something wants to see it
+    // land, not go hunting for a collapsed section.
+    var doneExpanded by remember { mutableStateOf(true) }
 
     LazyColumn(
         state = listState,
@@ -234,22 +254,57 @@ private fun Tasks(
 
         if (done.isNotEmpty()) {
             item(key = "done-heading") {
-                Text(
-                    "Done (${done.size})",
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 4.dp),
+                DoneHeading(
+                    count = done.size,
+                    expanded = doneExpanded,
+                    onClick = { doneExpanded = !doneExpanded },
                 )
             }
-            items(done, key = { it.id }) { task ->
-                TaskRow(
-                    task = task,
-                    onToggle = { onToggle(task.id, it) },
-                    onStar = { onStar(task.id, !task.starred) },
-                    onRename = { onRename(task) },
-                    onDelete = { onDelete(task.id) },
-                )
+            if (doneExpanded) {
+                items(done, key = { it.id }) { task ->
+                    TaskRow(
+                        task = task,
+                        onToggle = { onToggle(task.id, it) },
+                        onStar = { onStar(task.id, !task.starred) },
+                        onRename = { onRename(task) },
+                        onDelete = { onDelete(task.id) },
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun DoneHeading(
+    count: Int,
+    expanded: Boolean,
+    onClick: () -> Unit,
+) {
+    val rotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        label = "done-chevron",
+    )
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(start = 16.dp, end = 8.dp, top = 20.dp, bottom = 4.dp),
+    ) {
+        Text(
+            "DONE ($count)",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = DONE_ALPHA),
+        )
+        Icon(
+            Icons.Filled.KeyboardArrowDown,
+            contentDescription = if (expanded) "Collapse done" else "Expand done",
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = DONE_ALPHA),
+            modifier = Modifier.padding(start = 4.dp).rotate(rotation),
+        )
     }
 }
 
@@ -266,7 +321,11 @@ private fun TaskRow(
 
     Surface(modifier = modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = task.done, onCheckedChange = onToggle)
+            TaskCheckbox(
+                checked = task.done,
+                onCheckedChange = onToggle,
+                modifier = Modifier.padding(start = 16.dp),
+            )
 
             Text(
                 text = task.title,
@@ -276,7 +335,7 @@ private fun TaskRow(
                     Modifier
                         .weight(1f)
                         .clickable(onClick = onRename)
-                        .padding(vertical = 14.dp)
+                        .padding(start = 14.dp, top = 14.dp, bottom = 14.dp)
                         .alpha(if (task.done) DONE_ALPHA else 1f),
             )
 
@@ -318,9 +377,52 @@ private fun TaskRow(
     }
 }
 
+/**
+ * A 20dp square rather than Material's default checkbox — the redesign calls
+ * for it, and it doubles as the one place `done` gets its dark-mode amber
+ * instead of navy, which the stock [androidx.compose.material3.Checkbox]'s
+ * color slots do not cleanly express.
+ */
+@Composable
+private fun TaskCheckbox(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val dark = isSystemInDarkTheme()
+    val fillColor =
+        if (dark) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
+    val borderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+
+    Box(
+        modifier =
+            modifier
+                .size(20.dp)
+                .clip(RoundedCornerShape(5.dp))
+                .then(
+                    if (checked) {
+                        Modifier.background(fillColor)
+                    } else {
+                        Modifier.border(2.dp, borderColor, RoundedCornerShape(5.dp))
+                    },
+                ).clickable(onClick = { onCheckedChange(!checked) }),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (checked) {
+            Icon(
+                Icons.Filled.Check,
+                contentDescription = null,
+                tint = if (dark) CheckGlyphOnAmber else Color.White,
+                modifier = Modifier.size(14.dp),
+            )
+        }
+    }
+}
+
 @Composable
 private fun AddTaskBar(onAdd: (String) -> Unit) {
     var draft by remember { mutableStateOf("") }
+    val dark = isSystemInDarkTheme()
 
     val submit = {
         if (draft.isNotBlank()) {
@@ -337,14 +439,36 @@ private fun AddTaskBar(onAdd: (String) -> Unit) {
             OutlinedTextField(
                 value = draft,
                 onValueChange = { draft = it },
-                placeholder = { Text("Add a task") },
+                placeholder = { Text("Add an item") },
                 singleLine = true,
+                shape = PillShape,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { submit() }),
                 modifier = Modifier.weight(1f),
             )
-            IconButton(onClick = submit, enabled = draft.isNotBlank()) {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Add")
+            Box(
+                modifier =
+                    Modifier
+                        .padding(start = 8.dp)
+                        .size(52.dp)
+                        .background(
+                            color =
+                                if (draft.isBlank()) {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
+                                } else if (dark) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
+                            shape = CircleShape,
+                        ).clickable(enabled = draft.isNotBlank(), onClick = submit),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "Add",
+                    tint = Color.White,
+                )
             }
         }
     }
@@ -367,3 +491,6 @@ private fun Empty() {
 
 private const val DRAG_ELEVATION = 12f
 private const val DONE_ALPHA = 0.6f
+
+/** NavyDeep — the check glyph reads dark against the dark-mode done checkbox's amber fill. */
+private val CheckGlyphOnAmber = Color(0xFF0E1728)
