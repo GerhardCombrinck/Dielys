@@ -55,19 +55,42 @@ Where Dielys is and what comes next. Short by design — the standard is in
       — the key set and the no-content rule are unchanged. An unset `FCM_SERVICE_ACCOUNT_JSON`
       is not fail-closed: without it a mutation still commits and the app falls back to the
       socket and the half-hourly floor (H3.12).
+- [x] **Android WebSocket client** — `SyncSockets` supervises one `ListSocketSession` per
+      list the account is a member of, driven by sign-in state and the Room list-set Flow
+      rather than by explicit calls. The upgrade carries the access token as
+      `Authorization: Bearer` (L3). Closes M2's vacuous rule that a connected device must
+      not also get a push — until this, no Android device ever held a connection.
+- [x] **Open registration and invite UI** (ADR 0004) — `POST /auth/register` is public;
+      `UsersRoom` now rate-limits registration and login before spending a PBKDF2 round,
+      keyed by `HMAC-SHA256(JWT_SIGNING_KEY, ip)` so the DO never sees an address (D4).
+      Sign-in/sign-up is one screen on the phone; invites travel as
+      `dielys://invite?t=...`, never displayed, parked in `PendingInvite` until accepted.
+      `scripts/smoke.sh` and `scripts/push-probe.sh` make their own accounts through the
+      public route now instead of holding `DIELYS_ADMIN_TOKEN`.
+- [x] **Rotate the FCM service-account key** — `gcloud` installed via `winget` and
+      authenticated, so the rotation ran from a shell after all. The replacement key was
+      created and piped into `wrangler secret put` directly rather than saved to a file —
+      except that on this Windows/Git-Bash setup, `gcloud ... keys create /dev/stdout`
+      does not actually write to stdout: MSYS rewrites `/dev/stdout` to `/proc/self/fd/1`
+      in the argument list before `gcloud` ever sees it, and gcloud's native Windows Python
+      runtime resolves that leading `/` against the current drive, so the key was silently
+      written to a real file at `C:\proc\self\fd\1` — the exact disk exposure the "never
+      touches disk" approach was meant to avoid. Found by checking gcloud's own debug log
+      (`%APPDATA%\gcloud\logs\`) for the resolved `OUTPUT-FILE` argument, uploaded correctly
+      from that file with `cat`, verified live with `push-probe.sh` (`fcm.send.rejected` 400),
+      then deleted the file immediately. **Lesson recorded in the README runbook: on Windows,
+      use a real file and delete it after, exactly as originally documented — do not try to
+      pipe from `/dev/stdout`.** Two stray keys from failed pipe attempts and the two old keys
+      were all deleted from GCP afterward; a third, `c2110538...`, turned out to be
+      system-managed (Google's own, private key never distributed) and cannot be deleted —
+      correctly so, and it was never part of the exposure.
 
 ## Next
 
 - [ ] **Dev shakedown** — run the debug build against `dielys-dev` on two phones and work
       through H3 by hand. The parts a JVM test cannot reach are the drag gesture, the keyboard,
-      and what a real flaky signal does to the drain. Needs the two manual credential steps
-      first: create the Firebase project and drop `android/app/google-services.json` in, then
-      `wrangler secret put FCM_SERVICE_ACCOUNT_JSON` for the dev Worker.
-- [ ] **Rotate the FCM service-account key** — the key currently in `FCM_SERVICE_ACCOUNT_JSON`
-      on `dielys-dev` was downloaded to disk to get there, so it should be replaced and the old
-      one deleted. Console steps are in the README under "Rotating the FCM key"; it cannot be
-      done from a shell here, there is no gcloud and no local Google credential. Delete the old
-      key last, after `push-probe.sh` proves the new one authenticates.
+      and what a real flaky signal does to the drain. Needs `android/app/google-services.json`
+      from the `dielys` Firebase project dropped into place first.
 - [ ] **Prod** — `dielys-prod` has never been deployed. Needs its own secrets and a smoke run.
 
 ## Open questions
