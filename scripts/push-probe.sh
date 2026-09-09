@@ -21,18 +21,15 @@
 #
 # POSIX sh (A2). Needs curl and node. Run `npx wrangler tail --env dev` first.
 #
-#   DIELYS_ADMIN_TOKEN=... scripts/push-probe.sh https://dielys-dev.dielys.workers.dev
+#   scripts/push-probe.sh https://dielys-dev.dielys.workers.dev
+#
+# Spends one of the three registrations a client gets in an hour (ADR 0004), so
+# it shares that budget with smoke.sh.
 
 set -eu
 
 BASE="${1:-${DIELYS_URL:-http://127.0.0.1:8787}}"
-ADMIN="${DIELYS_ADMIN_TOKEN:-}"
 JSON='content-type: application/json'
-
-if [ -z "$ADMIN" ]; then
-  echo "DIELYS_ADMIN_TOKEN must be set (the ADMIN_TOKEN secret for $BASE)." >&2
-  exit 2
-fi
 
 DIM=''
 BOLD=''
@@ -76,9 +73,9 @@ TASK=$(uuid)
 
 printf '%spush probe: %s%s\n\n' "$DIM" "$BASE" "$RESET"
 
-R=$(req -X POST "$BASE/admin/users" -H "Authorization: Bearer $ADMIN" -H "$JSON" \
-  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\"}")
-must "create the probe account" 201 "$(code_of "$R")" "$(body_of "$R")"
+R=$(req -X POST "$BASE/auth/register" -H "$JSON" \
+  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\",\"deviceId\":\"probe-writer\"}")
+must "register the probe account" 201 "$(code_of "$R")" "$(body_of "$R")"
 
 # Two devices on one account, because the fan-out excludes the device that made
 # the write. One phone talking to itself would correctly send nothing at all.

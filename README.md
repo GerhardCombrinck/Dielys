@@ -50,6 +50,38 @@ about a change over its WebSocket, or on the half-hourly sync
 `android/app/google-services.json` from the same Firebase project; it is gitignored, and a
 build without it still works the same way.
 
+#### Rotating the FCM key
+
+The service-account JSON contains a private key. It has to touch the disk to get from the
+Google console into a Worker secret, so the point of this order is that it touches it for as
+short a time as possible, and that nothing breaks in between.
+
+1. Google Cloud console → IAM & Admin → Service Accounts, project `dielys`, the
+   `firebase-adminsdk-*@dielys.iam.gserviceaccount.com` account → Keys. Note the key ids and
+   dates that are already there; that list is the answer to "was the old one ever revoked".
+2. Add key → Create new key → JSON. It downloads.
+3. Put it in the Worker without it passing through shell history or the process list, and
+   flattened to the one line the secret wants:
+
+   ```bash
+   node -p 'JSON.stringify(require(process.argv[1]))' /path/to/downloaded-key.json | npx wrangler secret put FCM_SERVICE_ACCOUNT_JSON --env dev
+   ```
+
+4. Delete the downloaded file. Then empty the recycle bin — a key in there is still a key.
+5. Verify the new one actually authenticates, with `wrangler tail --env dev` in one window:
+
+   ```bash
+   scripts/push-probe.sh https://dielys-dev.dielys.workers.dev
+   ```
+
+   `fcm.send.rejected` with status 400 is the pass.
+6. Only then delete the old key in the console. Doing it before step 5 leaves no way back if
+   the new key was pasted wrong.
+
+Deleting a key is immediate and irreversible: anything still holding it stops working with no
+warning, and it cannot be undeleted. That is the point, but it means step 6 is the last step,
+not the first.
+
 ### Local development
 
 `wrangler dev` runs the real `workerd` runtime with real Durable Object storage on your

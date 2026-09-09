@@ -34,13 +34,24 @@ and closest to the Linux shell CI runs, so a script that works there works in CI
 ## smoke.sh
 
 ```sh
-DIELYS_ADMIN_TOKEN=... scripts/smoke.sh https://dielys-dev.dielys.workers.dev
+scripts/smoke.sh https://dielys-dev.dielys.workers.dev
 ```
 
-27 checks over the whole contract: login, list claim, mutation, an idempotent
-retry that must return the original result at the same seq without adding a
-changelog row, catch-up, invite mint and accept, push-token registration, and
-refresh rotation with replay detection. Exits non-zero on the first disagreement and prints the body.
+29 checks over the whole contract: registration, login, list claim, mutation, an
+idempotent retry that must return the original result at the same seq without
+adding a changelog row, catch-up, invite mint and accept, push-token
+registration, and refresh rotation with replay detection. Exits non-zero on the
+first disagreement and prints the body.
+
+No admin token any more: registration is public ([ADR 0004](../docs/adr/0004-open-registration.md)),
+so the script makes its own accounts. The one check that still concerns
+`/admin/users` sends no token and expects to be refused, which is how it stays
+honest without holding a secret.
+
+**Once per hour against a deployed environment.** A run spends all three of the
+registrations a client gets per hour, so a second run inside the hour fails at
+the first step and proves nothing. `push-probe.sh` shares that budget. A local
+`wrangler dev` keeps its counters in a throwaway DO, so restarting clears them.
 
 It is not read-only: it creates two `smoke-*@dielys.test` accounts and one list
 per run, and names them at the end. Nothing deletes them — there is no account
@@ -54,7 +65,7 @@ deployment is right after one. Neither replaces the other.
 
 ```sh
 npx wrangler tail --env dev --format pretty   # in one window
-DIELYS_ADMIN_TOKEN=... scripts/push-probe.sh https://dielys-dev.dielys.workers.dev
+scripts/push-probe.sh https://dielys-dev.dielys.workers.dev
 ```
 
 `smoke.sh` proves `/devices/token` stores a token. It cannot prove the server can
@@ -76,6 +87,10 @@ means.
 
 The script itself cannot fail on a credential problem, and does not pretend to —
 it exits 0 as long as the HTTP contract held, and hands you the tail to read.
+
+This is also the check to run after rotating the FCM service-account key: a
+`fcm.send.rejected` 400 means the new key authenticated, and anything earlier in
+the log means it did not.
 
 ## create-user.ts
 

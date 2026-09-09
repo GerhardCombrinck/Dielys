@@ -63,6 +63,11 @@ Where Dielys is and what comes next. Short by design — the standard is in
       and what a real flaky signal does to the drain. Needs the two manual credential steps
       first: create the Firebase project and drop `android/app/google-services.json` in, then
       `wrangler secret put FCM_SERVICE_ACCOUNT_JSON` for the dev Worker.
+- [ ] **Rotate the FCM service-account key** — the key currently in `FCM_SERVICE_ACCOUNT_JSON`
+      on `dielys-dev` was downloaded to disk to get there, so it should be replaced and the old
+      one deleted. Console steps are in the README under "Rotating the FCM key"; it cannot be
+      done from a shell here, there is no gcloud and no local Google credential. Delete the old
+      key last, after `push-probe.sh` proves the new one authenticates.
 - [ ] **Prod** — `dielys-prod` has never been deployed. Needs its own secrets and a smoke run.
 
 ## Open questions
