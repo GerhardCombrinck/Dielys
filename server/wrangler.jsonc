@@ -51,7 +51,7 @@
       // 0005) — it has to resolve to this Worker so Android can fetch
       // /.well-known/assetlinks.json to verify the app owns it, and so a link
       // opened somewhere without the app installed still lands on something.
-      "routes": [{ "pattern": "dielys.com/*", "custom_domain": true }],
+      "routes": [{ "pattern": "dielys.com", "custom_domain": true }],
       "durable_objects": {
         "bindings": [
           { "name": "LIST_ROOM", "class_name": "ListRoom" },
