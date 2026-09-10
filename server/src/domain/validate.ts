@@ -29,8 +29,10 @@ import {
   type RefreshRequest,
   type RegisterDeviceRequest,
   type RegisterRequest,
+  type RequestMagicLinkRequest,
   type SetListPositionRequest,
   type TaskPatch,
+  type VerifyMagicLinkRequest,
 } from "@dielys/protocol";
 
 export type Validated<T> = { ok: true; value: T } | { ok: false; reason: string };
@@ -275,6 +277,31 @@ export function validateCreateUserRequest(input: unknown): Validated<{
   if (!isEmail(input.email)) return fail("email");
   if (!isPassword(input.password)) return fail("password too short or too long");
   return { ok: true, value: { email: input.email, password: input.password } };
+}
+
+export function validateRequestMagicLinkRequest(
+  input: unknown,
+): Validated<RequestMagicLinkRequest> {
+  if (!isRecord(input)) return fail("not an object");
+  if (!isEmail(input.email)) return fail("email");
+  return { ok: true, value: { email: input.email } };
+}
+
+/**
+ * Bounded like `validateRefreshRequest`'s token, not shaped like a password
+ * or an OTP code: the wire value is a `generateRefreshToken()` output (43
+ * unpadded-base64url characters), but nothing here assumes that exact
+ * length — only that it cannot be unbounded before it reaches
+ * `crypto.subtle`.
+ */
+export function validateVerifyMagicLinkRequest(input: unknown): Validated<VerifyMagicLinkRequest> {
+  if (!isRecord(input)) return fail("not an object");
+  const token = input.token;
+  if (typeof token !== "string" || token.length === 0 || token.length > 512) {
+    return fail("token");
+  }
+  if (!isId(input.deviceId)) return fail("deviceId");
+  return { ok: true, value: { token, deviceId: input.deviceId } };
 }
 
 export function validateRefreshRequest(input: unknown): Validated<RefreshRequest> {

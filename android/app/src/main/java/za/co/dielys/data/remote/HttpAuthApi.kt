@@ -2,6 +2,7 @@ package za.co.dielys.data.remote
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
 import okhttp3.HttpUrl
 import okhttp3.MediaType.Companion.toMediaType
@@ -68,21 +69,46 @@ class HttpAuthApi
                 ),
             )
 
+        override suspend fun requestMagicLink(email: String): RequestMagicLinkResponse =
+            postJson(
+                listOf("auth", "magic", "request"),
+                DielysJson.wire.encodeToString(
+                    RequestMagicLinkRequest.serializer(),
+                    RequestMagicLinkRequest(email),
+                ),
+                RequestMagicLinkResponse.serializer(),
+            )
+
+        override suspend fun verifyMagicLink(
+            token: String,
+            deviceId: String,
+        ): TokenPair =
+            postJson(
+                listOf("auth", "magic", "verify"),
+                DielysJson.wire.encodeToString(
+                    VerifyMagicLinkRequest.serializer(),
+                    VerifyMagicLinkRequest(token, deviceId),
+                ),
+                TokenPair.serializer(),
+            )
+
         private suspend fun post(
             action: String,
             body: String,
-        ): TokenPair =
+        ): TokenPair = postJson(listOf("auth", action), body, TokenPair.serializer())
+
+        private suspend fun <T> postJson(
+            pathSegments: List<String>,
+            body: String,
+            serializer: KSerializer<T>,
+        ): T =
             withContext(Dispatchers.IO) {
-                val url =
-                    baseUrl
-                        .newBuilder()
-                        .addPathSegment("auth")
-                        .addPathSegment(action)
-                        .build()
+                var builder = baseUrl.newBuilder()
+                for (segment in pathSegments) builder = builder.addPathSegment(segment)
                 val request =
                     Request
                         .Builder()
-                        .url(url)
+                        .url(builder.build())
                         .post(body.toRequestBody(jsonMedia))
                         .build()
 
@@ -101,7 +127,7 @@ class HttpAuthApi
                             throw ApiException.Transport(error)
                         }
                     if (!it.isSuccessful) throw failure(it.code, text)
-                    decode(text)
+                    decode(text, serializer)
                 }
             }
 
@@ -122,9 +148,12 @@ class HttpAuthApi
             }
         }
 
-        private fun decode(body: String): TokenPair =
+        private fun <T> decode(
+            body: String,
+            serializer: KSerializer<T>,
+        ): T =
             try {
-                DielysJson.wire.decodeFromString(TokenPair.serializer(), body)
+                DielysJson.wire.decodeFromString(serializer, body)
             } catch (error: SerializationException) {
                 throw ApiException.Unavailable(HTTP_SERVER_ERROR, error.message, error)
             }

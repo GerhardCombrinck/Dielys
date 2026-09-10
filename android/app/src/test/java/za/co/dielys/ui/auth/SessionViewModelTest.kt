@@ -35,7 +35,7 @@ class SessionViewModelTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         phone = SessionStack(ApplicationProvider.getApplicationContext())
-        viewModel = SessionViewModel(phone.sessions)
+        viewModel = SessionViewModel(phone.sessions, phone.magicLinks)
     }
 
     @After
@@ -147,6 +147,40 @@ class SessionViewModelTest {
             assertFalse(viewModel.signedIn.value)
             assertFalse(phone.sessions.isSignedIn())
             assertEquals(AuthMode.SignIn, viewModel.form.value.mode)
+        }
+
+    @Test
+    fun `a tapped magic link signs in without a form submission`() =
+        runTest(dispatcher) {
+            phone.nextMagicLinkIsFor("friend@example.test")
+
+            phone.magicLinks.offer("https://dielys.com/magic?token=abc123XYZ-_")
+
+            assertTrue(viewModel.signedIn.value)
+            assertEquals(1, phone.scheduler.requests)
+        }
+
+    @Test
+    fun `a spent or expired link says so, and does not sign in`() =
+        runTest(dispatcher) {
+            // No `nextMagicLinkIsFor` set — FakeAuthApi.verifyMagicLink answers
+            // invalid-token, same as a token nothing on the server recognises.
+            phone.magicLinks.offer("https://dielys.com/magic?token=abc123XYZ-_")
+
+            assertFalse(viewModel.signedIn.value)
+            assertEquals(
+                "That link is no longer valid. Request a new one.",
+                viewModel.form.value.problem,
+            )
+        }
+
+    @Test
+    fun `an unrelated link is ignored`() =
+        runTest(dispatcher) {
+            phone.magicLinks.offer("dielys://invite?t=header.payload.signature")
+
+            assertFalse(viewModel.signedIn.value)
+            assertNull(viewModel.form.value.problem)
         }
 
     private fun submit(

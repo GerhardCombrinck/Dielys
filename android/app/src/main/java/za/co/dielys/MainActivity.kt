@@ -10,6 +10,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import dagger.hilt.android.AndroidEntryPoint
 import za.co.dielys.data.PendingInvite
+import za.co.dielys.data.PendingMagicLink
 import za.co.dielys.ui.DielysApp
 import za.co.dielys.ui.theme.DielysTheme
 import javax.inject.Inject
@@ -29,13 +30,22 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var invites: PendingInvite
 
+    /** A tapped magic-link sign-in link (ADR 0005). Parked the same way, for
+     * the opposite reason an invite is: this one arrives with nobody signed in
+     * as a rule, not as an edge case. */
+    @Inject
+    lateinit var magicLinks: PendingMagicLink
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         // Only on a genuinely new launch. A rotation runs `onCreate` again with
-        // the same intent, and re-offering it would ask about an invite that has
-        // already been accepted or turned down.
-        if (savedInstanceState == null) invites.offer(intent?.dataString)
+        // the same intent, and re-offering it would ask about an invite (or
+        // redeem a magic link) that has already been handled.
+        if (savedInstanceState == null) {
+            invites.offer(intent?.dataString)
+            magicLinks.offer(intent?.dataString)
+        }
         setContent {
             DielysTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
@@ -49,5 +59,6 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         invites.offer(intent.dataString)
+        magicLinks.offer(intent.dataString)
     }
 }

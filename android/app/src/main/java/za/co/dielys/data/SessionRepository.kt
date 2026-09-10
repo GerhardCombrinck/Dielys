@@ -66,6 +66,40 @@ sealed interface SignUpResult {
 }
 
 /**
+ * What a magic-link request did (ADR 0005, docs/adr/0005-passwordless-email-magic-link.md).
+ *
+ * Deliberately no "no such account" case: the server answers the same way
+ * whether or not the email has one, since [redeemMagicLink] creates it on
+ * first use — there is nothing here for the screen to leak either.
+ */
+sealed interface MagicLinkRequestResult {
+    data object Success : MagicLinkRequestResult
+
+    data object TooManyAttempts : MagicLinkRequestResult
+
+    data object Offline : MagicLinkRequestResult
+
+    data class ServerProblem(
+        val detail: String,
+    ) : MagicLinkRequestResult
+}
+
+/** What redeeming a tapped magic link did (ADR 0005). */
+sealed interface MagicLinkVerifyResult {
+    data object Success : MagicLinkVerifyResult
+
+    /** Wrong, already spent, or expired — one case, the same enumeration
+     * reasoning [SignInResult.InvalidCredentials] uses. */
+    data object InvalidOrExpired : MagicLinkVerifyResult
+
+    data object Offline : MagicLinkVerifyResult
+
+    data class ServerProblem(
+        val detail: String,
+    ) : MagicLinkVerifyResult
+}
+
+/**
  * Owns the session and is the only thing that refreshes it.
  *
  * Refresh tokens rotate on every use, and presenting a spent one is treated as
@@ -200,4 +234,55 @@ class SessionRepository
          * edit is still the user's, and signing back in should send it.
          */
         fun signOut() = store.clearSession()
+
+        /** Mints and mails a sign-in link (ADR 0005). Nothing local changes yet —
+         * there is no session until the mailed link is tapped and redeemed. */
+        suspend fun requestMagicLink(email: String): MagicLinkRequestResult =
+            try {
+                auth.requestMagicLink(email)
+                MagicLinkRequestResult.Success
+            } catch (error: ApiException.Rejected) {
+                if (error.code == ErrorCode.RATE_LIMITED) {
+                    MagicLinkRequestResult.TooManyAttempts
+                } else {
+                    MagicLinkRequestResult.ServerProblem(error.code ?: "rejected")
+                }
+            } catch (_: ApiException.Transport) {
+                MagicLinkRequestResult.Offline
+            } catch (error: ApiException.Unavailable) {
+                MagicLinkRequestResult.ServerProblem("server error ${error.status}")
+            }
+
+        /**
+         * Redeems a tapped magic link (ADR 0005) — creates the account on first
+         * use and signs in either way, same shape as [signUp]/[signIn] collapsing
+         * into one call.
+         *
+         * Unlike [signIn], the server never hands back the email the link was
+         * for, so [SessionRepository.email] stays whatever it already was —
+         * usually null on this path, since nobody typed anything.
+         */
+        suspend fun redeemMagicLink(token: String): MagicLinkVerifyResult =
+            try {
+                val pair = auth.verifyMagicLink(token, store.deviceId)
+                store.accessToken = pair.accessToken
+                store.refreshToken = pair.refreshToken
+                store.userId = pair.userId
+                scheduler.requestSync()
+                MagicLinkVerifyResult.Success
+            } catch (error: ApiException.Rejected) {
+                if (error.code == ErrorCode.INVALID_TOKEN ||
+                    error.code == ErrorCode.TOKEN_EXPIRED
+                ) {
+                    MagicLinkVerifyResult.InvalidOrExpired
+                } else {
+                    MagicLinkVerifyResult.ServerProblem(error.code ?: "rejected")
+                }
+            } catch (_: ApiException.Unauthorized) {
+                MagicLinkVerifyResult.InvalidOrExpired
+            } catch (_: ApiException.Transport) {
+                MagicLinkVerifyResult.Offline
+            } catch (error: ApiException.Unavailable) {
+                MagicLinkVerifyResult.ServerProblem("server error ${error.status}")
+            }
     }

@@ -16,6 +16,7 @@ import usersV1 from "../../migrations/users/0001_initial.sql";
 import usersV2 from "../../migrations/users/0002_devices.sql";
 import usersV3 from "../../migrations/users/0003_rate_limits.sql";
 import usersV4 from "../../migrations/users/0004_membership_position.sql";
+import usersV5 from "../../migrations/users/0005_magic_links.sql";
 
 export interface Migration {
   version: number;
@@ -34,6 +35,7 @@ export const USERS_MIGRATIONS: readonly Migration[] = [
   { version: 2, name: "0002_devices", sql: usersV2 },
   { version: 3, name: "0003_rate_limits", sql: usersV3 },
   { version: 4, name: "0004_membership_position", sql: usersV4 },
+  { version: 5, name: "0005_magic_links", sql: usersV5 },
 ];
 
 /**

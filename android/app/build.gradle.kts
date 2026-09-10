@@ -64,6 +64,24 @@ android {
         unitTests.isIncludeAndroidResources = true
     }
 
+    // Read from env, never committed (I1) — release-android.yml decodes the
+    // keystore from a GitHub secret into KEYSTORE_PATH and passes the three
+    // passwords alongside it. Absent locally, which is correct: a developer
+    // building `assembleRelease` on their own machine without these env vars
+    // gets an unsigned APK, not a failure and not a fallback to a debug key
+    // that could be mistaken for the real one.
+    val releaseKeystorePath = System.getenv("KEYSTORE_PATH")
+    if (releaseKeystorePath != null) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseKeystorePath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             buildConfigField(
@@ -80,6 +98,9 @@ android {
             )
             isMinifyEnabled = false
             // fallbackToDestructiveMigration() is forbidden in release builds — G2.
+            if (releaseKeystorePath != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 }

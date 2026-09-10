@@ -9,11 +9,16 @@ import {
 } from "../auth/password.js";
 import {
   bucketFor,
+  emailKey,
   LOGIN_PER_CLIENT,
+  MAGIC_REQUEST_PER_CLIENT,
+  MAGIC_REQUEST_PER_EMAIL,
+  MAGIC_VERIFY_PER_CLIENT,
   type RateLimit,
   REGISTER_GLOBAL,
   REGISTER_PER_CLIENT,
 } from "../auth/ratelimit.js";
+import { type EmailSender, parseEmailSender, sendMagicLinkEmail } from "../email/brevo.js";
 import { log } from "../lib/log.js";
 import {
   FcmSender,
@@ -28,14 +33,19 @@ import {
   countUsers,
   type DeviceRow,
   deleteDevice,
+  deleteExpiredMagicLinks,
   deleteExpiredRefreshTokens,
+  deleteMagicLink,
+  deleteMagicLinksForEmail,
   deleteRefreshTokensForUser,
   deleteStaleRateLimits,
+  insertMagicLink,
   insertMembership,
   insertRefreshToken,
   insertUser,
   markRefreshTokenUsed,
   selectDevicesForList,
+  selectMagicLink,
   selectMembership,
   selectMemberships,
   selectRateLimit,
@@ -50,6 +60,11 @@ import {
 
 /** 30 days (L1). */
 export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** 15 minutes (ADR 0005). Long enough to switch to a mail app and find the
+ * message, short enough that a link sitting unread in an inbox stops being
+ * useful quickly. */
+export const MAGIC_LINK_TTL_MS = 15 * 60 * 1000;
 
 /**
  * A ceiling on one fan-out, not a household size. Two people have two phones;
@@ -98,6 +113,12 @@ export class UsersRoom extends DurableObject {
    */
   private sender: FcmSender | null = null;
   private senderResolved = false;
+  /** Same lazy-resolve shape as [fcm] — see its comment. Null on a deployment
+   * with no EMAIL_FROM configured, which is what makes /auth/magic/* fail
+   * closed (ADR 0005): the Worker checks this before ever calling
+   * [requestMagicLink]. */
+  private emailSender: EmailSender | null = null;
+  private emailSenderResolved = false;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -214,6 +235,137 @@ export class UsersRoom extends DurableObject {
     }
 
     return { ok: true, value: await this.issueSession(user.id, deviceId, now) };
+  }
+
+  // --- Passwordless magic-link sign-in (ADR 0005) ---------------------------
+
+  /**
+   * Mints a token, mails a link carrying it, and stores only the token's
+   * hash. Answered the same way whether or not an account exists for this
+   * email — unlike registration (ADR 0004), there is nothing to leak:
+   * [verifyMagicLink] creates the account on first use, so "link sent" is
+   * honest for every address either way.
+   *
+   * Both limiters are consumed before Brevo is called, mirroring [register]:
+   * the expensive/external step never runs for a request already over budget.
+   */
+  async requestMagicLink(
+    email: string,
+    clientKey: string,
+    now: number,
+  ): Promise<UsersResult<{ expiresIn: number }>> {
+    const normalized = normalizeEmail(email);
+
+    if (!this.consume(MAGIC_REQUEST_PER_CLIENT, clientKey, now)) {
+      return { ok: false, code: "rate-limited" };
+    }
+    const emailBucket = await emailKey(normalized, this.env.JWT_SIGNING_KEY);
+    if (!this.consume(MAGIC_REQUEST_PER_EMAIL, emailBucket, now)) {
+      // Same code as the per-client limit: the caller cannot tell whether it
+      // was their own address or this email's own limit that refused them.
+      return { ok: false, code: "rate-limited" };
+    }
+
+    const sender = this.email();
+    if (sender === null) {
+      log("error", "usersroom.magiclink.unconfigured", {});
+      return { ok: false, code: "internal" };
+    }
+
+    const token = generateRefreshToken();
+    const link = magicLinkUrl(this.env.APP_BASE_URL, token);
+    const sent = await sendMagicLinkEmail(
+      this.env.BREVO_API_KEY,
+      sender,
+      normalized,
+      link,
+      MAGIC_LINK_TTL_MS / 60_000,
+    );
+    if (!sent) return { ok: false, code: "internal" };
+
+    // Stored only after the send succeeds: a token nobody's inbox will ever
+    // show is not worth spending a write on, and it would just sit there
+    // until deleteExpiredMagicLinks caught up with it.
+    const tokenHash = await hashRefreshToken(token);
+    this.ctx.storage.transactionSync(() => {
+      deleteMagicLinksForEmail(this.sql, normalized);
+      insertMagicLink(this.sql, {
+        tokenHash,
+        email: normalized,
+        expiresAt: new Date(now + MAGIC_LINK_TTL_MS).toISOString(),
+        createdAt: new Date(now).toISOString(),
+      });
+      deleteExpiredMagicLinks(this.sql, new Date(now).toISOString());
+    });
+    log("info", "usersroom.magiclink.sent", {});
+    return { ok: true, value: { expiresIn: MAGIC_LINK_TTL_MS / 1000 } };
+  }
+
+  /**
+   * Verifies a token and signs in, creating the account first if the email it
+   * names has never been seen (ADR 0005) — the same collapse-into-one-call
+   * shape as [register]. The created account gets a password hash nobody
+   * knows (random bytes, never derived from anything) rather than no
+   * password at all: the `users` table's password columns are `NOT NULL`,
+   * and a hash nobody can reproduce is what makes `/auth/login` correctly
+   * refuse it forever, not a schema change away from also making that column
+   * nullable.
+   *
+   * The token is burned on every path through here, matched or not — a
+   * link is single-use whether it was tapped correctly, twice, or after it
+   * expired.
+   */
+  async verifyMagicLink(
+    token: string,
+    deviceId: string,
+    clientKey: string,
+    now: number,
+  ): Promise<UsersResult<Session>> {
+    if (!this.consume(MAGIC_VERIFY_PER_CLIENT, clientKey, now)) {
+      return { ok: false, code: "rate-limited" };
+    }
+
+    const tokenHash = await hashRefreshToken(token);
+    const row = selectMagicLink(this.sql, tokenHash);
+    if (row === null) return { ok: false, code: "invalid-token" };
+
+    this.ctx.storage.transactionSync(() => deleteMagicLink(this.sql, tokenHash));
+
+    if (Date.parse(row.expiresAt) <= now) {
+      return { ok: false, code: "token-expired" };
+    }
+
+    let user = selectUserByEmail(this.sql, row.email);
+    if (user === null) {
+      const created = await this.createPasswordlessUser(row.email, now);
+      if (!created.ok) return created;
+      user = selectUserByEmail(this.sql, row.email);
+    }
+    // Unreachable except by a storage bug: just written or just read above.
+    if (user === null) return { ok: false, code: "not-found" };
+
+    return { ok: true, value: await this.issueSession(user.id, deviceId, now) };
+  }
+
+  /** See the note on [verifyMagicLink] for why the password is random rather
+   * than absent. Not rate-limited itself — [verifyMagicLink] already consumed
+   * the caller's budget before reaching here. */
+  private async createPasswordlessUser(email: string, now: number): Promise<UsersResult<string>> {
+    if (selectUserByEmail(this.sql, email) !== null) {
+      return { ok: false, code: "already-exists" };
+    }
+    const unusable = await hashPassword(generateRefreshToken());
+    const id = crypto.randomUUID();
+    this.ctx.storage.transactionSync(() => {
+      insertUser(this.sql, {
+        id,
+        email,
+        password: unusable,
+        createdAt: new Date(now).toISOString(),
+      });
+    });
+    log("info", "usersroom.user.created", { userId: id, via: "magic-link" });
+    return { ok: true, value: id };
   }
 
   /**
@@ -457,6 +609,17 @@ export class UsersRoom extends DurableObject {
     return this.sender;
   }
 
+  /** Built once per instance, mirroring [fcm]. Unlike FCM, an unconfigured
+   * sender is logged as an error, not an info: FCM absent just means slower
+   * sync, EMAIL_FROM absent means every /auth/magic/request fails. */
+  private email(): EmailSender | null {
+    if (!this.emailSenderResolved) {
+      this.emailSenderResolved = true;
+      this.emailSender = parseEmailSender(this.env.EMAIL_FROM, this.env.EMAIL_FROM_NAME);
+    }
+    return this.emailSender;
+  }
+
   /** Whether any account exists at all — used by the admin route to refuse
    * bootstrapping a second time without an explicit token. */
   async userCount(): Promise<number> {
@@ -515,4 +678,16 @@ export class UsersRoom extends DurableObject {
  */
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
+}
+
+/**
+ * The link an OTP email used to carry a code; this carries a token instead,
+ * under the HTTPS App Link domain the Android manifest verifies against
+ * (ADR 0005) — `https://dielys.com/magic?token=…`, opened by the app itself
+ * rather than a browser once `assetlinks.json` is in place.
+ */
+function magicLinkUrl(baseUrl: string, token: string): string {
+  const url = new URL("/magic", baseUrl);
+  url.searchParams.set("token", token);
+  return url.toString();
 }

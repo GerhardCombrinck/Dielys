@@ -328,3 +328,54 @@ export function upsertRateLimit(sql: SqlStorage, bucket: string, row: RateLimitR
 export function deleteStaleRateLimits(sql: SqlStorage, before: number): void {
   sql.exec("DELETE FROM rate_limits WHERE window_started_at < ?", before);
 }
+
+export interface MagicLinkRow {
+  tokenHash: string;
+  email: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export function insertMagicLink(sql: SqlStorage, row: MagicLinkRow): void {
+  sql.exec(
+    `INSERT INTO magic_links (token_hash, email, expires_at, created_at) VALUES (?, ?, ?, ?)`,
+    row.tokenHash,
+    row.email,
+    row.expiresAt,
+    row.createdAt,
+  );
+}
+
+/** A new request for an email replaces its outstanding link rather than
+ * letting two be valid at once (ADR 0005) — called before `insertMagicLink`. */
+export function deleteMagicLinksForEmail(sql: SqlStorage, email: string): void {
+  sql.exec("DELETE FROM magic_links WHERE email = ?", email);
+}
+
+export function selectMagicLink(sql: SqlStorage, tokenHash: string): MagicLinkRow | null {
+  const rows = [
+    ...sql.exec(
+      `SELECT token_hash, email, expires_at, created_at FROM magic_links WHERE token_hash = ?`,
+      tokenHash,
+    ),
+  ];
+  const row = rows[0];
+  if (row === undefined) return null;
+  return {
+    tokenHash: String(row.token_hash),
+    email: String(row.email),
+    expiresAt: String(row.expires_at),
+    createdAt: String(row.created_at),
+  };
+}
+
+/** Burns the token — every path through `verifyMagicLink` deletes it,
+ * matched or not (found-but-expired included), so the same link can never be
+ * tapped twice (ADR 0005). */
+export function deleteMagicLink(sql: SqlStorage, tokenHash: string): void {
+  sql.exec("DELETE FROM magic_links WHERE token_hash = ?", tokenHash);
+}
+
+export function deleteExpiredMagicLinks(sql: SqlStorage, before: string): void {
+  sql.exec("DELETE FROM magic_links WHERE expires_at < ?", before);
+}

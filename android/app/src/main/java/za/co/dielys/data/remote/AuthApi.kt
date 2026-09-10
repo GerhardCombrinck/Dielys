@@ -47,4 +47,21 @@ interface AuthApi {
         refreshToken: String,
         deviceId: String,
     ): TokenPair
+
+    /**
+     * `POST /auth/magic/request` (ADR 0005, docs/adr/0005-passwordless-email-magic-link.md).
+     * Answers the same way whether or not the email has an account — there is
+     * nothing to leak, since [verifyMagicLink] creates one on first use.
+     */
+    suspend fun requestMagicLink(email: String): RequestMagicLinkResponse
+
+    /**
+     * `POST /auth/magic/verify`. No email here — the token alone names the
+     * request that minted it. Creates the account on first use and signs in
+     * on every use after, the same collapse [register] uses.
+     */
+    suspend fun verifyMagicLink(
+        token: String,
+        deviceId: String,
+    ): TokenPair
 }

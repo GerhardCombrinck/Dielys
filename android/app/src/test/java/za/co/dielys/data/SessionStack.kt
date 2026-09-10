@@ -27,6 +27,10 @@ class SessionStack(
 
     val sessions = SessionRepository(store, auth, scheduler)
 
+    /** A magic link waiting to be redeemed, the same singleton a real
+     * `MainActivity` would park an incoming App Link token in (ADR 0005). */
+    val magicLinks = PendingMagicLink()
+
     /** Flip to false to make every call fail the way no network fails. */
     var online: Boolean
         get() = auth.online
@@ -37,12 +41,21 @@ class SessionStack(
     /** Every email the repository actually sent, in order. */
     val sentEmails: List<String> get() = auth.seen
 
+    /** Every email a magic link was requested for, in order. */
+    val sentMagicLinks: List<String> get() = auth.magicLinkRequests
+
     /** An account that already exists, for signing in to or colliding with. */
     fun account(
         email: String,
         password: String,
     ) {
         auth.accounts[email] = password
+    }
+
+    /** The next `verifyMagicLink` call succeeds and resolves to this email —
+     * standing in for the server looking up the token's row (ADR 0005). */
+    fun nextMagicLinkIsFor(email: String) {
+        auth.magicLinkAccount = email
     }
 
     /** Answers the next call the way the server answers a flooded bucket (ADR 0004). */

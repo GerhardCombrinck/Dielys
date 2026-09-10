@@ -256,4 +256,8 @@ object ErrorCode {
     const val NOT_FOUND = "not-found"
     const val ALREADY_EXISTS = "already-exists"
     const val RATE_LIMITED = "rate-limited"
+
+    /** No magic-link token matches what was presented — wrong, already spent,
+     * or never requested (ADR 0005). */
+    const val INVALID_TOKEN = "invalid-token"
 }
