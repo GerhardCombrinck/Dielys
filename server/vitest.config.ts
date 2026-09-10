@@ -3,6 +3,15 @@ import { defineConfig } from "vitest/config";
 
 /** Runs tests in real workerd, real DO storage (H1) — never against a mock. */
 export default defineConfig({
+  test: {
+    // One test file at a time. The pool starts a workerd per file, and when it
+    // starts them concurrently it sometimes starts one it never stops
+    // (cloudflare/workers-sdk#15498): every test passes, then the run holds
+    // that child process and waits forever, printing nothing. Measured on this
+    // machine: 42% of runs hang with files in parallel, 0 of 20 without.
+    // Costs about 8 seconds a run, which is cheaper than one hung run.
+    fileParallelism: false,
+  },
   plugins: [
     cloudflareTest({
       wrangler: { configPath: "./wrangler.jsonc" },

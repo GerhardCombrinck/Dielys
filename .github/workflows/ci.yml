@@ -16,8 +16,8 @@ jobs:
         working-directory: protocol
       - run: npx tsc --noEmit
         working-directory: protocol
-      - run: npm test
-        working-directory: protocol
+      - run: sh scripts/node-tests.sh protocol
+        env: { DIELYS_TEST_TIMEOUT: '150' }
 
   server:
     runs-on: ubuntu-latest
@@ -36,13 +36,20 @@ jobs:
         working-directory: server
       - run: npx tsc --noEmit
         working-directory: server
-      # Local run is ~8s. The sysctl above usually prevents workerd's sandbox
-      # from hanging on ubuntu-latest, but not always (seen once in three
-      # attempts) — this bounds the damage to minutes instead of the job's
-      # full timeout when it recurs.
-      - run: npm test
-        working-directory: server
-        timeout-minutes: 3
+      # Two different hangs meet here, and neither prints anything. workerd's
+      # sandbox can hang on ubuntu-latest when the sysctl above did not take,
+      # and the test pool sometimes starts a workerd it never stops
+      # (cloudflare/workers-sdk#15498), leaving a suite where every test passed
+      # waiting forever. node-tests.sh bounds each attempt and retries; the job
+      # cap is the backstop for anything that outlives even that. Local runs go
+      # through the same script, via scripts/verify.sh.
+      - run: sh scripts/node-tests.sh server
+        # The local default is 45s, sized for this machine. A cold two-core
+        # runner is not this machine, and a false timeout here reads as a red
+        # build for a suite that passed, so give it room: three attempts at
+        # 150s, and a job cap above that as the backstop.
+        env: { DIELYS_TEST_TIMEOUT: '150' }
+        timeout-minutes: 10
 
   android:
     runs-on: ubuntu-latest

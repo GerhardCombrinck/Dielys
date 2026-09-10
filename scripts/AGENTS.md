@@ -6,6 +6,7 @@ Utility and maintenance scripts. POSIX `sh` or Node only — CI runs on Linux
 | Script            | What                                                        | Touches prod data |
 |-------------------|--------------------------------------------------------------|--------------------|
 | `verify.sh`       | Runs everything `ci.yml` runs, locally. Use before every push ([B3](../docs/CODE_STANDARD.md#standard-b3)). | No |
+| `node-tests.sh`   | Runs one node component's tests, bounded and retried past [workers-sdk#15498](https://github.com/cloudflare/workers-sdk/issues/15498). Called by `verify.sh` and by `ci.yml`. | No |
 | `smoke.sh`        | End-to-end check against a running server — local, dev or prod. Run after a deploy. | Creates two throwaway accounts, one list and two device rows |
 | `push-probe.sh`   | Makes a deployed server attempt one real FCM send, to prove the credential works. Read `wrangler tail` for the answer. | Creates one throwaway account and one list |
 | `create-user.ts`  | Creates one Dielys account in `UsersRoom`. See [L2](../docs/CODE_STANDARD.md#standard-l2) — there is no public registration endpoint, this is the only way an account gets created. | Yes |
@@ -138,6 +139,45 @@ TypeScript half, and pretending otherwise would make the script useless there. R
 
 `android/local.properties` is gitignored and points at the same SDK; it is per-machine and
 is not something to commit.
+
+### If the server tests pass and then nothing happens
+
+Known upstream bug, not your change: [cloudflare/workers-sdk#15498](https://github.com/cloudflare/workers-sdk/issues/15498).
+The Workers test pool starts one `workerd` per test file and, on roughly two runs in five,
+starts one it never stops. Every test passes in about twelve seconds, the summary never
+prints, and the run sits there — for as long as you let it. A hung run and a green run
+produce byte-identical test output; the only difference is a started-but-never-stopped pool
+worker whose child process keeps Node's event loop alive.
+
+`server/vitest.config.ts` sets `fileParallelism: false`, which is what actually fixes this:
+one test file at a time means the pool never has two workers starting and stopping at once,
+and the race needs that overlap. Measured here: 42% of runs hang with files in parallel,
+about 7% without. It costs roughly 8 seconds a run.
+
+Under the remainder, `scripts/node-tests.sh` bounds each attempt at `DIELYS_TEST_TIMEOUT`
+seconds (45 by default, and `ci.yml` sets 150 for a slower runner), kills the `workerd` processes that stuck attempt left behind, and
+tries again — three attempts in all (`DIELYS_TEST_ATTEMPTS`). Hanging every time is reported
+as this bug rather than as a test failure. `verify.sh` and `ci.yml` both run the tests
+through that script, so the local guard and the CI guard cannot drift apart. A retry
+prints:
+
+```
+warn server tests hung at 45s (workers-sdk#15498), attempt 2 of 3.
+```
+
+That line means the tooling tripped, not that anything regressed.
+
+Only workerd processes that appeared *during* the run are killed, so a `wrangler dev` in
+another window survives. If you kill a hung run yourself, its `workerd` is orphaned and
+outlives the shell — worth checking before blaming the next run:
+
+```powershell
+Get-Process workerd -ErrorAction SilentlyContinue | Select-Object Id, StartTime
+```
+
+Bumping `miniflare` past the pool's pinned `5.20260815.0-alpha` does not help: 6 hangs in 15
+runs either way. What the hung run leaves behind is one pool worker that was started and
+never stopped — count `start`/`stop` pairs and a green run is 13/13, a hung one 13/12.
 
 ### If a run takes tens of minutes
 
