@@ -102,7 +102,12 @@ class HttpAuthApi
                         .addPathSegment("status")
                         .addQueryParameter("requestId", requestId)
                         .build()
-                val request = Request.Builder().url(url).get().build()
+                val request =
+                    Request
+                        .Builder()
+                        .url(url)
+                        .get()
+                        .build()
 
                 val response =
                     try {

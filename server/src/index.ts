@@ -322,15 +322,15 @@ async function handleMagicLinkStatus(
   if (request.method !== "GET") return errorResponse("malformed", 405);
 
   const requestId = url.searchParams.get("requestId");
-  if (
-    requestId === null ||
-    requestId.length === 0 ||
-    requestId.length > MAX_REQUEST_ID_LENGTH
-  ) {
+  if (requestId === null || requestId.length === 0 || requestId.length > MAX_REQUEST_ID_LENGTH) {
     return errorResponse("malformed", 400);
   }
 
-  const result = await usersRoom(env).magicLinkStatus(requestId, await bucketKey(request, env), now);
+  const result = await usersRoom(env).magicLinkStatus(
+    requestId,
+    await bucketKey(request, env),
+    now,
+  );
   return Response.json(result);
 }
 

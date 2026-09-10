@@ -85,7 +85,14 @@ class SessionViewModel
          * mailed link was for whatever was typed before, not for this. */
         fun onEmail(value: String) {
             deliveryPoll?.cancel()
-            _form.update { it.copy(email = value, problem = null, linkSent = false, delivered = false) }
+            _form.update {
+                it.copy(
+                    email = value,
+                    problem = null,
+                    linkSent = false,
+                    delivered = false,
+                )
+            }
         }
 
         fun submit() {

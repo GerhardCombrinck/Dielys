@@ -374,7 +374,10 @@ export function selectMagicLink(sql: SqlStorage, tokenHash: string): MagicLinkRo
 }
 
 /** Looked up by `UsersRoom.magicLinkStatus` on each delivery-status poll. */
-export function selectMagicLinkByRequestId(sql: SqlStorage, requestId: string): MagicLinkRow | null {
+export function selectMagicLinkByRequestId(
+  sql: SqlStorage,
+  requestId: string,
+): MagicLinkRow | null {
   const rows = [
     ...sql.exec(
       `SELECT token_hash, email, expires_at, created_at, request_id, message_id

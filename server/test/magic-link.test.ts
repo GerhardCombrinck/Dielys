@@ -1,5 +1,9 @@
 import { SELF } from "cloudflare:test";
-import type { MagicLinkStatusResponse, RequestMagicLinkResponse, TokenPair } from "@dielys/protocol";
+import type {
+  MagicLinkStatusResponse,
+  RequestMagicLinkResponse,
+  TokenPair,
+} from "@dielys/protocol";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { isUsableEmailConfig } from "../src/index.js";
 

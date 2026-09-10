@@ -40,10 +40,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -235,6 +235,7 @@ fun AuthScreen(
 }
 
 private const val RESEND_COOLDOWN_MS = 60_000L
+private const val TICK_MS = 1_000L
 
 /**
  * Seconds left before a resend is allowed, ticking down to 0. Keyed on
@@ -244,13 +245,16 @@ private const val RESEND_COOLDOWN_MS = 60_000L
 @Composable
 private fun rememberResendCooldown(sentAtMillis: Long): Int {
     var remainingMs by remember(sentAtMillis) {
-        mutableLongStateOf((sentAtMillis + RESEND_COOLDOWN_MS - System.currentTimeMillis()).coerceAtLeast(0))
+        mutableLongStateOf(
+            (sentAtMillis + RESEND_COOLDOWN_MS - System.currentTimeMillis()).coerceAtLeast(0),
+        )
     }
     LaunchedEffect(sentAtMillis) {
         while (remainingMs > 0) {
-            delay(1_000)
-            remainingMs = (sentAtMillis + RESEND_COOLDOWN_MS - System.currentTimeMillis()).coerceAtLeast(0)
+            delay(TICK_MS)
+            remainingMs =
+                (sentAtMillis + RESEND_COOLDOWN_MS - System.currentTimeMillis()).coerceAtLeast(0)
         }
     }
-    return (remainingMs / 1_000).toInt()
+    return (remainingMs / TICK_MS).toInt()
 }

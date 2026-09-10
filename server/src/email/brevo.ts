@@ -80,7 +80,9 @@ export async function sendMagicLinkEmail(
     return { sent: false };
   }
 
-  const body = await response.json<{ messageId?: string }>().catch(() => ({}) as { messageId?: string });
+  const body = await response
+    .json<{ messageId?: string }>()
+    .catch(() => ({}) as { messageId?: string });
   return { sent: true, messageId: typeof body.messageId === "string" ? body.messageId : null };
 }
 
