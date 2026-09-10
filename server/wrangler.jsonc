@@ -8,7 +8,12 @@
   // of truth (G1) rather than being duplicated as string literals in TS.
   "rules": [{ "type": "Text", "globs": ["**/*.sql"], "fallthrough": true }],
   "vars": {
-    "ENVIRONMENT": "dev"
+    "ENVIRONMENT": "dev",
+    // The HTTPS App Link origin magic-link emails point at (ADR 0005). Same
+    // value in dev and prod on purpose: the Android app's intent filter is
+    // verified against this one domain regardless of which deployment issued
+    // the link, since both send someone to the same installed app.
+    "APP_BASE_URL": "https://dielys.com"
   },
   "durable_objects": {
     "bindings": [
@@ -25,7 +30,7 @@
   "env": {
     "dev": {
       "name": "dielys-dev",
-      "vars": { "ENVIRONMENT": "dev" },
+      "vars": { "ENVIRONMENT": "dev", "APP_BASE_URL": "https://dielys.com" },
       "durable_objects": {
         "bindings": [
           { "name": "LIST_ROOM", "class_name": "ListRoom" },
@@ -41,7 +46,12 @@
     },
     "prod": {
       "name": "dielys-prod",
-      "vars": { "ENVIRONMENT": "prod" },
+      "vars": { "ENVIRONMENT": "prod", "APP_BASE_URL": "https://dielys.com" },
+      // dielys.com is the App Link domain a magic-link email points at (ADR
+      // 0005) — it has to resolve to this Worker so Android can fetch
+      // /.well-known/assetlinks.json to verify the app owns it, and so a link
+      // opened somewhere without the app installed still lands on something.
+      "routes": [{ "pattern": "dielys.com/*", "custom_domain": true }],
       "durable_objects": {
         "bindings": [
           { "name": "LIST_ROOM", "class_name": "ListRoom" },

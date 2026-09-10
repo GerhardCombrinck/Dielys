@@ -6,8 +6,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import za.co.dielys.data.MagicLinkVerifyResult
+import za.co.dielys.data.PendingMagicLink
 import za.co.dielys.data.SessionRepository
 import za.co.dielys.data.SignInResult
 import za.co.dielys.data.SignUpResult
@@ -43,6 +46,7 @@ class SessionViewModel
     @Inject
     constructor(
         private val sessions: SessionRepository,
+        private val magicLinks: PendingMagicLink,
     ) : ViewModel() {
         private val _signedIn = MutableStateFlow(sessions.isSignedIn())
         val signedIn: StateFlow<Boolean> = _signedIn.asStateFlow()
@@ -52,6 +56,19 @@ class SessionViewModel
 
         private val _form = MutableStateFlow(blank())
         val form: StateFlow<AuthUiState> = _form.asStateFlow()
+
+        init {
+            // A tapped magic link redeems itself the moment it arrives — there is
+            // no form to submit, unlike sign-in/sign-up (ADR 0005). `take()`
+            // clears it immediately so a later recomposition cannot redeem the
+            // same one-shot token twice.
+            viewModelScope.launch {
+                magicLinks.pending.filterNotNull().collect { token ->
+                    magicLinks.take()
+                    redeemMagicLink(token)
+                }
+            }
+        }
 
         fun onEmail(value: String) = _form.update { it.copy(email = value, problem = null) }
 
@@ -82,6 +99,18 @@ class SessionViewModel
             }
         }
 
+        /** Runs from [init], not from [submit] — a magic link has no form to be
+         * busy on behalf of, so this only touches [_form] to surface a failure. */
+        private suspend fun redeemMagicLink(token: String) {
+            when (val result = sessions.redeemMagicLink(token)) {
+                MagicLinkVerifyResult.Success -> {
+                    _form.value = blank()
+                    _signedIn.value = true
+                }
+                else -> _form.update { it.copy(problem = result.explain()) }
+            }
+        }
+
         private suspend fun signIn(form: AuthUiState): String? =
             when (val result = sessions.signIn(form.email.trim(), form.password)) {
                 SignInResult.Success -> null
@@ -105,6 +134,16 @@ class SessionViewModel
         }
 
         private fun blank() = AuthUiState(minPasswordLength = sessions.minPasswordLength)
+    }
+
+/** Mirrors [SignInResult.explain] below — one message for "wrong" and
+ * "expired", the same enumeration reasoning ADR 0005 gives `invalid-token`. */
+private fun MagicLinkVerifyResult.explain(): String =
+    when (this) {
+        MagicLinkVerifyResult.Success -> ""
+        MagicLinkVerifyResult.InvalidOrExpired -> "That link is no longer valid. Request a new one."
+        MagicLinkVerifyResult.Offline -> "No connection. Try again when you have signal."
+        is MagicLinkVerifyResult.ServerProblem -> "Could not sign in: $detail"
     }
 
 /**

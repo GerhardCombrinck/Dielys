@@ -14,6 +14,12 @@ export default defineConfig({
           JWT_SIGNING_KEY: "test-signing-key-not-used-anywhere-real",
           ADMIN_TOKEN: "test-admin-token-not-used-anywhere-real",
           FCM_SERVICE_ACCOUNT_JSON: "{}",
+          // Present so /auth/magic/* is not gated off by isUsableEmailConfig;
+          // real sends are stubbed at `fetch` (see magic-link.test.ts).
+          BREVO_API_KEY: "test-brevo-key-not-used-anywhere-real",
+          EMAIL_FROM: "dielys@dielys.test",
+          EMAIL_FROM_NAME: "Dielys",
+          ANDROID_CERT_SHA256_FINGERPRINTS: "",
         },
       },
     }),

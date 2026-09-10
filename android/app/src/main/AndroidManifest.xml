@@ -40,6 +40,30 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="dielys" android:host="invite" />
             </intent-filter>
+
+            <!--
+                A tapped magic-link sign-in link (ADR 0005, docs/adr/0005-passwordless-email-magic-link.md).
+                An https App Link rather than a custom scheme, unlike the invite
+                above: it arrives in an email, and several mail apps (Gmail's
+                Android app among them) do not reliably let a person tap a
+                custom-scheme link out of HTML mail. autoVerify asks Android to
+                confirm ownership of dielys.com via the Worker's
+                /.well-known/assetlinks.json before treating this as an app
+                link rather than a browser navigation.
+
+                The token is single-use and short-lived server-side (15 minutes) —
+                see UsersRoom.verifyMagicLink — so there is nothing here to protect
+                beyond what the server already enforces.
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="dielys.com"
+                    android:pathPrefix="/magic" />
+            </intent-filter>
         </activity>
 
         <!--

@@ -57,6 +57,30 @@ class FakeAuthApi : AuthApi {
         return pair()
     }
 
+    /** The account a magic link is standing in for — set by the test before
+     * [verifyMagicLink] is expected to succeed, mirroring how [accounts] pairs
+     * an email with a password for [login]. */
+    var magicLinkAccount: String? = null
+
+    /** Every email handed to [requestMagicLink], in order, as sent. */
+    val magicLinkRequests: MutableList<String> = mutableListOf()
+
+    override suspend fun requestMagicLink(email: String): RequestMagicLinkResponse {
+        gate()
+        magicLinkRequests += email
+        return RequestMagicLinkResponse(expiresIn = 900)
+    }
+
+    override suspend fun verifyMagicLink(
+        token: String,
+        deviceId: String,
+    ): TokenPair {
+        gate()
+        val email = magicLinkAccount ?: throw ApiException.Rejected(401, ErrorCode.INVALID_TOKEN)
+        accounts.putIfAbsent(email, "unusable-random-password")
+        return pair()
+    }
+
     private fun gate() {
         rejectWith?.let { code ->
             rejectWith = null

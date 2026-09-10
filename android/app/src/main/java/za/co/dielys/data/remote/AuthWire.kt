@@ -42,6 +42,28 @@ data class RefreshRequest(
     val deviceId: String,
 )
 
+/** `POST /auth/magic/request` (ADR 0005). */
+@Serializable
+data class RequestMagicLinkRequest(
+    val email: String,
+)
+
+@Serializable
+data class RequestMagicLinkResponse(
+    /** Seconds until the link expires — not a timestamp (F5.9). */
+    val expiresIn: Long,
+)
+
+/**
+ * `POST /auth/magic/verify` (ADR 0005). No email — the token alone names the
+ * request that minted it.
+ */
+@Serializable
+data class VerifyMagicLinkRequest(
+    val token: String,
+    val deviceId: String,
+)
+
 @Serializable
 data class TokenPair(
     val accessToken: String,

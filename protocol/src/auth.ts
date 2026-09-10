@@ -145,4 +145,35 @@ export type AuthErrorCode =
    */
   | "already-exists"
   /** Too many attempts in the window (L2, ADR 0004). Answered with a 429. */
-  | "rate-limited";
+  | "rate-limited"
+  /** No magic-link token matches what was presented — wrong, already spent,
+   * or nothing was ever requested for the email it names (ADR 0005). One
+   * code for all three, same enumeration reasoning as `invalid-credentials`. */
+  | "invalid-token"
+  /** The deployment has no working mail sender configured (ADR 0005) — fails
+   * closed, the same shape as an unusable JWT_SIGNING_KEY. */
+  | "internal";
+
+/** `POST /auth/magic/request` (ADR 0005). */
+export interface RequestMagicLinkRequest {
+  email: string;
+}
+
+export interface RequestMagicLinkResponse {
+  /** Seconds until the link expires. Not a timestamp — client clocks are not
+   * trusted (F5.9). */
+  expiresIn: number;
+}
+
+/**
+ * `POST /auth/magic/verify` (ADR 0005). No email here on purpose — the token
+ * alone names the request that minted it, and asking the caller to also
+ * supply the email would just be a second value that has to agree with the
+ * first for no reason. A right token creates the account on first use and
+ * signs in on every use after, the same collapse `RegisterRequest` already
+ * uses for a first-time caller.
+ */
+export interface VerifyMagicLinkRequest {
+  token: string;
+  deviceId: string;
+}

@@ -25,7 +25,9 @@ import {
   validateRefreshRequest,
   validateRegisterDeviceRequest,
   validateRegisterRequest,
+  validateRequestMagicLinkRequest,
   validateSetListPositionRequest,
+  validateVerifyMagicLinkRequest,
 } from "./domain/validate.js";
 import { log } from "./lib/log.js";
 
@@ -48,6 +50,13 @@ export default {
         return Response.json({ ok: true, environment: env.ENVIRONMENT });
       }
 
+      // Served ahead of the signing-key gate below: Android's App Link
+      // verifier fetches this before anyone has a session, and it carries no
+      // user content (ADR 0005) — there is nothing for the gate to protect.
+      if (url.pathname === "/.well-known/assetlinks.json") {
+        return Response.json(androidAssetLinks(env));
+      }
+
       // Fail closed on a missing or weak signing key. Without this the Worker
       // would sign and verify tokens with the literal string "undefined" —
       // valid-looking sessions anyone could forge. A deployment that has not
@@ -63,6 +72,12 @@ export default {
           return await handleRegister(request, env, now);
         case "/auth/login":
           return await handleLogin(request, env, now);
+        case "/auth/magic/request":
+          return await handleRequestMagicLink(request, env, now);
+        case "/auth/magic/verify":
+          return await handleVerifyMagicLink(request, env, now);
+        case "/magic":
+          return magicLinkFallbackPage();
         case "/auth/refresh":
           return await handleRefresh(request, env, now);
         case "/auth/memberships":
@@ -191,6 +206,145 @@ async function handleLogin(request: Request, env: Env, now: number): Promise<Res
 
   return Response.json(
     await tokenPair(result.value.userId, login.value.deviceId, result.value.refreshToken, env, now),
+  );
+}
+
+/**
+ * Fails closed the same way `isUsableSigningKey` does (ADR 0005): a
+ * deployment with no Brevo credential configured must refuse `/auth/magic/*`
+ * outright rather than let `UsersRoom` discover it mid-request, after the
+ * rate limiters have already spent the caller's budget on a request that was
+ * always going to fail.
+ */
+export function isUsableEmailConfig(env: Env): boolean {
+  return (
+    typeof env.BREVO_API_KEY === "string" &&
+    env.BREVO_API_KEY.length > 0 &&
+    typeof env.EMAIL_FROM === "string" &&
+    env.EMAIL_FROM.length > 0
+  );
+}
+
+/** `POST /auth/magic/request` (ADR 0005). Public, like registration — asking
+ * for a link is not itself a sign of anything, and the response never
+ * reveals whether the address has an account. */
+async function handleRequestMagicLink(request: Request, env: Env, now: number): Promise<Response> {
+  if (request.method !== "POST") return errorResponse("malformed", 405);
+  if (!isUsableEmailConfig(env)) {
+    log("error", "worker.magiclink.unconfigured", {});
+    return errorResponse("internal", 503);
+  }
+
+  const body = await readJson(request);
+  if (body === null) return errorResponse("malformed", 400);
+
+  const parsed = validateRequestMagicLinkRequest(body);
+  if (!parsed.ok) return errorResponse("malformed", 400);
+
+  const result = await usersRoom(env).requestMagicLink(
+    parsed.value.email,
+    await bucketKey(request, env),
+    now,
+  );
+  if (!result.ok) {
+    log("info", "worker.magiclink.request.rejected", { code: result.code });
+    return errorResponse(result.code, magicRequestStatus(result.code));
+  }
+  return Response.json(result.value);
+}
+
+function magicRequestStatus(code: ErrorCode): number {
+  if (code === "rate-limited") return 429;
+  return code === "internal" ? 503 : 400;
+}
+
+/**
+ * `POST /auth/magic/verify` (ADR 0005). Creates the account on first use and
+ * signs in on every use after — same collapse-into-one-call shape as
+ * register.
+ */
+async function handleVerifyMagicLink(request: Request, env: Env, now: number): Promise<Response> {
+  if (request.method !== "POST") return errorResponse("malformed", 405);
+
+  const body = await readJson(request);
+  if (body === null) return errorResponse("malformed", 400);
+
+  const parsed = validateVerifyMagicLinkRequest(body);
+  if (!parsed.ok) return errorResponse("malformed", 400);
+
+  const result = await usersRoom(env).verifyMagicLink(
+    parsed.value.token,
+    parsed.value.deviceId,
+    await bucketKey(request, env),
+    now,
+  );
+  if (!result.ok) {
+    log("info", "worker.magiclink.verify.rejected", { code: result.code });
+    return errorResponse(result.code, magicVerifyStatus(result.code));
+  }
+
+  return Response.json(
+    await tokenPair(
+      result.value.userId,
+      parsed.value.deviceId,
+      result.value.refreshToken,
+      env,
+      now,
+    ),
+  );
+}
+
+function magicVerifyStatus(code: ErrorCode): number {
+  if (code === "rate-limited") return 429;
+  if (code === "invalid-token" || code === "token-expired") return 401;
+  return 400;
+}
+
+/** Package name for `za.co.dielys` — public (it is the app's own id, already
+ * in `android/app/build.gradle.kts`), so a constant rather than a secret. */
+const ANDROID_PACKAGE_NAME = "za.co.dielys";
+
+/**
+ * `GET /.well-known/assetlinks.json` (ADR 0005) — what makes
+ * `https://dielys.com/magic` an Android App Link instead of an ordinary URL.
+ * Android fetches this once to confirm the site endorses the app before it
+ * will open links from this domain without asking.
+ *
+ * `ANDROID_CERT_SHA256_FINGERPRINTS` is comma-separated SHA-256 fingerprints
+ * of the app's signing certificate(s) — public once published here, but not
+ * yet known to this Worker until the release keystore's fingerprint is
+ * generated and set (`wrangler secret put`). Absent, this still answers a
+ * well-formed document with no fingerprints, which Android correctly treats
+ * as "not verified" rather than the Worker throwing.
+ */
+function androidAssetLinks(env: Env): unknown[] {
+  const raw = env.ANDROID_CERT_SHA256_FINGERPRINTS;
+  const fingerprints =
+    typeof raw === "string" && raw.trim().length > 0 ? raw.split(",").map((fp) => fp.trim()) : [];
+  return [
+    {
+      relation: ["delegate_permission/common.handle_all_urls"],
+      target: {
+        namespace: "android_app",
+        package_name: ANDROID_PACKAGE_NAME,
+        sha256_cert_fingerprints: fingerprints,
+      },
+    },
+  ];
+}
+
+/**
+ * `GET /magic` (ADR 0005). Reached only when the App Link did not open the
+ * app directly — Android has not verified the domain yet, or the link was
+ * opened somewhere without Dielys installed. A minimal page beats a bare 404;
+ * it carries no token handling of its own, since the token in the query
+ * string is only useful to the app's own `/auth/magic/verify` call.
+ */
+function magicLinkFallbackPage(): Response {
+  return new Response(
+    `<!doctype html><html><head><meta charset="utf-8"><title>Dielys</title></head>` +
+      `<body><p>Open this link on your phone with Dielys installed.</p></body></html>`,
+    { status: 200, headers: { "content-type": "text/html; charset=utf-8" } },
   );
 }
 
