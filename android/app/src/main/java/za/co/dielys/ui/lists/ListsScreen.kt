@@ -217,6 +217,10 @@ private fun Lists(
 
     LazyColumn(
         state = listState,
+        // A gap between cards, not a line inside one: CARD_GAP is what keeps
+        // consecutive rows from reading as a single block now that each one
+        // stands on its own surface.
+        verticalArrangement = Arrangement.spacedBy(CARD_GAP),
         modifier =
             modifier.padding(horizontal = 16.dp).pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(
@@ -258,11 +262,11 @@ private fun Lists(
                         .then(if (dragging) Modifier else Modifier.animateItem())
                         .graphicsLayer {
                             translationY = if (dragging) reorder.draggingOffset else 0f
+                            // Square corners throughout — no shape or clip, so
+                            // there is nothing for the lift to round.
                             shadowElevation = lift * DRAG_ELEVATION
                             scaleX = 1f + lift * DRAG_SCALE
                             scaleY = 1f + lift * DRAG_SCALE
-                            shape = DragShape
-                            clip = lift > 0f
                         },
             )
         }
@@ -298,9 +302,16 @@ private fun ListRow(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val list = row.list
+    // A card of its own, not a transparent row over the page background — the
+    // dot and title used to sit directly on the scaffold; now every row has a
+    // surface, so cards separated by CARD_GAP actually read as separate cards.
     val background by animateColorAsState(
         targetValue =
-            if (dragging) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent,
+            if (dragging) {
+                MaterialTheme.colorScheme.surfaceVariant
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
         label = "list-drag-background",
     )
 
@@ -424,7 +435,9 @@ private fun Empty(onCreate: () -> Unit) {
 
 private const val ALPHA_MUTED = 0.65f
 
+/** Breathing room between cards, so neighbours read as separate surfaces. */
+private val CARD_GAP = 8.dp
+
 /** Matches the task list's lift, so a dragged row looks the same on both screens. */
 private const val DRAG_ELEVATION = 12f
 private const val DRAG_SCALE = 0.02f
-private val DragShape = RoundedCornerShape(12.dp)

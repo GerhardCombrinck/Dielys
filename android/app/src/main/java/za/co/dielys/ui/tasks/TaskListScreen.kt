@@ -258,8 +258,12 @@ private fun Tasks(
 
     LazyColumn(
         state = listState,
+        // A gap between cards, not a line inside one: CARD_GAP is what keeps
+        // consecutive rows from reading as a single block now that each one
+        // stands on its own surface.
+        verticalArrangement = Arrangement.spacedBy(CARD_GAP),
         modifier =
-            Modifier.fillMaxSize().pointerInput(Unit) {
+            Modifier.fillMaxSize().padding(horizontal = 16.dp).pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = { offset ->
                         reorder.start(offset.y, count.value)?.let { start.value(it) }
@@ -303,14 +307,13 @@ private fun Tasks(
                         .then(if (dragging) Modifier else Modifier.animateItem())
                         .graphicsLayer {
                             translationY = if (dragging) reorder.draggingOffset else 0f
-                            // The whole row lifts as one card: rounded, shadowed
-                            // and slightly larger, rather than a ripple boxed
-                            // around the title.
+                            // The whole row lifts as one card: shadowed and
+                            // slightly larger, rather than a ripple boxed around
+                            // the title. Square corners throughout — no shape or
+                            // clip here, so there is nothing for the lift to round.
                             shadowElevation = lift * DRAG_ELEVATION
                             scaleX = 1f + lift * DRAG_SCALE
                             scaleY = 1f + lift * DRAG_SCALE
-                            shape = DragShape
-                            clip = lift > 0f
                         },
             )
         }
@@ -439,10 +442,9 @@ private fun TaskRow(
                 .fillMaxWidth()
                 .graphicsLayer {
                     // Lifts with the light, so the row reads as picked up rather
-                    // than repainted.
+                    // than repainted. Square, like every other card — no shape or
+                    // clip, so the corners never round mid-animation.
                     shadowElevation = glow.value * STAR_GLOW_ELEVATION
-                    shape = DragShape
-                    clip = glow.value > 0f
                 }.drawWithContent {
                     drawContent()
                     val strength = glow.value
@@ -659,6 +661,9 @@ private fun Empty() {
 
 private const val DRAG_ELEVATION = 12f
 
+/** Breathing room between cards, so neighbours read as separate surfaces. */
+private val CARD_GAP = 8.dp
+
 /** How long the star's glow takes to fade — long enough to follow the row up,
  * short enough that it is over before the next thing is tapped. */
 private const val STAR_GLOW_MILLIS = 700
@@ -673,7 +678,6 @@ private const val ADDED_GLOW_HOLD_MILLIS = 700
 /** Material's minimum, and what a thumb in a shop actually needs. */
 private val CHECKBOX_TOUCH_TARGET = 48.dp
 private const val DRAG_SCALE = 0.02f
-private val DragShape = RoundedCornerShape(12.dp)
 private const val DONE_ALPHA = 0.6f
 
 /** NavyDeep — the check glyph reads dark against the dark-mode done checkbox's amber fill. */
