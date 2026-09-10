@@ -9,37 +9,33 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import za.co.dielys.data.MagicLinkRequestResult
 import za.co.dielys.data.MagicLinkVerifyResult
 import za.co.dielys.data.PendingMagicLink
 import za.co.dielys.data.SessionRepository
-import za.co.dielys.data.SignInResult
-import za.co.dielys.data.SignUpResult
 import javax.inject.Inject
 
-enum class AuthMode {
-    SignIn,
-    SignUp,
-}
-
 data class AuthUiState(
-    val mode: AuthMode = AuthMode.SignIn,
     val email: String = "",
-    val password: String = "",
     val busy: Boolean = false,
+    /** True once a link has been mailed for the current [email] — the screen
+     * swaps the field and button for a "check your email" message until the
+     * email changes again or the link is tapped (ADR 0005: no password, no
+     * separate sign-up, the server creates the account on first redeem). */
+    val linkSent: Boolean = false,
     /** Shown under the button. Null while nothing has gone wrong yet. */
     val problem: String? = null,
-    val minPasswordLength: Int = 0,
 ) {
-    val canSubmit: Boolean get() = !busy && email.isNotBlank() && password.isNotEmpty()
+    val canSubmit: Boolean get() = !busy && email.isNotBlank()
 }
 
 /**
  * Owns whether there is a session, which is the one thing that decides which half
  * of the app is on screen.
  *
- * Signing in and registering are the only places the UI causes a network call at
- * all, and even here it does not make one: it asks [SessionRepository], which
- * answers with a result type rather than a transport exception (E1.2).
+ * Requesting a link is the only place the UI causes a network call at all, and
+ * even here it does not make one: it asks [SessionRepository], which answers
+ * with a result type rather than a transport exception (E1.2).
  */
 @HiltViewModel
 class SessionViewModel
@@ -54,12 +50,12 @@ class SessionViewModel
         /** Set from the sign-in form on success — there is no display name, just this. */
         val email: String? get() = sessions.email
 
-        private val _form = MutableStateFlow(blank())
+        private val _form = MutableStateFlow(AuthUiState())
         val form: StateFlow<AuthUiState> = _form.asStateFlow()
 
         init {
             // A tapped magic link redeems itself the moment it arrives — there is
-            // no form to submit, unlike sign-in/sign-up (ADR 0005). `take()`
+            // no form to submit, unlike requesting one (ADR 0005). `take()`
             // clears it immediately so a later recomposition cannot redeem the
             // same one-shot token twice.
             viewModelScope.launch {
@@ -70,12 +66,10 @@ class SessionViewModel
             }
         }
 
-        fun onEmail(value: String) = _form.update { it.copy(email = value, problem = null) }
-
-        fun onPassword(value: String) = _form.update { it.copy(password = value, problem = null) }
-
-        /** Keeps what has been typed: the two modes want the same two fields. */
-        fun onMode(mode: AuthMode) = _form.update { it.copy(mode = mode, problem = null) }
+        /** Editing the email after a link was sent goes back to the form — the
+         * mailed link was for whatever was typed before, not for this. */
+        fun onEmail(value: String) =
+            _form.update { it.copy(email = value, problem = null, linkSent = false) }
 
         fun submit() {
             val current = _form.value
@@ -83,18 +77,13 @@ class SessionViewModel
             _form.update { it.copy(busy = true, problem = null) }
 
             viewModelScope.launch {
-                val problem =
-                    when (current.mode) {
-                        AuthMode.SignIn -> signIn(current)
-                        AuthMode.SignUp -> signUp(current)
+                val problem = requestMagicLink(current)
+                _form.update {
+                    if (problem == null) {
+                        it.copy(busy = false, linkSent = true)
+                    } else {
+                        it.copy(busy = false, problem = problem)
                     }
-
-                if (problem == null) {
-                    // The password does not outlive the attempt.
-                    _form.value = blank()
-                    _signedIn.value = true
-                } else {
-                    _form.update { it.copy(busy = false, problem = problem) }
                 }
             }
         }
@@ -104,23 +93,17 @@ class SessionViewModel
         private suspend fun redeemMagicLink(token: String) {
             when (val result = sessions.redeemMagicLink(token)) {
                 MagicLinkVerifyResult.Success -> {
-                    _form.value = blank()
+                    _form.value = AuthUiState()
                     _signedIn.value = true
                 }
                 else -> _form.update { it.copy(problem = result.explain()) }
             }
         }
 
-        private suspend fun signIn(form: AuthUiState): String? =
-            when (val result = sessions.signIn(form.email.trim(), form.password)) {
-                SignInResult.Success -> null
+        private suspend fun requestMagicLink(form: AuthUiState): String? =
+            when (val result = sessions.requestMagicLink(form.email.trim())) {
+                MagicLinkRequestResult.Success -> null
                 else -> result.explain()
-            }
-
-        private suspend fun signUp(form: AuthUiState): String? =
-            when (val result = sessions.signUp(form.email.trim(), form.password)) {
-                SignUpResult.Success -> null
-                else -> result.explain(sessions.minPasswordLength)
             }
 
         /**
@@ -129,15 +112,13 @@ class SessionViewModel
          */
         fun signOut() {
             sessions.signOut()
-            _form.value = blank()
+            _form.value = AuthUiState()
             _signedIn.value = false
         }
-
-        private fun blank() = AuthUiState(minPasswordLength = sessions.minPasswordLength)
     }
 
-/** Mirrors [SignInResult.explain] below — one message for "wrong" and
- * "expired", the same enumeration reasoning ADR 0005 gives `invalid-token`. */
+/** One message for "wrong", "already spent" and "expired" alike, the same
+ * enumeration reasoning [MagicLinkRequestResult.explain] uses below. */
 private fun MagicLinkVerifyResult.explain(): String =
     when (this) {
         MagicLinkVerifyResult.Success -> ""
@@ -147,30 +128,15 @@ private fun MagicLinkVerifyResult.explain(): String =
     }
 
 /**
- * One message for a wrong password, a wrong email and an account that does not
- * exist, because the server deliberately cannot tell them apart either — three
- * messages would turn this screen into an account-enumeration oracle.
+ * Deliberately no "no such account" case: the server answers the same way
+ * whether or not the email has one, since [SessionRepository.redeemMagicLink]
+ * creates it on first use (ADR 0005) — there is nothing here for the screen to
+ * leak either.
  */
-private fun SignInResult.explain(): String =
+private fun MagicLinkRequestResult.explain(): String =
     when (this) {
-        SignInResult.Success -> ""
-        SignInResult.InvalidCredentials -> "Email or password is wrong."
-        SignInResult.Offline -> "No connection. Try again when you have signal."
-        is SignInResult.ServerProblem -> "Could not sign in: $detail"
-    }
-
-/**
- * Registration can say the email is taken, and this screen says so — the server
- * answers `already-exists` and pretending otherwise would leave somebody
- * retyping a password that was never the problem. It is a known oracle, accepted
- * and rate limited (ADR 0004), and it does not apply to signing in.
- */
-private fun SignUpResult.explain(minPasswordLength: Int): String =
-    when (this) {
-        SignUpResult.Success -> ""
-        SignUpResult.EmailTaken -> "That email already has an account. Sign in instead."
-        SignUpResult.PasswordTooShort -> "Use at least $minPasswordLength characters."
-        SignUpResult.TooManyAttempts -> "Too many attempts. Try again later."
-        SignUpResult.Offline -> "No connection. Try again when you have signal."
-        is SignUpResult.ServerProblem -> "Could not create the account: $detail"
+        MagicLinkRequestResult.Success -> ""
+        MagicLinkRequestResult.TooManyAttempts -> "Too many attempts. Try again later."
+        MagicLinkRequestResult.Offline -> "No connection. Try again when you have signal."
+        is MagicLinkRequestResult.ServerProblem -> "Could not send the link: $detail"
     }

@@ -19,23 +19,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,8 +35,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,30 +49,24 @@ private val BadgeNavy = Color(0xFF1B2A4A)
 private val BadgeNavyLight = Color(0xFF2E4372)
 
 /**
- * Sign in, or make an account. One screen, because they differ by a button and a
- * sentence, and a second screen would be a second place to get the password
- * field wrong.
+ * One field, one button (ADR 0005): there is no password and no separate
+ * sign-up, since the server creates the account on first magic-link redeem.
+ * Once a link is sent the field and button give way to a "check your email"
+ * message, until the email changes again or the link is tapped.
  */
 @Composable
 fun AuthScreen(
     state: AuthUiState,
     onEmail: (String) -> Unit,
-    onPassword: (String) -> Unit,
-    onMode: (AuthMode) -> Unit,
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val creating = state.mode == AuthMode.SignUp
-    var passwordVisible by remember { mutableStateOf(false) }
     val dark = isSystemInDarkTheme()
-    val visibilityIcon =
-        if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility
-    val visibilityLabel = if (passwordVisible) "Hide password" else "Show password"
 
-    // The keyboard takes half the screen on a phone this size, and the fields are
+    // The keyboard takes half the screen on a phone this size, and the field is
     // in the middle of it. The Box gives up the space the IME needs, the Column
     // scrolls inside whatever is left, and a focused field brings itself into
-    // view — so the password field is reachable rather than under the keys.
+    // view — so the field is reachable rather than under the keys.
     Box(
         modifier =
             modifier
@@ -130,109 +114,69 @@ fun AuthScreen(
                 letterSpacing = 1.5.sp,
                 modifier = Modifier.padding(top = 4.dp, bottom = 24.dp),
             )
-            Text(
-                if (creating) {
-                    "Make an account. Someone can share a list with you once you have one."
-                } else {
-                    "Sign in to the lists you share."
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 16.dp),
-            )
 
-            OutlinedTextField(
-                value = state.email,
-                onValueChange = onEmail,
-                label = { Text("Email") },
-                singleLine = true,
-                enabled = !state.busy,
-                keyboardOptions =
-                    KeyboardOptions(
-                        keyboardType = KeyboardType.Email,
-                        imeAction = ImeAction.Next,
-                    ),
-                modifier = Modifier.fillMaxWidth(),
-            )
+            if (state.linkSent) {
+                Text(
+                    "Check your email",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+                Text(
+                    "We sent a sign-in link to ${state.email}. Open it on this device " +
+                        "to continue.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                )
+                TextButton(onClick = { onEmail("") }) {
+                    Text("Use a different email")
+                }
+            } else {
+                Text(
+                    "Sign in with your email — we'll mail you a link, no password to " +
+                        "remember.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                )
 
-            OutlinedTextField(
-                value = state.password,
-                onValueChange = onPassword,
-                label = { Text("Password") },
-                singleLine = true,
-                enabled = !state.busy,
-                visualTransformation =
-                    if (passwordVisible) {
-                        VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
-                    },
-                trailingIcon = {
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(imageVector = visibilityIcon, contentDescription = visibilityLabel)
-                    }
-                },
-                // Only when making one: telling somebody signing in that their
-                // password is too short tells an attacker their guess was too short
-                // to be real.
-                supportingText =
-                    if (creating) {
-                        { Text("At least ${state.minPasswordLength} characters.") }
-                    } else {
-                        null
-                    },
-                keyboardOptions =
-                    KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Go,
-                    ),
-                keyboardActions = KeyboardActions(onGo = { onSubmit() }),
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-            )
+                OutlinedTextField(
+                    value = state.email,
+                    onValueChange = onEmail,
+                    label = { Text("Email") },
+                    singleLine = true,
+                    enabled = !state.busy,
+                    keyboardOptions =
+                        KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Go,
+                        ),
+                    keyboardActions = KeyboardActions(onGo = { onSubmit() }),
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
-            Button(
-                onClick = onSubmit,
-                enabled = state.canSubmit,
-                shape = PillShape,
-                colors =
-                    if (creating) {
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            contentColor = MaterialTheme.colorScheme.onSurface,
-                        )
-                    } else {
+                Button(
+                    onClick = onSubmit,
+                    enabled = state.canSubmit,
+                    shape = PillShape,
+                    colors =
                         ButtonDefaults.buttonColors(
                             containerColor = SignInAmber,
                             contentColor = Color.White,
+                        ),
+                    // Padding outside the height: the other order shrinks the button's own
+                    // box to 20dp and squashes the label.
+                    modifier = Modifier.fillMaxWidth().padding(top = 20.dp).height(48.dp),
+                ) {
+                    if (state.busy) {
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(16.dp).padding(end = 8.dp),
+                            color = Color.White,
                         )
-                    },
-                // Padding outside the height: the other order shrinks the button's own
-                // box to 20dp and squashes the label.
-                modifier = Modifier.fillMaxWidth().padding(top = 20.dp).height(48.dp),
-            ) {
-                if (state.busy) {
-                    CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(16.dp).padding(end = 8.dp),
-                        color = if (creating) MaterialTheme.colorScheme.onSurface else Color.White,
-                    )
+                    }
+                    Text(if (state.busy) "Sending…" else "Email me a link")
                 }
-                Text(
-                    when {
-                        state.busy && creating -> "Creating…"
-                        state.busy -> "Signing in…"
-                        creating -> "Create account"
-                        else -> "Sign in"
-                    },
-                )
-            }
-
-            TextButton(
-                onClick = { onMode(if (creating) AuthMode.SignIn else AuthMode.SignUp) },
-                enabled = !state.busy,
-                modifier = Modifier.padding(top = 4.dp),
-            ) {
-                Text(if (creating) "I already have an account" else "Create an account")
             }
 
             state.problem?.let { problem ->

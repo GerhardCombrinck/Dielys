@@ -94,7 +94,7 @@ android {
             buildConfigField(
                 "String",
                 "SYNC_BASE_URL",
-                "\"https://dielys-prod.dielys.workers.dev/\"",
+                "\"https://dielys.com/\"",
             )
             isMinifyEnabled = false
             // fallbackToDestructiveMigration() is forbidden in release builds — G2.

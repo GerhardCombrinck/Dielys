@@ -19,8 +19,9 @@ import org.robolectric.RobolectricTestRunner
 import za.co.dielys.data.SessionStack
 
 /**
- * The one screen that causes a network call. What matters here is what it says
- * back: registration may name the problem, signing in may not (L2, ADR 0004).
+ * The one screen that causes a network call. There is no password and no
+ * separate sign-up (ADR 0005): requesting a link is the only thing the form
+ * does, and the account is created server-side on first redeem.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -28,8 +29,6 @@ class SessionViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private lateinit var phone: SessionStack
     private lateinit var viewModel: SessionViewModel
-
-    private val goodPassword = "correct-horse-battery"
 
     @Before
     fun setUp() {
@@ -42,71 +41,26 @@ class SessionViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     @Test
-    fun `creating an account signs in and asks for a sync`() =
+    fun `requesting a link sends the email and asks to check it`() =
         runTest(dispatcher) {
-            submit(AuthMode.SignUp, "friend@example.test", goodPassword)
+            submit("friend@example.test")
 
-            assertTrue(viewModel.signedIn.value)
-            // A brand new device knows nothing, so it does not wait for the
-            // half-hourly worker to find out (H3.12).
-            assertEquals(1, phone.scheduler.requests)
-            // The password does not outlive the attempt.
-            assertEquals("", viewModel.form.value.password)
-        }
-
-    @Test
-    fun `a taken email says so, because the server does`() =
-        runTest(dispatcher) {
-            phone.account("taken@example.test", goodPassword)
-
-            submit(AuthMode.SignUp, "taken@example.test", goodPassword)
-
+            assertEquals(listOf("friend@example.test"), phone.sentMagicLinks)
+            assertTrue(viewModel.form.value.linkSent)
+            // Nothing is signed in yet — only tapping the mailed link does that.
             assertFalse(viewModel.signedIn.value)
-            assertEquals(
-                "That email already has an account. Sign in instead.",
-                viewModel.form.value.problem,
-            )
-        }
-
-    /**
-     * The mirror of the test above: the server answers `invalid-credentials` for
-     * a wrong password, a wrong email and an account that does not exist alike,
-     * and the screen must not be more helpful than that.
-     */
-    @Test
-    fun `signing in never says whether the account exists`() =
-        runTest(dispatcher) {
-            submit(AuthMode.SignIn, "nobody@example.test", goodPassword)
-            val missing = viewModel.form.value.problem
-
-            phone.account("real@example.test", goodPassword)
-            submit(AuthMode.SignIn, "real@example.test", "wrong-password-entirely")
-            val wrongPassword = viewModel.form.value.problem
-
-            assertEquals("Email or password is wrong.", missing)
-            assertEquals(missing, wrongPassword)
+            assertNull(viewModel.form.value.problem)
         }
 
     @Test
-    fun `a short password is refused before it is sent anywhere`() =
-        runTest(dispatcher) {
-            submit(AuthMode.SignUp, "friend@example.test", "short")
-
-            assertEquals(emptyList<String>(), phone.sentEmails)
-            assertEquals(
-                "Use at least ${phone.sessions.minPasswordLength} characters.",
-                viewModel.form.value.problem,
-            )
-        }
-
-    @Test
-    fun `too many attempts is its own answer, not a wrong password`() =
+    fun `too many attempts is its own answer`() =
         runTest(dispatcher) {
             phone.refuseNextAsRateLimited()
 
-            submit(AuthMode.SignUp, "friend@example.test", goodPassword)
+            submit("friend@example.test")
 
             assertEquals("Too many attempts. Try again later.", viewModel.form.value.problem)
+            assertFalse(viewModel.form.value.linkSent)
         }
 
     @Test
@@ -114,7 +68,7 @@ class SessionViewModelTest {
         runTest(dispatcher) {
             phone.online = false
 
-            submit(AuthMode.SignUp, "friend@example.test", goodPassword)
+            submit("friend@example.test")
 
             assertEquals(
                 "No connection. Try again when you have signal.",
@@ -123,30 +77,25 @@ class SessionViewModelTest {
         }
 
     @Test
-    fun `switching mode keeps what has been typed and drops the last complaint`() =
+    fun `a blank email is refused before it is sent anywhere`() =
         runTest(dispatcher) {
-            submit(AuthMode.SignIn, "friend@example.test", goodPassword)
-            assertEquals("Email or password is wrong.", viewModel.form.value.problem)
+            submit("")
 
-            viewModel.onMode(AuthMode.SignUp)
-
-            val form = viewModel.form.value
-            assertEquals(AuthMode.SignUp, form.mode)
-            assertEquals("friend@example.test", form.email)
-            assertEquals(goodPassword, form.password)
-            assertNull(form.problem)
+            assertEquals(emptyList<String>(), phone.sentMagicLinks)
         }
 
     @Test
-    fun `signing out clears the form and the session`() =
+    fun `editing the email after a link is sent returns to the form`() =
         runTest(dispatcher) {
-            submit(AuthMode.SignUp, "friend@example.test", goodPassword)
+            submit("friend@example.test")
+            assertTrue(viewModel.form.value.linkSent)
 
-            viewModel.signOut()
+            viewModel.onEmail("someone-else@example.test")
 
-            assertFalse(viewModel.signedIn.value)
-            assertFalse(phone.sessions.isSignedIn())
-            assertEquals(AuthMode.SignIn, viewModel.form.value.mode)
+            val form = viewModel.form.value
+            assertFalse(form.linkSent)
+            assertEquals("someone-else@example.test", form.email)
+            assertNull(form.problem)
         }
 
     @Test
@@ -183,14 +132,24 @@ class SessionViewModelTest {
             assertNull(viewModel.form.value.problem)
         }
 
-    private fun submit(
-        mode: AuthMode,
-        email: String,
-        password: String,
-    ) {
-        viewModel.onMode(mode)
+    @Test
+    fun `signing out clears the form and the session`() =
+        runTest(dispatcher) {
+            phone.nextMagicLinkIsFor("friend@example.test")
+            submit("friend@example.test")
+            phone.magicLinks.offer("https://dielys.com/magic?token=abc123XYZ-_")
+            assertTrue(viewModel.signedIn.value)
+
+            viewModel.signOut()
+
+            assertFalse(viewModel.signedIn.value)
+            assertFalse(phone.sessions.isSignedIn())
+            assertEquals("", viewModel.form.value.email)
+            assertFalse(viewModel.form.value.linkSent)
+        }
+
+    private fun submit(email: String) {
         viewModel.onEmail(email)
-        viewModel.onPassword(password)
         viewModel.submit()
     }
 }
