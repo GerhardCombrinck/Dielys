@@ -62,4 +62,14 @@ class SessionStack(
     fun refuseNextAsRateLimited() {
         auth.rejectWith = ErrorCode.RATE_LIMITED
     }
+
+    /** Makes `magicLinkStatus` report delivered for the most recently
+     * requested link — standing in for Brevo's event report catching up
+     * (ADR 0005 follow-up). */
+    fun markMagicLinkDelivered() {
+        auth.delivered = true
+    }
+
+    /** Every requestId `magicLinkStatus` was polled with, in order. */
+    val statusChecks: List<String> get() = auth.statusChecks
 }

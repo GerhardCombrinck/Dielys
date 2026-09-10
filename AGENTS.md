@@ -57,6 +57,34 @@ spend a runner minute on per commit. Push when the change is complete and testab
 - **Anything tagged (SYNC) in the standard is a hard line**, not a style preference. Relaxing
   one requires an ADR, not a comment explaining why it seemed fine this once.
 
+## Android dev workflow
+
+- **`ENVIRONMENT === "dev"` disables all auth rate limits** (`UsersRoom.consume()`). Prod stays
+  limited; only the `dielys-dev` deployment is open, so testing login repeatedly doesn't trip
+  anything.
+- **Redeploying to a USB-connected phone does not need to log you out.** `SessionStore` keeps
+  `deviceId` and `refreshToken` in plain `SharedPreferences`, which survives a normal
+  replace-install (`./gradlew installDebug`, or Android Studio's default Run). If a device gets
+  logged out on every deploy, check Android Studio's Run/Debug config for "Clear app storage"
+  and uncheck it — that's an app-data wipe, not a session-length problem. Refresh tokens are
+  device-scoped and rotate on a 30-day sliding window (`REFRESH_TOKEN_TTL_MS`), so a session
+  that's actually used stays alive indefinitely.
+- **CLI Gradle builds need JDK 21**, not whatever `java` resolves to on `PATH`. Use the
+  project's toolchain JDK, e.g. `JAVA_HOME=.../.dielys-toolchain/jdk21 ./gradlew installDebug`.
+  `JAVA_HOME` pointed at an older JDK fails `compileDebugJavaWithJavac` with "invalid source
+  release: 21".
+- **App Links (`dielys.com/magic`) verification is two independent things**, both of which have
+  to be right for a magic-link email to open the app instead of the browser:
+  1. `dielys.com/.well-known/assetlinks.json` — served by whichever Worker owns the
+     `dielys.com` custom domain route (prod, per `wrangler.jsonc`) — must list the signing
+     cert's SHA-256 fingerprint in the `ANDROID_CERT_SHA256_FINGERPRINTS` secret
+     (comma-separated; a debug build needs its debug-keystore fingerprint added too).
+  2. The device's own per-app link setting must not have the domain disabled — check with
+     `adb shell dumpsys package za.co.dielys | grep -A10 "Domain verification status"`;
+     re-enable with
+     `adb shell pm set-app-links-user-selection --user 0 --package za.co.dielys true dielys.com`.
+     A domain can show `verified` and still open in the browser if this is off.
+
 ## Where to look next
 
 - `docs/PLAN.md` — what is built, what is next, and the questions still open.

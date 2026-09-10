@@ -92,6 +92,37 @@ class HttpAuthApi
                 TokenPair.serializer(),
             )
 
+        override suspend fun magicLinkStatus(requestId: String): MagicLinkStatusResponse =
+            withContext(Dispatchers.IO) {
+                val url =
+                    baseUrl
+                        .newBuilder()
+                        .addPathSegment("auth")
+                        .addPathSegment("magic")
+                        .addPathSegment("status")
+                        .addQueryParameter("requestId", requestId)
+                        .build()
+                val request = Request.Builder().url(url).get().build()
+
+                val response =
+                    try {
+                        client.newCall(request).execute()
+                    } catch (error: IOException) {
+                        throw ApiException.Transport(error)
+                    }
+
+                response.use {
+                    val text =
+                        try {
+                            it.body.string()
+                        } catch (error: IOException) {
+                            throw ApiException.Transport(error)
+                        }
+                    if (!it.isSuccessful) throw failure(it.code, text)
+                    decode(text, MagicLinkStatusResponse.serializer())
+                }
+            }
+
         private suspend fun post(
             action: String,
             body: String,

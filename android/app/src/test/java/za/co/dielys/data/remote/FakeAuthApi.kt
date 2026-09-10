@@ -65,10 +65,26 @@ class FakeAuthApi : AuthApi {
     /** Every email handed to [requestMagicLink], in order, as sent. */
     val magicLinkRequests: MutableList<String> = mutableListOf()
 
+    private var nextRequestId = 0
+
+    /** The requestId a test can poll [magicLinkStatus] with — matches what
+     * the most recent [requestMagicLink] handed back. */
+    var lastRequestId: String? = null
+        private set
+
+    /** Flip to true once the test wants [magicLinkStatus] to report delivered. */
+    var delivered: Boolean = false
+
+    /** Every requestId handed to [magicLinkStatus], in order, as sent. */
+    val statusChecks: MutableList<String> = mutableListOf()
+
     override suspend fun requestMagicLink(email: String): RequestMagicLinkResponse {
         gate()
         magicLinkRequests += email
-        return RequestMagicLinkResponse(expiresIn = 900)
+        nextRequestId++
+        val requestId = "request-$nextRequestId"
+        lastRequestId = requestId
+        return RequestMagicLinkResponse(expiresIn = 900, requestId = requestId)
     }
 
     override suspend fun verifyMagicLink(
@@ -79,6 +95,12 @@ class FakeAuthApi : AuthApi {
         val email = magicLinkAccount ?: throw ApiException.Rejected(401, ErrorCode.INVALID_TOKEN)
         accounts.putIfAbsent(email, "unusable-random-password")
         return pair()
+    }
+
+    override suspend fun magicLinkStatus(requestId: String): MagicLinkStatusResponse {
+        gate()
+        statusChecks += requestId
+        return MagicLinkStatusResponse(delivered = delivered && requestId == lastRequestId)
     }
 
     private fun gate() {

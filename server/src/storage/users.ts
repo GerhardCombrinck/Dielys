@@ -334,15 +334,25 @@ export interface MagicLinkRow {
   email: string;
   expiresAt: string;
   createdAt: string;
+  /** Opaque handle returned to the client for delivery-status polling
+   * (`UsersRoom.magicLinkStatus`) — never the email itself. Null for a send
+   * that predates 0006_magic_link_delivery. */
+  requestId: string | null;
+  /** Brevo's id for the send, looked up against its event-report API.
+   * Null when Brevo accepted the send without handing one back. */
+  messageId: string | null;
 }
 
 export function insertMagicLink(sql: SqlStorage, row: MagicLinkRow): void {
   sql.exec(
-    `INSERT INTO magic_links (token_hash, email, expires_at, created_at) VALUES (?, ?, ?, ?)`,
+    `INSERT INTO magic_links (token_hash, email, expires_at, created_at, request_id, message_id)
+     VALUES (?, ?, ?, ?, ?, ?)`,
     row.tokenHash,
     row.email,
     row.expiresAt,
     row.createdAt,
+    row.requestId,
+    row.messageId,
   );
 }
 
@@ -355,17 +365,35 @@ export function deleteMagicLinksForEmail(sql: SqlStorage, email: string): void {
 export function selectMagicLink(sql: SqlStorage, tokenHash: string): MagicLinkRow | null {
   const rows = [
     ...sql.exec(
-      `SELECT token_hash, email, expires_at, created_at FROM magic_links WHERE token_hash = ?`,
+      `SELECT token_hash, email, expires_at, created_at, request_id, message_id
+       FROM magic_links WHERE token_hash = ?`,
       tokenHash,
     ),
   ];
-  const row = rows[0];
+  return rowToMagicLink(rows[0]);
+}
+
+/** Looked up by `UsersRoom.magicLinkStatus` on each delivery-status poll. */
+export function selectMagicLinkByRequestId(sql: SqlStorage, requestId: string): MagicLinkRow | null {
+  const rows = [
+    ...sql.exec(
+      `SELECT token_hash, email, expires_at, created_at, request_id, message_id
+       FROM magic_links WHERE request_id = ?`,
+      requestId,
+    ),
+  ];
+  return rowToMagicLink(rows[0]);
+}
+
+function rowToMagicLink(row: Record<string, SqlStorageValue> | undefined): MagicLinkRow | null {
   if (row === undefined) return null;
   return {
     tokenHash: String(row.token_hash),
     email: String(row.email),
     expiresAt: String(row.expires_at),
     createdAt: String(row.created_at),
+    requestId: row.request_id === null ? null : String(row.request_id),
+    messageId: row.message_id === null ? null : String(row.message_id),
   };
 }
 

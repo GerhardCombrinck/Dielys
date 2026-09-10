@@ -13,12 +13,18 @@ import {
   LOGIN_PER_CLIENT,
   MAGIC_REQUEST_PER_CLIENT,
   MAGIC_REQUEST_PER_EMAIL,
+  MAGIC_STATUS_PER_CLIENT,
   MAGIC_VERIFY_PER_CLIENT,
   type RateLimit,
   REGISTER_GLOBAL,
   REGISTER_PER_CLIENT,
 } from "../auth/ratelimit.js";
-import { type EmailSender, parseEmailSender, sendMagicLinkEmail } from "../email/brevo.js";
+import {
+  type EmailSender,
+  isEmailDelivered,
+  parseEmailSender,
+  sendMagicLinkEmail,
+} from "../email/brevo.js";
 import { log } from "../lib/log.js";
 import {
   FcmSender,
@@ -46,6 +52,7 @@ import {
   markRefreshTokenUsed,
   selectDevicesForList,
   selectMagicLink,
+  selectMagicLinkByRequestId,
   selectMembership,
   selectMemberships,
   selectRateLimit,
@@ -253,7 +260,7 @@ export class UsersRoom extends DurableObject {
     email: string,
     clientKey: string,
     now: number,
-  ): Promise<UsersResult<{ expiresIn: number }>> {
+  ): Promise<UsersResult<{ expiresIn: number; requestId: string }>> {
     const normalized = normalizeEmail(email);
 
     if (!this.consume(MAGIC_REQUEST_PER_CLIENT, clientKey, now)) {
@@ -274,14 +281,20 @@ export class UsersRoom extends DurableObject {
 
     const token = generateRefreshToken();
     const link = magicLinkUrl(this.env.APP_BASE_URL, token);
-    const sent = await sendMagicLinkEmail(
+    const result = await sendMagicLinkEmail(
       this.env.BREVO_API_KEY,
       sender,
       normalized,
       link,
       MAGIC_LINK_TTL_MS / 60_000,
     );
-    if (!sent) return { ok: false, code: "internal" };
+    if (!result.sent) return { ok: false, code: "internal" };
+
+    // Its own random value, not derived from the token: leaking it (it goes
+    // straight to the client, unlike the token which only ever leaves this
+    // Worker inside a mailed link) must not help anyone guess or verify the
+    // sign-in token itself (ADR 0005's reasoning for the token, reapplied).
+    const requestId = generateRefreshToken();
 
     // Stored only after the send succeeds: a token nobody's inbox will ever
     // show is not worth spending a write on, and it would just sit there
@@ -294,11 +307,38 @@ export class UsersRoom extends DurableObject {
         email: normalized,
         expiresAt: new Date(now + MAGIC_LINK_TTL_MS).toISOString(),
         createdAt: new Date(now).toISOString(),
+        requestId,
+        messageId: result.messageId,
       });
       deleteExpiredMagicLinks(this.sql, new Date(now).toISOString());
     });
     log("info", "usersroom.magiclink.sent", {});
-    return { ok: true, value: { expiresIn: MAGIC_LINK_TTL_MS / 1000 } };
+    return { ok: true, value: { expiresIn: MAGIC_LINK_TTL_MS / 1000, requestId } };
+  }
+
+  /**
+   * Polled by the client every few seconds while it waits (`GET
+   * /auth/magic/status`) — never authenticated, since there is no session
+   * yet, so `requestId` is the only thing that gates it (D4: no email in
+   * either direction). An unknown or superseded request answers "not
+   * delivered" rather than an error — the same enumeration reasoning
+   * `invalid-token` uses, so a guessed or stale id learns nothing.
+   *
+   * Rate-limited like every other unauthenticated auth endpoint, but the
+   * limit itself is the whole answer on refusal: skip the Brevo call and
+   * say "not delivered yet" rather than surface a `rate-limited` the client
+   * would have to do something with mid-poll.
+   */
+  async magicLinkStatus(
+    requestId: string,
+    clientKey: string,
+    now: number,
+  ): Promise<{ delivered: boolean }> {
+    if (!this.consume(MAGIC_STATUS_PER_CLIENT, clientKey, now)) return { delivered: false };
+
+    const row = selectMagicLinkByRequestId(this.sql, requestId);
+    if (row === null || row.messageId === null) return { delivered: false };
+    return { delivered: await isEmailDelivered(this.env.BREVO_API_KEY, row.messageId) };
   }
 
   /**
@@ -635,6 +675,9 @@ export class UsersRoom extends DurableObject {
    * shut rather than rolling it — which is the point of refusing.
    */
   private consume(limit: RateLimit, clientKey: string, now: number): boolean {
+    // Dev deployment only (env.ENVIRONMENT, wrangler.jsonc) — prod stays limited.
+    if (this.env.ENVIRONMENT === "dev") return true;
+
     const bucket = bucketFor(limit, clientKey);
     return this.ctx.storage.transactionSync(() => {
       deleteStaleRateLimits(this.sql, now - RATE_LIMIT_RETENTION_MS);

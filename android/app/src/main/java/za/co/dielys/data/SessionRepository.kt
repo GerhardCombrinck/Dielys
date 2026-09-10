@@ -73,7 +73,11 @@ sealed interface SignUpResult {
  * first use — there is nothing here for the screen to leak either.
  */
 sealed interface MagicLinkRequestResult {
-    data object Success : MagicLinkRequestResult
+    /** [requestId] is what [SessionRepository.magicLinkDelivered] polls with —
+     * never the email itself. */
+    data class Success(
+        val requestId: String,
+    ) : MagicLinkRequestResult
 
     data object TooManyAttempts : MagicLinkRequestResult
 
@@ -235,12 +239,15 @@ class SessionRepository
          */
         fun signOut() = store.clearSession()
 
-        /** Mints and mails a sign-in link (ADR 0005). Nothing local changes yet —
-         * there is no session until the mailed link is tapped and redeemed. */
+        /** Mints and mails a sign-in link (ADR 0005). No session yet — that
+         * waits for the mailed link to be tapped and redeemed — but the email
+         * is saved now so Settings has it once that happens, since the server
+         * never hands it back on that path (see [redeemMagicLink]). */
         suspend fun requestMagicLink(email: String): MagicLinkRequestResult =
             try {
-                auth.requestMagicLink(email)
-                MagicLinkRequestResult.Success
+                val response = auth.requestMagicLink(email)
+                store.email = email
+                MagicLinkRequestResult.Success(response.requestId)
             } catch (error: ApiException.Rejected) {
                 if (error.code == ErrorCode.RATE_LIMITED) {
                     MagicLinkRequestResult.TooManyAttempts
@@ -254,13 +261,27 @@ class SessionRepository
             }
 
         /**
+         * Polled every few seconds while "Check your email" is on screen
+         * (ADR 0005 follow-up). Unauthenticated like the request itself, so
+         * any failure — offline, a server hiccup — answers `false` exactly
+         * like a genuine "not yet": there is nothing actionable to tell the
+         * screen apart from "keep waiting".
+         */
+        suspend fun magicLinkDelivered(requestId: String): Boolean =
+            try {
+                auth.magicLinkStatus(requestId).delivered
+            } catch (_: ApiException) {
+                false
+            }
+
+        /**
          * Redeems a tapped magic link (ADR 0005) — creates the account on first
          * use and signs in either way, same shape as [signUp]/[signIn] collapsing
          * into one call.
          *
          * Unlike [signIn], the server never hands back the email the link was
-         * for, so [SessionRepository.email] stays whatever it already was —
-         * usually null on this path, since nobody typed anything.
+         * for, so [SessionRepository.email] stays whatever [requestMagicLink]
+         * already saved for it.
          */
         suspend fun redeemMagicLink(token: String): MagicLinkVerifyResult =
             try {

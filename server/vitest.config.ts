@@ -20,6 +20,11 @@ export default defineConfig({
         // so tests declare their own. These values are test fixtures — the real
         // ones are set with `wrangler secret put` and never live in the repo.
         bindings: {
+          // Overrides wrangler.jsonc's "dev", which disables auth rate limits
+          // (UsersRoom.consume) — the rate-limit tests need the real behaviour,
+          // not the dev-deployment bypass. Deploying still reads "dev" from
+          // wrangler.jsonc itself; this only affects the test run.
+          ENVIRONMENT: "prod",
           JWT_SIGNING_KEY: "test-signing-key-not-used-anywhere-real",
           ADMIN_TOKEN: "test-admin-token-not-used-anywhere-real",
           FCM_SERVICE_ACCOUNT_JSON: "{}",

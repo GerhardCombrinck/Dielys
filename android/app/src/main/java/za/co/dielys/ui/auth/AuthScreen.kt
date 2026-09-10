@@ -28,6 +28,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,7 +43,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import za.co.dielys.BuildConfig
+import kotlinx.coroutines.delay
 import za.co.dielys.R
 import za.co.dielys.ui.theme.PillShape
 
@@ -122,12 +127,34 @@ fun AuthScreen(
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
                 Text(
-                    "We sent a sign-in link to ${state.email}. Open it on this device " +
-                        "to continue.",
+                    if (state.delivered) {
+                        "Delivered to ${state.email}. Open it on this device to continue."
+                    } else {
+                        "We sent a sign-in link to ${state.email}. It can take a few minutes " +
+                            "to arrive — open it on this device to continue."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(bottom = 16.dp),
                 )
+
+                // Once delivery is confirmed there is nothing a resend would fix —
+                // the copy above already told them it arrived.
+                if (!state.delivered) {
+                    val cooldownRemaining = rememberResendCooldown(state.sentAtMillis)
+                    TextButton(
+                        onClick = onSubmit,
+                        enabled = !state.busy && cooldownRemaining == 0,
+                    ) {
+                        Text(
+                            if (cooldownRemaining > 0) {
+                                "Resend in ${cooldownRemaining}s"
+                            } else {
+                                "Resend link"
+                            },
+                        )
+                    }
+                }
                 TextButton(onClick = { onEmail("") }) {
                     Text("Use a different email")
                 }
@@ -188,14 +215,27 @@ fun AuthScreen(
                     modifier = Modifier.padding(top = 16.dp),
                 )
             }
-
-            // Which server this build talks to. Debug points at dielys-dev, and
-            // finding that out by watching traffic is a waste of an afternoon.
-            Text(
-                BuildConfig.SYNC_BASE_URL,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(top = 32.dp),
-            )
         }
     }
+}
+
+private const val RESEND_COOLDOWN_MS = 60_000L
+
+/**
+ * Seconds left before a resend is allowed, ticking down to 0. Keyed on
+ * [sentAtMillis] so a resend (which bumps it) restarts the cooldown rather
+ * than the button going straight back to enabled.
+ */
+@Composable
+private fun rememberResendCooldown(sentAtMillis: Long): Int {
+    var remainingMs by remember(sentAtMillis) {
+        mutableLongStateOf((sentAtMillis + RESEND_COOLDOWN_MS - System.currentTimeMillis()).coerceAtLeast(0))
+    }
+    LaunchedEffect(sentAtMillis) {
+        while (remainingMs > 0) {
+            delay(1_000)
+            remainingMs = (sentAtMillis + RESEND_COOLDOWN_MS - System.currentTimeMillis()).coerceAtLeast(0)
+        }
+    }
+    return (remainingMs / 1_000).toInt()
 }

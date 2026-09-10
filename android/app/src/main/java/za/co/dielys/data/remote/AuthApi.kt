@@ -64,4 +64,13 @@ interface AuthApi {
         token: String,
         deviceId: String,
     ): TokenPair
+
+    /**
+     * `GET /auth/magic/status` (ADR 0005 follow-up). Unauthenticated, like the
+     * rest of this interface's magic-link calls — polled by
+     * [za.co.dielys.ui.auth.SessionViewModel] every few seconds while "Check
+     * your email" is on screen, so it can say "delivered" instead of leaving a
+     * fixed time estimate up regardless of how the send actually went.
+     */
+    suspend fun magicLinkStatus(requestId: String): MagicLinkStatusResponse
 }

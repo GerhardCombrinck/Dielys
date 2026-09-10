@@ -1,5 +1,5 @@
 import { SELF } from "cloudflare:test";
-import type { RequestMagicLinkResponse, TokenPair } from "@dielys/protocol";
+import type { MagicLinkStatusResponse, RequestMagicLinkResponse, TokenPair } from "@dielys/protocol";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { isUsableEmailConfig } from "../src/index.js";
 
@@ -14,6 +14,7 @@ import { isUsableEmailConfig } from "../src/index.js";
  */
 
 const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
+const BREVO_EVENTS_URL = "https://api.brevo.com/v3/smtp/statistics/events";
 
 let seq = 0;
 function uniqueEmail(): string {
@@ -41,24 +42,44 @@ async function post(
   });
 }
 
-/** Stubs Brevo to accept every send and records each one. Extracting the
- * token from the mailed link, rather than reaching into storage, is what
- * proves the token that went out is the one that redeems. */
-function stubBrevo(): { sends: Array<{ to: string; token: string }> } {
+/**
+ * Stubs Brevo to accept every send and records each one, plus — when
+ * `delivered` names an address — stubs the event-report endpoint
+ * `magicLinkStatus` polls, so a `messageId` for it exists at all. Extracting
+ * the token from the mailed link, rather than reaching into storage, is what
+ * proves the token that went out is the one that redeems.
+ */
+function stubBrevo(delivered: Set<string> = new Set()): {
+  sends: Array<{ to: string; token: string }>;
+} {
   const sends: Array<{ to: string; token: string }> = [];
+  let nextMessageId = 0;
   vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input.toString();
-    if (url !== BREVO_URL) {
-      throw new Error(`unexpected fetch in test: ${url}`);
+
+    if (url === BREVO_URL) {
+      const body = JSON.parse(String(init?.body)) as {
+        to: Array<{ email: string }>;
+        textContent: string;
+      };
+      const match = /token=([^\s&]+)/.exec(body.textContent);
+      if (match === null) throw new Error("email carried no token");
+      const to = body.to[0]?.email as string;
+      sends.push({ to, token: decodeURIComponent(match[1] as string) });
+      nextMessageId += 1;
+      return Promise.resolve(
+        Response.json({ messageId: `msg-${nextMessageId}-${to}` }, { status: 201 }),
+      );
     }
-    const body = JSON.parse(String(init?.body)) as {
-      to: Array<{ email: string }>;
-      textContent: string;
-    };
-    const match = /token=([^\s&]+)/.exec(body.textContent);
-    if (match === null) throw new Error("email carried no token");
-    sends.push({ to: body.to[0]?.email as string, token: decodeURIComponent(match[1] as string) });
-    return Promise.resolve(new Response(null, { status: 201 }));
+
+    if (url.startsWith(BREVO_EVENTS_URL)) {
+      const messageId = new URL(url).searchParams.get("messageId") ?? "";
+      const to = messageId.replace(/^msg-\d+-/, "");
+      const events = delivered.has(to) ? [{ event: "delivered", messageId }] : [];
+      return Promise.resolve(Response.json({ events }, { status: 200 }));
+    }
+
+    throw new Error(`unexpected fetch in test: ${url}`);
   });
   return { sends };
 }
@@ -68,14 +89,30 @@ afterEach(() => {
 });
 
 async function requestLink(email: string, address?: string): Promise<string> {
-  const { sends } = stubBrevo();
+  return (await requestLinkFull(email, address)).token;
+}
+
+/** Same request, but also hands back `requestId` — what the delivery-status
+ * tests poll `/auth/magic/status` with. */
+async function requestLinkFull(
+  email: string,
+  address?: string,
+  delivered?: Set<string>,
+): Promise<{ token: string; requestId: string }> {
+  const { sends } = stubBrevo(delivered);
   const response = await post("/auth/magic/request", { email }, address);
   expect(response.status).toBe(200);
   const body = (await response.json()) as RequestMagicLinkResponse;
   expect(body.expiresIn).toBe(15 * 60);
   const sent = sends[0];
   expect(sent).toBeDefined();
-  return (sent as { token: string }).token;
+  return { token: (sent as { token: string }).token, requestId: body.requestId };
+}
+
+async function get(path: string, address: string = nextAddress()): Promise<Response> {
+  return SELF.fetch(`https://dielys.test${path}`, {
+    headers: { "CF-Connecting-IP": address },
+  });
 }
 
 describe("configuration gate (ADR 0005)", () => {
@@ -180,6 +217,47 @@ describe("verifying a link (L1-shaped: single-use, expiring)", () => {
       400,
     );
     expect((await post("/auth/magic/verify", { token: "x", deviceId: "" })).status).toBe(400);
+  });
+});
+
+describe("delivery status (ADR 0005 follow-up)", () => {
+  it("reports not delivered until Brevo's event report says otherwise", async () => {
+    const email = uniqueEmail();
+    const { requestId } = await requestLinkFull(email);
+
+    const before = await get(`/auth/magic/status?requestId=${requestId}`);
+    expect(before.status).toBe(200);
+    expect((await before.json()) as MagicLinkStatusResponse).toEqual({ delivered: false });
+  });
+
+  it("reports delivered once Brevo's event report has it", async () => {
+    const email = uniqueEmail();
+    const { requestId } = await requestLinkFull(email, undefined, new Set([email]));
+
+    const response = await get(`/auth/magic/status?requestId=${requestId}`);
+    expect(response.status).toBe(200);
+    expect((await response.json()) as MagicLinkStatusResponse).toEqual({ delivered: true });
+  });
+
+  it("answers not-delivered for an unknown or missing requestId rather than an error", async () => {
+    stubBrevo();
+    const unknown = await get("/auth/magic/status?requestId=not-a-real-id");
+    expect(unknown.status).toBe(200);
+    expect((await unknown.json()) as MagicLinkStatusResponse).toEqual({ delivered: false });
+  });
+
+  it("rejects a request with no requestId at all", async () => {
+    const response = await get("/auth/magic/status");
+    expect(response.status).toBe(400);
+  });
+
+  it("a superseded request's requestId stops reporting delivered", async () => {
+    const email = uniqueEmail();
+    const { requestId: stale } = await requestLinkFull(email, undefined, new Set([email]));
+    await requestLinkFull(email, undefined, new Set([email]));
+
+    const response = await get(`/auth/magic/status?requestId=${stale}`);
+    expect((await response.json()) as MagicLinkStatusResponse).toEqual({ delivered: false });
   });
 });
 

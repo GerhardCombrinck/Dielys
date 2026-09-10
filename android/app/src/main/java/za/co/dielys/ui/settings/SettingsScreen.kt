@@ -12,7 +12,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -23,17 +22,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 /**
- * Account details, joining a list, and signing out — everything that is about
- * the account rather than about any one list. Read-only aside from those two
- * actions (E1.2: the screen reads through the view model, never a repository
- * directly).
+ * Account details and signing out — everything that is about the account
+ * rather than about any one list. Read-only aside from that one action (E1.2:
+ * the screen reads through the view model, never a repository directly).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
     onSignOut: () -> Unit,
-    onJoin: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = viewModel(),
 ) {
@@ -62,15 +59,6 @@ fun SettingsScreen(
             Text("Account", style = MaterialTheme.typography.titleMedium)
 
             Detail(label = "Email", value = state.email ?: "Unknown")
-            Detail(label = "Device ID", value = state.deviceId)
-            Detail(label = "Server", value = state.syncBaseUrl)
-
-            OutlinedButton(
-                onClick = onJoin,
-                modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
-            ) {
-                Text("Join a list")
-            }
 
             Button(
                 onClick = onSignOut,
@@ -78,7 +66,7 @@ fun SettingsScreen(
                     ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error,
                     ),
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
             ) {
                 Text("Sign out")
             }

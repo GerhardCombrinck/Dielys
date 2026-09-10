@@ -84,6 +84,17 @@ export const MAGIC_VERIFY_PER_CLIENT: RateLimit = {
   windowMs: 15 * MINUTE_MS,
 };
 
+/**
+ * A poll every 10 seconds for the ~3 minutes the client keeps asking is 18
+ * requests; this leaves room for a slow network's retries without opening the
+ * door to a client parked here spamming Brevo's event API for free.
+ */
+export const MAGIC_STATUS_PER_CLIENT: RateLimit = {
+  action: "magic-status",
+  limit: 40,
+  windowMs: 15 * MINUTE_MS,
+};
+
 /** How many characters of the HMAC end up in the key. 128 bits of it. */
 const KEY_CHARS = 22;
 
