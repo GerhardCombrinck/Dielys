@@ -95,7 +95,10 @@ Where Dielys is and what comes next. Short by design — the standard is in
       toggle, a settings screen with account details, join-a-list moved there, and a
       collapsible Done section. Needs a look on a real phone before this is called finished —
       the handoff's pixel values were followed but never checked against the mock on-device.
-- [ ] **Prod** — `dielys-prod` has never been deployed. Needs its own secrets and a smoke run.
+- [x] **Prod** — `JWT_SIGNING_KEY`/`ADMIN_TOKEN` set on `dielys-prod`, `v0.1.0` tagged and
+      deployed through the required-reviewer gate on the `prod` GitHub environment,
+      `scripts/smoke.sh` all 29 checks green. `FCM_SERVICE_ACCOUNT_JSON` is not set yet —
+      fail-open, so prod runs with no wake push until that key rotation is repeated for prod.
 
 ## Open questions
 
