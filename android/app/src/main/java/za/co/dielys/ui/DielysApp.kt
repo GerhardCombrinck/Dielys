@@ -49,8 +49,6 @@ fun DielysApp() {
         AuthScreen(
             state = form,
             onEmail = session::onEmail,
-            onPassword = session::onPassword,
-            onMode = session::onMode,
             onSubmit = session::submit,
         )
         return
