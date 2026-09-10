@@ -56,11 +56,18 @@ class FakeSyncApi : SyncApi {
     /** Makes the next invite fail the way a 403 for somebody else's list fails (L3). */
     var rejectInviteWith: String? = null
 
+    /** Makes the next accept fail the way a 403 for the wrong recipient email fails (L3). */
+    var rejectAcceptWith: String? = null
+
     /** The invite token this fake hands out, and the only one it will accept. */
     var inviteToken: String = "invite.header.signature"
 
     /** Which list [acceptInvite] joins the caller to. Null means the token is dead. */
     var inviteFor: String? = null
+
+    /** The recipient address and list title the last [createInvite] call carried. */
+    var inviteEmail: String? = null
+    var inviteListTitle: String? = null
 
     val sentBodies: MutableList<String> = mutableListOf()
     val claims: MutableList<String> = mutableListOf()
@@ -158,18 +165,28 @@ class FakeSyncApi : SyncApi {
         pushTokens += fcmToken
     }
 
-    override suspend fun createInvite(listId: String): CreateInviteResponse {
+    override suspend fun createInvite(
+        listId: String,
+        email: String,
+        listTitle: String,
+    ): CreateInviteResponse {
         gate()
         rejectInviteWith?.let { code ->
             rejectInviteWith = null
             throw ApiException.Rejected(status = 403, code = code)
         }
         inviteFor = listId
-        return CreateInviteResponse(inviteToken = inviteToken, expiresIn = INVITE_TTL_SECONDS)
+        inviteEmail = email
+        inviteListTitle = listTitle
+        return CreateInviteResponse(expiresIn = INVITE_TTL_SECONDS)
     }
 
     override suspend fun acceptInvite(inviteToken: String): AcceptInviteResponse {
         gate()
+        rejectAcceptWith?.let { code ->
+            rejectAcceptWith = null
+            throw ApiException.Rejected(status = 403, code = code)
+        }
         val listId = inviteFor
         if (inviteToken != this.inviteToken || listId == null) {
             // The server answers 401 for an expired, mistyped or wrong-shaped
@@ -190,6 +207,11 @@ class FakeSyncApi : SyncApi {
     /** Answers the next invite the way the server answers a non-owner (L3). */
     fun refuseInviteAsNotOwner() {
         rejectInviteWith = ErrorCode.FORBIDDEN
+    }
+
+    /** Answers the next accept the way the server answers a mismatched recipient email (L3). */
+    fun refuseAcceptAsWrongRecipient() {
+        rejectAcceptWith = ErrorCode.FORBIDDEN
     }
 
     /** A change made by the other device, already on the server. */

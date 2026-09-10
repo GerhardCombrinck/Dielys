@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import type { AuthErrorCode, Membership, MembershipRole } from "@dielys/protocol";
+import { INVITE_TOKEN_TTL_SECONDS, signInviteToken } from "../auth/jwt.js";
 import {
   generateRefreshToken,
   hashPassword,
@@ -10,6 +11,8 @@ import {
 import {
   bucketFor,
   emailKey,
+  INVITE_EMAIL_PER_LIST,
+  INVITE_EMAIL_PER_RECIPIENT,
   LOGIN_PER_CLIENT,
   MAGIC_REQUEST_PER_CLIENT,
   MAGIC_REQUEST_PER_EMAIL,
@@ -22,6 +25,7 @@ import {
 import {
   type EmailSender,
   isEmailDelivered,
+  sendInviteEmail as mailInvite,
   parseEmailSender,
   sendMagicLinkEmail,
 } from "../email/brevo.js";
@@ -341,6 +345,65 @@ export class UsersRoom extends DurableObject {
     return { delivered: await isEmailDelivered(this.env.BREVO_API_KEY, row.messageId) };
   }
 
+  // --- Invite emails (L3) ----------------------------------------------------
+
+  /**
+   * Mints an invite scoped to `recipientEmail` and mails the link directly —
+   * the owner's own device never sees the bearer token, only whether the
+   * send worked. Nothing is stored: unlike a magic link there is no status
+   * to poll later, so a token nobody's inbox ever shows costs this DO
+   * nothing to have minted.
+   *
+   * Both rate limits are consumed before Brevo is called, mirroring
+   * [requestMagicLink]: an over-budget caller never costs an external API
+   * call.
+   */
+  async sendInviteEmail(
+    inviterId: string,
+    listId: string,
+    listTitle: string,
+    recipientEmail: string,
+    now: number,
+  ): Promise<UsersResult<{ expiresIn: number }>> {
+    const normalized = normalizeEmail(recipientEmail);
+
+    if (!this.consume(INVITE_EMAIL_PER_LIST, listId, now)) {
+      return { ok: false, code: "rate-limited" };
+    }
+    const emailBucket = await emailKey(normalized, this.env.JWT_SIGNING_KEY);
+    if (!this.consume(INVITE_EMAIL_PER_RECIPIENT, emailBucket, now)) {
+      // Same code as the per-list limit: the caller cannot tell whether it
+      // was this list or this recipient's own limit that refused them.
+      return { ok: false, code: "rate-limited" };
+    }
+
+    const sender = this.email();
+    if (sender === null) {
+      log("error", "usersroom.invite.unconfigured", {});
+      return { ok: false, code: "internal" };
+    }
+
+    const token = await signInviteToken(
+      { listId, sub: inviterId, email: normalized },
+      this.env.JWT_SIGNING_KEY,
+      now,
+    );
+    const link = inviteLinkUrl(this.env.APP_BASE_URL, token);
+    const ttlDays = INVITE_TOKEN_TTL_SECONDS / (24 * 60 * 60);
+    const result = await mailInvite(
+      this.env.BREVO_API_KEY,
+      sender,
+      normalized,
+      link,
+      listTitle,
+      ttlDays,
+    );
+    if (!result.sent) return { ok: false, code: "internal" };
+
+    log("info", "usersroom.invite.sent", { listId });
+    return { ok: true, value: { expiresIn: INVITE_TOKEN_TTL_SECONDS } };
+  }
+
   /**
    * Verifies a token and signs in, creating the account first if the email it
    * names has never been seen (ADR 0005) — the same collapse-into-one-call
@@ -501,14 +564,27 @@ export class UsersRoom extends DurableObject {
   /**
    * Idempotent by design (L3): accepting an invite twice is a no-op rather
    * than an error, matching the spirit of F5.2.
+   *
+   * `expectedEmail`, when given, is the invite's own bound recipient (its
+   * JWT `email` claim) — this is what makes holding the token insufficient
+   * to join: the accepting account's own email must match it too. `forbidden`
+   * is the same code an owner-only route already answers with, so a caller
+   * cannot use this response to distinguish "wrong account" from any other
+   * kind of "you may not do this."
    */
   async addMembership(
     userId: string,
     listId: string,
     role: MembershipRole,
     now: number,
+    expectedEmail?: string,
   ): Promise<UsersResult<{ alreadyMember: boolean }>> {
-    if (selectUserById(this.sql, userId) === null) return { ok: false, code: "not-found" };
+    const user = selectUserById(this.sql, userId);
+    if (user === null) return { ok: false, code: "not-found" };
+    if (expectedEmail !== undefined && normalizeEmail(user.email) !== expectedEmail) {
+      log("info", "usersroom.membership.wrong-recipient", { listId });
+      return { ok: false, code: "forbidden" };
+    }
 
     const existing = selectMembership(this.sql, userId, listId);
     if (existing !== null) return { ok: true, value: { alreadyMember: true } };
@@ -732,5 +808,16 @@ function normalizeEmail(email: string): string {
 function magicLinkUrl(baseUrl: string, token: string): string {
   const url = new URL("/magic", baseUrl);
   url.searchParams.set("token", token);
+  return url.toString();
+}
+
+/**
+ * Same App Link shape as [magicLinkUrl], for an invite instead of a sign-in.
+ * The query param is `t`, not `token` — matching `InviteLink.PREFIX` on the
+ * Android side, which is what actually has to parse this back out.
+ */
+function inviteLinkUrl(baseUrl: string, token: string): string {
+  const url = new URL("/invite", baseUrl);
+  url.searchParams.set("t", token);
   return url.toString();
 }

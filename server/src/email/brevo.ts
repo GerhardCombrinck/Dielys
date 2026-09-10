@@ -10,6 +10,7 @@
  * than swallowing it the way a dead FCM token is swallowed.
  */
 import { log } from "../lib/log.js";
+import { escapeHtml, renderEmailHtml } from "./template.js";
 
 const BREVO_SEND_URL = "https://api.brevo.com/v3/smtp/email";
 const BREVO_EVENTS_URL = "https://api.brevo.com/v3/smtp/statistics/events";
@@ -67,6 +68,69 @@ export async function sendMagicLinkEmail(
         to: [{ email: to }],
         subject: "Sign in to Dielys",
         textContent: `Tap this link on your phone to sign in to Dielys:\n\n${link}\n\nIt expires in ${ttlMinutes} minutes and works once. If you did not request this, ignore this email.`,
+        htmlContent: renderEmailHtml({
+          heading: "Sign in to Dielys",
+          bodyHtml: `<p style="margin:0 0 8px;">Tap the button below on your phone to sign in.</p>`,
+          buttonText: "Sign in",
+          buttonUrl: link,
+          footerNote: `This link expires in ${ttlMinutes} minutes and works once. If you did not request this, you can ignore this email.`,
+        }),
+      }),
+    });
+  } catch (error) {
+    log("warn", "brevo.send.failed", { error: String(error) });
+    return { sent: false };
+  }
+
+  if (!response.ok) {
+    // Never log the body: a Brevo error response echoes the recipient (D4).
+    log("warn", "brevo.send.rejected", { status: response.status });
+    return { sent: false };
+  }
+
+  const body = await response
+    .json<{ messageId?: string }>()
+    .catch(() => ({}) as { messageId?: string });
+  return { sent: true, messageId: typeof body.messageId === "string" ? body.messageId : null };
+}
+
+/**
+ * Sends one list invite, scoped to `to` — the recipient address the invite's
+ * JWT claims name as the only account allowed to accept it (L3). Same
+ * never-throws / caller-decides-what-failure-means shape as
+ * [sendMagicLinkEmail], for the same reason: a lost invite email is not
+ * caught up by anything the way a lost push is.
+ */
+export async function sendInviteEmail(
+  apiKey: string,
+  sender: EmailSender,
+  to: string,
+  link: string,
+  listTitle: string,
+  ttlDays: number,
+): Promise<SendResult> {
+  const safeTitle = escapeHtml(listTitle);
+  let response: Response;
+  try {
+    response = await fetch(BREVO_SEND_URL, {
+      method: "POST",
+      headers: {
+        "api-key": apiKey,
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        sender: { email: sender.email, name: sender.name },
+        to: [{ email: to }],
+        subject: `You've been invited to "${listTitle}" on Dielys`,
+        textContent: `You've been invited to join "${listTitle}" on Dielys:\n\n${link}\n\nIt expires in ${ttlDays} days and only ${to} can accept it. If you did not expect this, ignore this email.`,
+        htmlContent: renderEmailHtml({
+          heading: "You've been invited to a list",
+          bodyHtml: `<p style="margin:0 0 8px;">You've been invited to join <strong>${safeTitle}</strong> on Dielys.</p>`,
+          buttonText: "Join the list",
+          buttonUrl: link,
+          footerNote: `This invite expires in ${ttlDays} days and only ${escapeHtml(to)} can accept it. If you did not expect this, you can ignore this email.`,
+        }),
       }),
     });
   } catch (error) {

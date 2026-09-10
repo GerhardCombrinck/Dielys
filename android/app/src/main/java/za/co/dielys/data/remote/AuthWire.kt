@@ -88,14 +88,25 @@ data class TokenPair(
     val userId: String,
 )
 
+/**
+ * `email` scopes the invite (L3): only an account whose own email matches
+ * this one may accept it. `listTitle` is display text for the invite email
+ * — the server mints invites without ever talking to the list's own DO, so
+ * the owner's device, which already has the title, carries it along.
+ */
 @Serializable
 data class CreateInviteRequest(
     val listId: String,
+    val email: String,
+    val listTitle: String,
 )
 
+/**
+ * No `inviteToken` here — the server mails the link itself, so this device
+ * never needs to hold the bearer token at all.
+ */
 @Serializable
 data class CreateInviteResponse(
-    val inviteToken: String,
     val expiresIn: Long,
 )
 

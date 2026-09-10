@@ -32,11 +32,17 @@ export interface AccessTokenClaims {
 /**
  * Deliberately a different claim shape from an access token, and tagged with
  * its own `typ`, so an invite can never be replayed as a session (L3).
+ *
+ * `email` scopes the invite to one recipient: `addMembership` checks it
+ * against the accepting account's own email and refuses a mismatch, so
+ * holding the token is no longer sufficient to join — only the address it
+ * was minted for can finish accepting it.
  */
 export interface InviteTokenClaims {
   typ: "invite";
   listId: string;
   sub: string; // the user who issued the invite
+  email: string; // normalized — the only account that may accept this invite
   iat: number;
   exp: number;
 }
@@ -172,7 +178,7 @@ export async function verifyAccessToken(
 }
 
 export async function signInviteToken(
-  claims: Pick<InviteTokenClaims, "listId" | "sub">,
+  claims: Pick<InviteTokenClaims, "listId" | "sub" | "email">,
   signingKey: string,
   now: number = Date.now(),
 ): Promise<string> {
@@ -182,6 +188,7 @@ export async function signInviteToken(
       typ: "invite",
       listId: claims.listId,
       sub: claims.sub,
+      email: claims.email,
       iat: issued,
       exp: issued + INVITE_TOKEN_TTL_SECONDS,
     },
@@ -197,15 +204,15 @@ export async function verifyInviteToken(
   const result = await verify(token, signingKey, now);
   if (!result.ok) return result;
 
-  const { typ, listId, sub, iat, exp } = result.claims;
+  const { typ, listId, sub, email, iat, exp } = result.claims;
   if (typ !== "invite") return { ok: false, reason: "wrong-type" };
-  if (typeof listId !== "string" || typeof sub !== "string") {
+  if (typeof listId !== "string" || typeof sub !== "string" || typeof email !== "string") {
     return { ok: false, reason: "malformed" };
   }
   if (typeof iat !== "number" || typeof exp !== "number") {
     return { ok: false, reason: "malformed" };
   }
-  return { ok: true, claims: { typ: "invite", listId, sub, iat, exp } };
+  return { ok: true, claims: { typ: "invite", listId, sub, email, iat, exp } };
 }
 
 /** Reads a bearer token out of an Authorization header, or null. */

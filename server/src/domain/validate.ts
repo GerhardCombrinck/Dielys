@@ -317,7 +317,12 @@ export function validateRefreshRequest(input: unknown): Validated<RefreshRequest
 export function validateCreateInviteRequest(input: unknown): Validated<CreateInviteRequest> {
   if (!isRecord(input)) return fail("not an object");
   if (!isId(input.listId)) return fail("listId");
-  return { ok: true, value: { listId: input.listId } };
+  if (!isEmail(input.email)) return fail("email");
+  if (!isBoundedString(input.listTitle, MAX_TITLE_LENGTH)) return fail("listTitle");
+  return {
+    ok: true,
+    value: { listId: input.listId, email: input.email, listTitle: input.listTitle },
+  };
 }
 
 export function validateAcceptInviteRequest(input: unknown): Validated<AcceptInviteRequest> {

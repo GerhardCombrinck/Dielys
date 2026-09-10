@@ -51,11 +51,16 @@ interface SyncApi {
      * `POST /lists/{listId}/invite`. Owner only (L3) — a member asking gets a
      * 403, which arrives as [ApiException.Rejected].
      *
-     * The token is a short-lived JWT scoped to this one list, distinct in claim
-     * shape from an access token so it cannot be replayed as one. What carries it
-     * to the other person is a UI concern; the protocol does not care.
+     * The server mails the invite to [email] itself and scopes it to that
+     * address — only an account whose own email matches may accept it. This
+     * device never sees the bearer token. [listTitle] is display text for
+     * the invite email.
      */
-    suspend fun createInvite(listId: String): CreateInviteResponse
+    suspend fun createInvite(
+        listId: String,
+        email: String,
+        listTitle: String,
+    ): CreateInviteResponse
 
     /**
      * `POST /invites/accept`, authenticated as the invitee. Accepting one twice

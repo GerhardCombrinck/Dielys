@@ -10,15 +10,13 @@ import javax.inject.Singleton
 /** What asking for an invite did, in terms a screen can act on. */
 sealed interface InviteResult {
     /**
-     * [token] is the whole invite: a JWT scoped to one list, good for seven days.
-     * It is a bearer credential — anybody holding it can join the list — so it
-     * belongs in a share sheet the user aims at one person, not in a log.
+     * The server mailed the invite and scoped it to the address the caller
+     * typed — no token here, since this device never needs to see the
+     * bearer credential once the server has emailed it directly.
      */
-    data class Created(
-        val token: String,
-    ) : InviteResult
+    data object Sent : InviteResult
 
-    /** L3: only the owner may invite. A member asking gets a 403, not a token. */
+    /** L3: only the owner may invite. A member asking gets a 403. */
     data object NotYours : InviteResult
 
     data object Offline : InviteResult
@@ -41,6 +39,10 @@ sealed interface JoinResult {
      * thing about all four: ask for a new one.
      */
     data object BadInvite : JoinResult
+
+    /** L3: the invite is addressed to a different email than the one this
+     * account is signed in as. Holding the link is no longer enough. */
+    data object WrongRecipient : JoinResult
 
     data object Offline : JoinResult
 
@@ -66,9 +68,14 @@ class SharingRepository
         private val api: SyncApi,
         private val scheduler: SyncScheduler,
     ) {
-        suspend fun invite(listId: String): InviteResult =
+        suspend fun invite(
+            listId: String,
+            email: String,
+            listTitle: String,
+        ): InviteResult =
             try {
-                InviteResult.Created(api.createInvite(listId).inviteToken)
+                api.createInvite(listId, email, listTitle)
+                InviteResult.Sent
             } catch (error: ApiException.Rejected) {
                 if (error.code == ErrorCode.FORBIDDEN) {
                     InviteResult.NotYours
@@ -99,7 +106,11 @@ class SharingRepository
                 // session already survived the refresh-once path inside the client.
                 JoinResult.BadInvite
             } catch (error: ApiException.Rejected) {
-                JoinResult.ServerProblem(error.code ?: "rejected")
+                if (error.code == ErrorCode.FORBIDDEN) {
+                    JoinResult.WrongRecipient
+                } else {
+                    JoinResult.ServerProblem(error.code ?: "rejected")
+                }
             } catch (_: ApiException.Transport) {
                 JoinResult.Offline
             } catch (error: ApiException.Unavailable) {

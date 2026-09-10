@@ -184,7 +184,11 @@ fun ListsScreen(
     }
 
     invite?.let { state ->
-        InviteDialog(state = state, onDismiss = viewModel::dismissInvite)
+        InviteDialog(
+            state = state,
+            onSend = viewModel::sendInvite,
+            onDismiss = viewModel::dismissInvite,
+        )
     }
 }
 
@@ -322,7 +326,7 @@ private fun ListRow(
                 .fillMaxWidth()
                 .background(background)
                 .clickable(onClick = onOpen)
-                .padding(vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Box(modifier = Modifier.size(12.dp).background(dotColor, CircleShape))
 

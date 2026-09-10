@@ -95,7 +95,7 @@ rules are CODE_STANDARD.md L1–L3.
 | GET | `/auth/memberships` | access token | Lists the caller can reach, in the caller's own order |
 | POST | `/auth/memberships/position` | access token | `SetListPositionRequest` → `SetListPositionResponse` |
 | POST | `/lists/{listId}` | access token | Claim a client-generated list id as owner |
-| POST | `/lists/{listId}/invite` | access token, owner | → `CreateInviteResponse` |
+| POST | `/lists/{listId}/invite` | access token, owner | `CreateInviteRequest` → `CreateInviteResponse` |
 | POST | `/invites/accept` | access token | `AcceptInviteRequest` → `AcceptInviteResponse` |
 | POST | `/admin/users` | `ADMIN_TOKEN` | Account creation (L2). Not a public endpoint |
 
@@ -115,8 +115,15 @@ exist, deliberately — three distinct codes would be an account-enumeration ora
 List ids are client-generated (F5.1), so the server cannot grant ownership at creation time.
 Instead the client picks a UUIDv7 and **claims** it: the first caller to claim an id nobody
 holds becomes its owner. Claiming a list you already belong to is a no-op, so an outbox retry
-is harmless; claiming one somebody else holds is refused. The owner then mints an invite, and
-the invitee — already logged in as themselves — POSTs it to `/invites/accept`.
+is harmless; claiming one somebody else holds is refused.
+
+The owner shares a list by typing the recipient's email address; the server mints an invite
+scoped to that address (`email` on the invite's JWT claims) and **mails the link itself** —
+the owner's own device never sees the bearer token. Accepting is still a POST to
+`/invites/accept` with just the token, but `UsersRoom` now checks the accepting account's own
+email against the one the invite was minted for and refuses (`forbidden`) on a mismatch: an
+invite can only be finished by the address it was addressed to, not by whoever ends up holding
+the link.
 
 A request for a list the caller is not a member of returns **403, not 404**: membership must
 not double as an oracle for which list ids exist.

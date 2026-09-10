@@ -6,10 +6,8 @@ import type { ErrorCode } from "@dielys/protocol";
 import { authenticate, authorizeAdmin, authorizeListAccess } from "./auth/authorize.js";
 import {
   ACCESS_TOKEN_TTL_SECONDS,
-  INVITE_TOKEN_TTL_SECONDS,
   isUsableSigningKey,
   signAccessToken,
-  signInviteToken,
   verifyInviteToken,
 } from "./auth/jwt.js";
 import { clientAddress, clientKey } from "./auth/ratelimit.js";
@@ -80,6 +78,8 @@ export default {
           return await handleMagicLinkStatus(request, env, url, now);
         case "/magic":
           return magicLinkFallbackPage();
+        case "/invite":
+          return inviteLinkFallbackPage();
         case "/auth/refresh":
           return await handleRefresh(request, env, now);
         case "/auth/memberships":
@@ -339,10 +339,12 @@ async function handleMagicLinkStatus(
 const ANDROID_PACKAGE_NAME = "za.co.dielys";
 
 /**
- * `GET /.well-known/assetlinks.json` (ADR 0005) — what makes
- * `https://dielys.com/magic` an Android App Link instead of an ordinary URL.
- * Android fetches this once to confirm the site endorses the app before it
- * will open links from this domain without asking.
+ * `GET /.well-known/assetlinks.json` (ADR 0005) — what makes `https://dielys.com`
+ * links (magic-link sign-in at `/magic`, list invites at `/invite`) Android App
+ * Links instead of ordinary URLs. `handle_all_urls` below covers the whole
+ * domain, so this one file authorizes both paths — Android fetches it once to
+ * confirm the site endorses the app before it will open links from this
+ * domain without asking.
  *
  * `ANDROID_CERT_SHA256_FINGERPRINTS` is comma-separated SHA-256 fingerprints
  * of the app's signing certificate(s) — public once published here, but not
@@ -375,9 +377,24 @@ function androidAssetLinks(env: Env): unknown[] {
  * string is only useful to the app's own `/auth/magic/verify` call.
  */
 function magicLinkFallbackPage(): Response {
+  return htmlPage("<p>Open this link on your phone with Dielys installed.</p>");
+}
+
+/**
+ * `GET /invite` (L3), the same App Link fallback as `/magic` above for a
+ * tapped invite link: reached only when Android has not verified the domain
+ * yet, or the link was opened somewhere without Dielys installed. The invite
+ * token in the query string is a bearer credential (L3) with nothing for this
+ * page to do with it — only the app's own `JoinDialog`/accept flow redeems it.
+ */
+function inviteLinkFallbackPage(): Response {
+  return htmlPage("<p>Open this link on your phone with Dielys installed to join the list.</p>");
+}
+
+function htmlPage(body: string): Response {
   return new Response(
     `<!doctype html><html><head><meta charset="utf-8"><title>Dielys</title></head>` +
-      `<body><p>Open this link on your phone with Dielys installed.</p></body></html>`,
+      `<body>${body}</body></html>`,
     { status: 200, headers: { "content-type": "text/html; charset=utf-8" } },
   );
 }
@@ -519,7 +536,9 @@ async function handleClaimList(
   return Response.json({ listId, role: "owner", alreadyMember: result.value.alreadyMember });
 }
 
-/** L3: only the owner may invite. */
+/** L3: only the owner may invite. Mails the invite itself (ADR 0005's
+ * email infra, reused) — the owner's own device never sees the bearer
+ * token, only whether the send worked. */
 async function handleCreateInvite(
   request: Request,
   env: Env,
@@ -527,25 +546,31 @@ async function handleCreateInvite(
   now: number,
 ): Promise<Response> {
   if (request.method !== "POST") return errorResponse("malformed", 405);
+  if (!isUsableEmailConfig(env)) {
+    log("error", "worker.invite.unconfigured", {});
+    return errorResponse("internal", 503);
+  }
 
   const auth = await authorizeListAccess(request, env, listId);
   if (!auth.ok) return errorResponse(auth.code, auth.status);
   if (auth.value.membership.role !== "owner") return errorResponse("forbidden", 403);
 
-  // Body is optional — the list id is already in the path. Accept one for
-  // symmetry with the protocol type, but reject it if it disagrees.
   const body = await readJson(request);
-  if (body !== null && Object.keys(body as object).length > 0) {
-    const parsed = validateCreateInviteRequest(body);
-    if (!parsed.ok || parsed.value.listId !== listId) return errorResponse("malformed", 400);
-  }
+  if (body === null) return errorResponse("malformed", 400);
+  const parsed = validateCreateInviteRequest(body);
+  if (!parsed.ok || parsed.value.listId !== listId) return errorResponse("malformed", 400);
 
-  const inviteToken = await signInviteToken(
-    { listId, sub: auth.value.principal.userId },
-    env.JWT_SIGNING_KEY,
+  const result = await usersRoom(env).sendInviteEmail(
+    auth.value.principal.userId,
+    listId,
+    parsed.value.listTitle,
+    parsed.value.email,
     now,
   );
-  return Response.json({ inviteToken, expiresIn: INVITE_TOKEN_TTL_SECONDS });
+  if (!result.ok) {
+    return errorResponse(result.code, result.code === "rate-limited" ? 429 : 503);
+  }
+  return Response.json({ expiresIn: result.value.expiresIn });
 }
 
 async function handleAcceptInvite(request: Request, env: Env, now: number): Promise<Response> {
@@ -573,8 +598,9 @@ async function handleAcceptInvite(request: Request, env: Env, now: number): Prom
     invite.claims.listId,
     "member",
     now,
+    invite.claims.email,
   );
-  if (!result.ok) return errorResponse(result.code, 404);
+  if (!result.ok) return errorResponse(result.code, result.code === "forbidden" ? 403 : 404);
 
   return Response.json({
     listId: invite.claims.listId,

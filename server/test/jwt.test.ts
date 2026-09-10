@@ -78,18 +78,27 @@ describe("access tokens (L1)", () => {
 
 describe("invite tokens (L3)", () => {
   it("round-trips and lasts 7 days", async () => {
-    const token = await signInviteToken({ listId: "list-1", sub: "user-1" }, KEY, NOW);
+    const token = await signInviteToken(
+      { listId: "list-1", sub: "user-1", email: "invitee@dielys.test" },
+      KEY,
+      NOW,
+    );
     const result = await verifyInviteToken(token, KEY, NOW);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.claims.listId).toBe("list-1");
+    expect(result.claims.email).toBe("invitee@dielys.test");
     expect(result.claims.exp - result.claims.iat).toBe(INVITE_TOKEN_TTL_SECONDS);
   });
 
   it("cannot be presented as an access token", async () => {
     // Same key, same signature algorithm — only the claim shape stops an
     // invite becoming a session (L3). This is the test that keeps it that way.
-    const invite = await signInviteToken({ listId: "list-1", sub: "user-1" }, KEY, NOW);
+    const invite = await signInviteToken(
+      { listId: "list-1", sub: "user-1", email: "invitee@dielys.test" },
+      KEY,
+      NOW,
+    );
     expect(await verifyAccessToken(invite, KEY, NOW)).toEqual({ ok: false, reason: "wrong-type" });
   });
 

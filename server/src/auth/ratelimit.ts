@@ -95,6 +95,29 @@ export const MAGIC_STATUS_PER_CLIENT: RateLimit = {
   windowMs: 15 * MINUTE_MS,
 };
 
+/**
+ * An owner sharing a list around, not a client minting mail. Keyed by
+ * `listId` rather than the caller (L3) — a household app's realistic ceiling
+ * is "how many people does one list get shared with," not "how many API
+ * calls can one person make."
+ */
+export const INVITE_EMAIL_PER_LIST: RateLimit = {
+  action: "invite-email-list",
+  limit: 10,
+  windowMs: DAY_MS,
+};
+
+/**
+ * The other half, keyed by the recipient address (same shape as
+ * MAGIC_REQUEST_PER_EMAIL): without this, invites from several different
+ * lists — or several owners — could still mailbomb one inbox.
+ */
+export const INVITE_EMAIL_PER_RECIPIENT: RateLimit = {
+  action: "invite-email-recipient",
+  limit: 5,
+  windowMs: HOUR_MS,
+};
+
 /** How many characters of the HMAC end up in the key. 128 bits of it. */
 const KEY_CHARS = 22;
 

@@ -1,7 +1,5 @@
 package za.co.dielys.ui.lists
 
-import android.content.Context
-import android.content.Intent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -17,12 +15,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
 /**
- * The three dialogs sharing needs: making an invite, pasting one, and being
- * asked about one that arrived by link.
+ * The four dialogs sharing needs: asking who to invite, showing progress and
+ * the result, pasting one, and being asked about one that arrived by link.
  *
  * Split out of `ListsScreen` because they are a self-contained conversation and
  * the screen underneath them is already a screen.
@@ -30,34 +27,45 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun InviteDialog(
     state: InviteState,
+    onSend: (listId: String, listTitle: String, email: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val context = LocalContext.current
+    // Hoisted here, not inside EmailEntry: the confirm button below needs the
+    // typed value too, and a sibling slot of the same AlertDialog cannot read
+    // a child composable's own `remember`ed state. It survives EnteringEmail
+    // recomposing into Working because this call site itself does not leave
+    // composition in between — only dismissing the dialog does, which is
+    // always followed by a fresh `invite(list)` starting over regardless.
+    var email by remember(state) { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (state is InviteState.Failed) "Could not share" else "Share this list") },
         text = {
             when (state) {
+                is InviteState.EnteringEmail ->
+                    EmailEntry(state.listTitle, email, onEmailChange = { email = it })
                 is InviteState.Working -> Working(state.listTitle)
-                is InviteState.Ready -> Ready(state.listTitle)
+                is InviteState.Sent -> Sent(state.listTitle, state.email)
                 is InviteState.Failed -> Text(state.message)
             }
         },
         confirmButton = {
-            if (state is InviteState.Ready) {
-                TextButton(onClick = {
-                    context.shareInvite(state.link)
-                    onDismiss()
-                }) {
+            if (state is InviteState.EnteringEmail) {
+                TextButton(
+                    enabled = email.isNotBlank(),
+                    onClick = { onSend(state.listId, state.listTitle, email) },
+                ) {
                     Text("Send invite")
                 }
             } else {
-                TextButton(onClick = onDismiss) { Text("Close") }
+                TextButton(
+                    onClick = onDismiss,
+                ) { Text(if (state is InviteState.Sent) "Done" else "Close") }
             }
         },
         dismissButton = {
-            if (state is InviteState.Ready) {
+            if (state is InviteState.EnteringEmail) {
                 TextButton(onClick = onDismiss) { Text("Cancel") }
             }
         },
@@ -65,9 +73,32 @@ fun InviteDialog(
 }
 
 @Composable
+private fun EmailEntry(
+    listTitle: String,
+    email: String,
+    onEmailChange: (String) -> Unit,
+) {
+    Column {
+        Text("Who is $listTitle for?")
+        Text(
+            "Only that email address will be able to join. It works for seven days.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+        )
+        OutlinedTextField(
+            value = email,
+            onValueChange = onEmailChange,
+            label = { Text("Email") },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
 private fun Working(listTitle: String) {
     Column {
-        Text("Making an invite for $listTitle…")
+        Text("Sending an invite for $listTitle…")
         CircularProgressIndicator(
             strokeWidth = 2.dp,
             modifier = Modifier.padding(top = 12.dp),
@@ -76,36 +107,13 @@ private fun Working(listTitle: String) {
 }
 
 @Composable
-private fun Ready(listTitle: String) {
-    Column {
-        Text("Anyone who opens this link can join $listTitle.")
-        Text(
-            "It works for seven days. Send it to one person, not to a group.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.padding(top = 8.dp),
-        )
-    }
-}
-
-/**
- * Deliberately not showing the link itself. It is a bearer credential — a
- * screenshot of this dialog would be enough to join the list — and there is
- * nothing a person can usefully do with the text that the share sheet does not
- * do better.
- *
- * The shared text is the bare link, nothing around it: the custom `dielys://`
- * scheme does not get auto-linked by most chat apps (see `InviteLink`), so the
- * recipient has to copy the text and paste it into `JoinDialog`. Any words
- * around the link would have to be trimmed off first.
- */
-private fun Context.shareInvite(link: String) {
-    val intent =
-        Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, link)
-        }
-    startActivity(Intent.createChooser(intent, "Send invite"))
+private fun Sent(
+    listTitle: String,
+    email: String,
+) {
+    Text(
+        "Invite sent to $email. It works for seven days, and only that address can join $listTitle.",
+    )
 }
 
 @Composable

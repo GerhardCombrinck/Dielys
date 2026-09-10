@@ -66,12 +66,24 @@ export interface TokenPair {
   userId: string;
 }
 
+/**
+ * `email` scopes the invite (L3): only an account whose own email matches
+ * this one, normalized, may accept it. `listTitle` is display text for the
+ * invite email — `UsersRoom`, where invites are minted, never talks to
+ * `ListRoom`, where titles live, so the owner's device (which already has
+ * it) carries it along rather than the server fetching cross-DO for it.
+ */
 export interface CreateInviteRequest {
   listId: string;
+  email: string;
+  listTitle: string;
 }
 
+/**
+ * No `inviteToken` here on purpose — the server emails the link itself now,
+ * so the inviter's own device never needs to hold the bearer token at all.
+ */
 export interface CreateInviteResponse {
-  inviteToken: string;
   expiresIn: number;
 }
 

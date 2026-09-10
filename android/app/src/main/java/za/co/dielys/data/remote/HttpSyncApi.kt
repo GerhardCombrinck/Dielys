@@ -105,7 +105,11 @@ class HttpSyncApi
             )
         }
 
-        override suspend fun createInvite(listId: String): CreateInviteResponse =
+        override suspend fun createInvite(
+            listId: String,
+            email: String,
+            listTitle: String,
+        ): CreateInviteResponse =
             decode(
                 CreateInviteResponse.serializer(),
                 request(
@@ -113,7 +117,7 @@ class HttpSyncApi
                     DielysJson.wire
                         .encodeToString(
                             CreateInviteRequest.serializer(),
-                            CreateInviteRequest(listId),
+                            CreateInviteRequest(listId, email, listTitle),
                         ).toRequestBody(jsonMedia),
                 ),
             )

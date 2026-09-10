@@ -1,6 +1,6 @@
 import { env, SELF } from "cloudflare:test";
-import type { TokenPair } from "@dielys/protocol";
-import { describe, expect, it } from "vitest";
+import type { CreateInviteResponse, TokenPair } from "@dielys/protocol";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Device registration and the wake fan-out (M2), through the real Worker and
@@ -49,13 +49,55 @@ async function post(
   });
 }
 
-async function signedIn(deviceId: string): Promise<TokenPair> {
-  const email = uniqueEmail();
+async function signedIn(deviceId: string, email: string = uniqueEmail()): Promise<TokenPair> {
   const created = await post("/admin/users", { email, password: PASSWORD }, ADMIN);
   expect(created.status).toBe(201);
   const response = await post("/auth/login", { email, password: PASSWORD, deviceId });
   expect(response.status).toBe(200);
   return (await response.json()) as TokenPair;
+}
+
+const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
+
+/** Invites are mailed directly (no `inviteToken` in the HTTP response) — see
+ * the same setup in auth-flow.test.ts. */
+let inviteSends: Array<{ to: string; token: string }> = [];
+
+beforeEach(() => {
+  inviteSends = [];
+  vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input.toString();
+    if (url === BREVO_URL) {
+      const body = JSON.parse(String(init?.body)) as {
+        to: Array<{ email: string }>;
+        textContent: string;
+      };
+      const match = /[?&]t=([^\s&]+)/.exec(body.textContent);
+      if (match === null) throw new Error("invite email carried no token");
+      const to = body.to[0]?.email as string;
+      inviteSends.push({ to, token: decodeURIComponent(match[1] as string) });
+      return Promise.resolve(
+        Response.json({ messageId: `msg-${inviteSends.length}` }, { status: 201 }),
+      );
+    }
+    throw new Error(`unexpected fetch in test: ${url}`);
+  });
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+async function mintInvite(
+  listId: string,
+  ownerToken: string,
+  email: string,
+  listTitle = "Test list",
+): Promise<string | null> {
+  const response = await post(`/lists/${listId}/invite`, { listId, email, listTitle }, ownerToken);
+  expect(response.status).toBe(200);
+  await (response.json() as Promise<CreateInviteResponse>);
+  return inviteSends.find((s) => s.to === email.trim().toLowerCase())?.token ?? null;
 }
 
 function users() {
@@ -151,14 +193,10 @@ describe("who a change wakes", () => {
     await post(`/lists/${listId}`, {}, owner.accessToken);
     await post("/devices/token", { fcmToken: "token-a" }, owner.accessToken);
 
-    const invite = (await post(`/lists/${listId}/invite`, {}, owner.accessToken).then((r) =>
-      r.json(),
-    )) as { inviteToken: string };
-    const guest = await signedIn("phone-b");
-    expect(
-      (await post("/invites/accept", { inviteToken: invite.inviteToken }, guest.accessToken))
-        .status,
-    ).toBe(200);
+    const guestEmail = uniqueEmail();
+    const inviteToken = await mintInvite(listId, owner.accessToken, guestEmail);
+    const guest = await signedIn("phone-b", guestEmail);
+    expect((await post("/invites/accept", { inviteToken }, guest.accessToken)).status).toBe(200);
     await post("/devices/token", { fcmToken: "token-b" }, guest.accessToken);
 
     // A registered device on no shared list. Membership is the whole of the

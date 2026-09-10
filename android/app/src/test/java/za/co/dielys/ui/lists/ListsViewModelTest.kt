@@ -122,15 +122,25 @@ class ListsViewModelTest {
         }
 
     @Test
-    fun `sharing a list turns the invite into a link`() =
+    fun `opening the invite dialog asks who the list is for, before touching the server`() =
         runTest(dispatcher) {
-            api.inviteToken = "aaa.bbb.ccc"
-
             viewModel.invite(owned("list-1", "Groceries"))
 
-            val ready = viewModel.invite.value as InviteState.Ready
-            assertEquals("Groceries", ready.listTitle)
-            assertEquals(InviteLink.url("aaa.bbb.ccc"), ready.link)
+            val entering = viewModel.invite.value as InviteState.EnteringEmail
+            assertEquals("list-1", entering.listId)
+            assertEquals("Groceries", entering.listTitle)
+        }
+
+    @Test
+    fun `sharing a list mails the invite to the address typed in`() =
+        runTest(dispatcher) {
+            viewModel.sendInvite("list-1", "Groceries", "guest@dielys.test")
+
+            val sent = viewModel.invite.value as InviteState.Sent
+            assertEquals("Groceries", sent.listTitle)
+            assertEquals("guest@dielys.test", sent.email)
+            assertEquals("guest@dielys.test", api.inviteEmail)
+            assertEquals("Groceries", api.inviteListTitle)
         }
 
     /** L3: the screen hides the option, and the server refuses it anyway. */
@@ -139,7 +149,7 @@ class ListsViewModelTest {
         runTest(dispatcher) {
             api.refuseInviteAsNotOwner()
 
-            viewModel.invite(owned("list-1", "Groceries"))
+            viewModel.sendInvite("list-1", "Groceries", "guest@dielys.test")
 
             val failed = viewModel.invite.value as InviteState.Failed
             assertEquals("Only the person who made this list can share it.", failed.message)
@@ -150,10 +160,20 @@ class ListsViewModelTest {
         runTest(dispatcher) {
             api.online = false
 
-            viewModel.invite(owned("list-1", "Groceries"))
+            viewModel.sendInvite("list-1", "Groceries", "guest@dielys.test")
 
             val failed = viewModel.invite.value as InviteState.Failed
             assertEquals("No connection. Try again when you have signal.", failed.message)
+        }
+
+    @Test
+    fun `a blank address does not send anything`() =
+        runTest(dispatcher) {
+            viewModel.invite(owned("list-1", "Groceries"))
+            viewModel.sendInvite("list-1", "Groceries", "   ")
+
+            assertEquals(null, api.inviteEmail)
+            assertEquals(true, viewModel.invite.value is InviteState.EnteringEmail)
         }
 
     @Test
@@ -191,6 +211,22 @@ class ListsViewModelTest {
             viewModel.join(InviteLink.url("some.other.token"))
 
             assertEquals("That invite has expired. Ask for a new one.", viewModel.joined.value)
+        }
+
+    /** L3: holding the link is not enough — it must be the invited address. */
+    @Test
+    fun `an invite for a different account says so, not that it joined`() =
+        runTest(dispatcher) {
+            api.inviteToken = "aaa.bbb.ccc"
+            api.inviteFor = "list-from-the-other-phone"
+            api.refuseAcceptAsWrongRecipient()
+
+            viewModel.join(InviteLink.url("aaa.bbb.ccc"))
+
+            assertEquals(
+                "This invite was sent to a different email than the one you're signed in with.",
+                viewModel.joined.value,
+            )
         }
 
     @Test

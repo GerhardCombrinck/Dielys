@@ -27,20 +27,24 @@ data class ListRow(
     val itemCount: Int,
 )
 
-/** The invite dialog, from the moment it opens to the moment it has a link. */
+/** The invite dialog, from the moment it opens to the moment the mail is sent. */
 sealed interface InviteState {
+    /** Asking who this list is for. No network call yet — opening the dialog
+     * is free until the owner types an address and confirms. */
+    data class EnteringEmail(
+        val listId: String,
+        val listTitle: String,
+    ) : InviteState
+
     data class Working(
         val listTitle: String,
     ) : InviteState
 
-    data class Ready(
+    /** The server mailed the invite, scoped to [email] — only an account
+     * signed in as that address can accept it. */
+    data class Sent(
         val listTitle: String,
-        /**
-         * The whole invite, as a link. A bearer credential good for seven days —
-         * anybody holding it joins the list — so it goes into a share sheet aimed
-         * at one person and nowhere else.
-         */
-        val link: String,
+        val email: String,
     ) : InviteState
 
     data class Failed(
@@ -129,16 +133,25 @@ class ListsViewModel
         /**
          * L3: only the owner may invite, so the screen only offers this on lists
          * this account owns — and the server refuses anyway if that is ever wrong.
+         * Opens the dialog asking who it's for; nothing is sent until [sendInvite].
          */
         fun invite(list: ListEntity) {
-            val title = list.displayTitle
-            _invite.value = InviteState.Working(title)
+            _invite.value = InviteState.EnteringEmail(list.id, list.displayTitle)
+        }
+
+        fun sendInvite(
+            listId: String,
+            listTitle: String,
+            email: String,
+        ) {
+            val trimmed = email.trim()
+            if (trimmed.isEmpty()) return
+            _invite.value = InviteState.Working(listTitle)
 
             viewModelScope.launch {
                 _invite.value =
-                    when (val result = sharing.invite(list.id)) {
-                        is InviteResult.Created ->
-                            InviteState.Ready(title, InviteLink.url(result.token))
+                    when (val result = sharing.invite(listId, trimmed, listTitle)) {
+                        InviteResult.Sent -> InviteState.Sent(listTitle, trimmed)
 
                         InviteResult.NotYours ->
                             InviteState.Failed("Only the person who made this list can share it.")
@@ -147,7 +160,7 @@ class ListsViewModel
                             InviteState.Failed("No connection. Try again when you have signal.")
 
                         is InviteResult.ServerProblem ->
-                            InviteState.Failed("Could not make an invite: ${result.detail}")
+                            InviteState.Failed("Could not send the invite: ${result.detail}")
                     }
             }
         }
@@ -178,6 +191,8 @@ class ListsViewModel
                             }
 
                         JoinResult.BadInvite -> "That invite has expired. Ask for a new one."
+                        JoinResult.WrongRecipient ->
+                            "This invite was sent to a different email than the one you're signed in with."
                         JoinResult.Offline -> "No connection. Try again when you have signal."
                         is JoinResult.ServerProblem -> "Could not join: ${result.detail}"
                     }
