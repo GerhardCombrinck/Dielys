@@ -4,7 +4,9 @@ import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -96,6 +98,29 @@ class SessionViewModelTest {
             assertFalse(form.linkSent)
             assertEquals("someone-else@example.test", form.email)
             assertNull(form.problem)
+        }
+
+    @Test
+    fun `delivery status flips once the server reports it, on the first poll`() =
+        runTest(dispatcher) {
+            submit("friend@example.test")
+            assertFalse(viewModel.form.value.delivered)
+
+            phone.markMagicLinkDelivered()
+            advanceTimeBy(10_000)
+            runCurrent()
+
+            assertTrue(viewModel.form.value.delivered)
+            assertEquals(1, phone.statusChecks.size)
+        }
+
+    @Test
+    fun `delivery status is not polled with anything before a link is sent`() =
+        runTest(dispatcher) {
+            advanceTimeBy(60_000)
+            runCurrent()
+
+            assertEquals(emptyList<String>(), phone.statusChecks)
         }
 
     @Test

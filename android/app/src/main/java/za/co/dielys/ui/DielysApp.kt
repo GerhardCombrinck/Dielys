@@ -1,25 +1,16 @@
 package za.co.dielys.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import za.co.dielys.ui.auth.AuthScreen
 import za.co.dielys.ui.auth.SessionViewModel
 import za.co.dielys.ui.lists.InvitationDialog
-import za.co.dielys.ui.lists.JoinDialog
 import za.co.dielys.ui.lists.ListsScreen
 import za.co.dielys.ui.lists.ListsViewModel
 import za.co.dielys.ui.settings.SettingsScreen
@@ -36,8 +27,7 @@ import za.co.dielys.ui.tasks.TaskListScreen
  *
  * [ListsViewModel] is requested once, here, rather than once per screen: with no
  * navigation library, `viewModel()` resolves to the same activity-scoped instance
- * either way, and joining a list needs to be reachable from more than one screen
- * (the trigger lives on Settings; the dialog it opens is not screen-specific).
+ * either way.
  */
 @Composable
 fun DielysApp() {
@@ -60,54 +50,37 @@ fun DielysApp() {
     // whole subtree leaves composition when there is no session.
     var openList by rememberSaveable { mutableStateOf<String?>(null) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
-    var joining by rememberSaveable { mutableStateOf(false) }
     BackHandler(enabled = openList != null || settingsOpen) {
         openList = null
         settingsOpen = false
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        when {
-            settingsOpen ->
-                SettingsScreen(
-                    onBack = { settingsOpen = false },
-                    onSignOut = session::signOut,
-                    onJoin = { joining = true },
-                )
+    when {
+        settingsOpen ->
+            SettingsScreen(
+                onBack = { settingsOpen = false },
+                onSignOut = session::signOut,
+            )
 
-            openList != null -> {
-                val listId = openList
-                if (listId != null) {
-                    TaskListScreen(listId = listId, onBack = { openList = null })
-                }
+        openList != null -> {
+            val listId = openList
+            if (listId != null) {
+                TaskListScreen(listId = listId, onBack = { openList = null })
             }
-
-            else ->
-                ListsScreen(
-                    onOpen = { openList = it },
-                    onSettings = { settingsOpen = true },
-                    accountInitials = initialsFrom(session.email),
-                    viewModel = lists,
-                )
         }
 
-        val joinFeedback = remember { SnackbarHostState() }
-        val joined by lists.joined.collectAsStateWithLifecycle()
-        LaunchedEffect(joined) {
-            val message = joined ?: return@LaunchedEffect
-            joinFeedback.showSnackbar(message)
-            lists.dismissJoined()
-        }
-        SnackbarHost(joinFeedback, modifier = Modifier.align(Alignment.BottomCenter))
+        else ->
+            ListsScreen(
+                onOpen = { openList = it },
+                onSettings = { settingsOpen = true },
+                accountInitials = initialsFrom(session.email),
+                viewModel = lists,
+            )
     }
 
     val invitation by lists.invitation.collectAsStateWithLifecycle()
     if (invitation != null) {
         InvitationDialog(onAccept = lists::acceptInvitation, onDecline = lists::declineInvitation)
-    }
-
-    if (joining) {
-        JoinDialog(onDismiss = { joining = false }, onJoin = lists::join)
     }
 }
 

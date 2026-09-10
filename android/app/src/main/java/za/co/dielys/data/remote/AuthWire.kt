@@ -52,6 +52,19 @@ data class RequestMagicLinkRequest(
 data class RequestMagicLinkResponse(
     /** Seconds until the link expires — not a timestamp (F5.9). */
     val expiresIn: Long,
+    /** Opaque handle for `GET /auth/magic/status` — never the email itself. */
+    val requestId: String,
+)
+
+/**
+ * `GET /auth/magic/status?requestId=…` (ADR 0005 follow-up). Polled every few
+ * seconds while "Check your email" is on screen. Never authenticated — there
+ * is no session yet — and answers `delivered = false` for a requestId that is
+ * wrong, expired, or superseded by a resend, rather than an error.
+ */
+@Serializable
+data class MagicLinkStatusResponse(
+    val delivered: Boolean,
 )
 
 /**

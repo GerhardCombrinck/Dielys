@@ -163,6 +163,25 @@ export interface RequestMagicLinkResponse {
   /** Seconds until the link expires. Not a timestamp — client clocks are not
    * trusted (F5.9). */
   expiresIn: number;
+  /**
+   * Opaque handle for `GET /auth/magic/status` — never the email itself, so
+   * polling delivery status cannot become a second way to ask "does this
+   * address have anything pending" the way echoing the email back would.
+   */
+  requestId: string;
+}
+
+/**
+ * `GET /auth/magic/status?requestId=…` (ADR 0005 follow-up). Polled by the
+ * client every few seconds while "Check your email" is on screen, so it can
+ * say "delivered" instead of leaving a fixed "a few minutes" estimate up
+ * regardless of how the send actually went. Never authenticated — there is
+ * no session yet — and answers `delivered: false` for a requestId that is
+ * wrong, expired, or superseded by a resend rather than an error, the same
+ * enumeration reasoning `invalid-token` uses elsewhere in this file.
+ */
+export interface MagicLinkStatusResponse {
+  delivered: boolean;
 }
 
 /**

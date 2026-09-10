@@ -76,6 +76,8 @@ export default {
           return await handleRequestMagicLink(request, env, now);
         case "/auth/magic/verify":
           return await handleVerifyMagicLink(request, env, now);
+        case "/auth/magic/status":
+          return await handleMagicLinkStatus(request, env, url, now);
         case "/magic":
           return magicLinkFallbackPage();
         case "/auth/refresh":
@@ -298,6 +300,38 @@ function magicVerifyStatus(code: ErrorCode): number {
   if (code === "rate-limited") return 429;
   if (code === "invalid-token" || code === "token-expired") return 401;
   return 400;
+}
+
+/** Longer than `generateRefreshToken` ever produces (43 chars, unpadded
+ * base64url of 32 bytes) — bounded at the boundary (F3) without needing to
+ * know that length exactly. */
+const MAX_REQUEST_ID_LENGTH = 128;
+
+/**
+ * `GET /auth/magic/status?requestId=…` (ADR 0005 follow-up). Unauthenticated
+ * like the rest of `/auth/magic/*` — there is no session yet — and answers
+ * `{ delivered: false }` for anything it cannot make sense of rather than an
+ * error, the same shape `magicLinkStatus` itself uses.
+ */
+async function handleMagicLinkStatus(
+  request: Request,
+  env: Env,
+  url: URL,
+  now: number,
+): Promise<Response> {
+  if (request.method !== "GET") return errorResponse("malformed", 405);
+
+  const requestId = url.searchParams.get("requestId");
+  if (requestId === null || requestId.length === 0 || requestId.length > MAX_REQUEST_ID_LENGTH) {
+    return errorResponse("malformed", 400);
+  }
+
+  const result = await usersRoom(env).magicLinkStatus(
+    requestId,
+    await bucketKey(request, env),
+    now,
+  );
+  return Response.json(result);
 }
 
 /** Package name for `za.co.dielys` — public (it is the app's own id, already
