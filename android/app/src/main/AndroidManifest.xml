@@ -25,10 +25,10 @@
             </intent-filter>
 
             <!--
-                A tapped invite link (L3). A custom scheme rather than an https
-                app link, which would need a verified domain and a page to serve
-                it; the cost is that some chat apps will not make it tappable,
-                which is why pasting one has to work too.
+                A tapped invite link minted before this became an https App Link
+                below (L3) — kept only so one already sent out still opens the app
+                rather than a browser. Do not send new invites through this
+                scheme; InviteLink.url() has not since the App Link was added.
 
                 The link carries an invite token and nothing else. It is a bearer
                 credential, so the app treats an arriving one as an offer to join,
@@ -42,18 +42,21 @@
             </intent-filter>
 
             <!--
-                A tapped magic-link sign-in link (ADR 0005, docs/adr/0005-passwordless-email-magic-link.md).
-                An https App Link rather than a custom scheme, unlike the invite
-                above: it arrives in an email, and several mail apps (Gmail's
-                Android app among them) do not reliably let a person tap a
-                custom-scheme link out of HTML mail. autoVerify asks Android to
-                confirm ownership of dielys.com via the Worker's
-                /.well-known/assetlinks.json before treating this as an app
-                link rather than a browser navigation.
+                A tapped magic-link sign-in link (ADR 0005, docs/adr/0005-passwordless-email-magic-link.md)
+                or a tapped invite link (L3, InviteLink). Both are https App
+                Links rather than a custom scheme: an invite is shared through
+                whatever the share sheet offers, email included, and several mail
+                apps (Gmail's Android app among them) do not reliably let a
+                person tap a custom-scheme link out of HTML mail. autoVerify asks
+                Android to confirm ownership of dielys.com via the Worker's
+                /.well-known/assetlinks.json before treating either path as an
+                app link rather than a browser navigation — one verification
+                covers both, since handle_all_urls in that file is domain-wide.
 
-                The token is single-use and short-lived server-side (15 minutes) —
-                see UsersRoom.verifyMagicLink — so there is nothing here to protect
-                beyond what the server already enforces.
+                Neither token needs protecting beyond what the server already
+                enforces: a magic-link token is single-use and short-lived
+                server-side (15 minutes, see UsersRoom.verifyMagicLink), and an
+                invite token is scoped to one list and expires in 7 days (L3).
             -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
@@ -63,6 +66,10 @@
                     android:scheme="https"
                     android:host="dielys.com"
                     android:pathPrefix="/magic" />
+                <data
+                    android:scheme="https"
+                    android:host="dielys.com"
+                    android:pathPrefix="/invite" />
             </intent-filter>
         </activity>
 

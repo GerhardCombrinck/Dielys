@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -35,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
@@ -96,17 +98,25 @@ fun AuthScreen(
                 modifier =
                     Modifier
                         .size(64.dp)
+                        .clip(RoundedCornerShape(18.dp))
                         .background(
                             color = if (dark) BadgeNavyLight else BadgeNavy,
                             shape = RoundedCornerShape(18.dp),
                         ),
                 contentAlignment = Alignment.Center,
             ) {
+                // ic_launcher_foreground draws its "D" small within a padded 108dp
+                // adaptive-icon canvas, but the home-screen launcher crops tightly to
+                // the opaque content and zooms it to fill the tile — confirmed against
+                // the installed launcher icon, where the D fills ~94% of the tile
+                // height. Scaling the icon well past the badge size and clipping to it
+                // reproduces that same crop, so the mark reads the same size here as
+                // it does on the home screen.
                 Icon(
                     painter = painterResource(R.drawable.ic_launcher_foreground),
                     contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.requiredSize(116.dp),
                 )
             }
 

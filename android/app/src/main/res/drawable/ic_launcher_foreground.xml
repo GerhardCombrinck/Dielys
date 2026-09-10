@@ -7,5 +7,5 @@
     <!-- Placeholder mark — real icon lands with the theme package. -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M40,30 h14 a20,20 0 0 1 0,48 h-14 z" />
+        android:pathData="M45.5,40 h8 a11,11 0 0 1 0,28 h-8 z" />
 </vector>

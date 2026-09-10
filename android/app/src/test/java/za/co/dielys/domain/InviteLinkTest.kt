@@ -18,6 +18,16 @@ class InviteLinkTest {
     }
 
     @Test
+    fun `the link is an https App Link on the shared domain`() {
+        assertEquals("https://dielys.com/invite?t=$token", InviteLink.url(token))
+    }
+
+    @Test
+    fun `an invite minted before the App Link switch still parses`() {
+        assertEquals(token, InviteLink.tokenFrom("dielys://invite?t=$token"))
+    }
+
+    @Test
     fun `the token is found inside a whole shared message`() {
         val shared = "Join \"Groceries\" on Dielys: ${InviteLink.url(token)}"
         assertEquals(token, InviteLink.tokenFrom(shared))

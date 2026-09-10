@@ -4,6 +4,32 @@ Repo shape and rules an AI assistant (or a new human contributor) most often get
 Full detail lives in `docs/CODE_STANDARD.md` — this is the summary that matters before you
 write a line of code.
 
+## This machine's paths — read before searching for them again
+
+Absolute paths on Gerhard's dev machine, not portable and not needed by CI (which provisions
+its own). Established the hard way once already; look here first.
+
+- **JDK 21**: `C:\Users\GERHARD\.dielys-toolchain\jdk21`. Every Gradle invocation needs
+  `JAVA_HOME` pointed here — the `java` already on `PATH` is JDK 17 and fails
+  `compileDebugJavaWithJavac`/`compileReleaseJavaWithJavac` with "invalid source release: 21".
+- **Android SDK**: `C:\Users\GERHARD\.dielys-toolchain\android-sdk`. `adb` is at
+  `platform-tools\adb.exe`; `apksigner` (for checking a release APK actually got signed) is at
+  `build-tools\<version>\apksigner.bat` — use `apksigner verify --verbose`, not
+  `keytool -printcert -jarfile`, which reports "Not a signed jar file" on an APK that is only
+  v2/v3-signed (no v1/JAR signature) and is not actually unsigned.
+- **Deploy to the USB phone with `./gradlew installDebug`, never a bare `adb install -r`.**
+  Both are a "replace install" in principle, but only the Gradle task is the one this project
+  actually exercises — see "Redeploying...does not need to log you out" below. If a device logs
+  out on every deploy, that is the install method or an IDE "Clear app storage" setting, not a
+  `SessionStore` bug.
+- **Android release signing**: keystore is `C:\Users\GERHARD\release.keystore`, not in the repo.
+  Store password, key password, and key alias (`dielys`) are in `.claude/local-secrets.md` —
+  gitignored, **read it before asking Gerhard for these again**. `assembleRelease` needs
+  `KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` as env vars (see
+  `app/build.gradle.kts`); without them it silently produces an *unsigned* APK rather than
+  failing, which is by design (I1) but easy to mistake for a signed one until `apksigner verify`
+  says otherwise.
+
 ## Shape
 
 One repo, two runtimes, one contract:
