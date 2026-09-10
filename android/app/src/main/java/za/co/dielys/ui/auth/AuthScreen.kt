@@ -37,7 +37,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -50,6 +53,7 @@ import za.co.dielys.ui.theme.PillShape
 /** The login screen's own amber, a shade off [MaterialTheme]'s secondary — the design calls
  * for the two to differ, so the sign-in button reads distinctly from a starred task. */
 private val SignInAmber = Color(0xFFE2A44A)
+private val DeliveredGreen = Color(0xFF7FA893)
 private val BadgeNavy = Color(0xFF1B2A4A)
 private val BadgeNavyLight = Color(0xFF2E4372)
 
@@ -137,6 +141,17 @@ fun AuthScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(bottom = 16.dp),
                 )
+
+                if (state.delivered) {
+                    Text(
+                        buildAnnotatedString {
+                            withStyle(SpanStyle(color = DeliveredGreen)) { append("✔") }
+                            append(" 📧")
+                        },
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                    )
+                }
 
                 // Once delivery is confirmed there is nothing a resend would fix —
                 // the copy above already told them it arrived.

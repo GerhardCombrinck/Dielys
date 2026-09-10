@@ -73,6 +73,10 @@ spend a runner minute on per commit. Push when the change is complete and testab
   project's toolchain JDK, e.g. `JAVA_HOME=.../.dielys-toolchain/jdk21 ./gradlew installDebug`.
   `JAVA_HOME` pointed at an older JDK fails `compileDebugJavaWithJavac` with "invalid source
   release: 21".
+- **`adb` is not on `PATH` either.** It lives under the same toolchain:
+  `.dielys-toolchain/android-sdk/platform-tools/adb.exe`. `adb devices` can come back empty
+  right after plugging in — the phone needs a moment (and, the first time, an "Allow USB
+  debugging" tap) before it shows up; retry rather than assuming the cable or driver is bad.
 - **App Links (`dielys.com/magic`) verification is two independent things**, both of which have
   to be right for a magic-link email to open the app instead of the browser:
   1. `dielys.com/.well-known/assetlinks.json` — served by whichever Worker owns the
