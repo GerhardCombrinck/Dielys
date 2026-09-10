@@ -181,7 +181,9 @@ fun AuthScreen(
                         contentColor = Color.White,
                     )
                 },
-            modifier = Modifier.fillMaxWidth().height(40.dp).padding(top = 20.dp),
+            // Padding outside the height: the other order shrinks the button's own
+            // box to 20dp and squashes the label.
+            modifier = Modifier.fillMaxWidth().padding(top = 20.dp).height(48.dp),
         ) {
             if (state.busy) {
                 CircularProgressIndicator(

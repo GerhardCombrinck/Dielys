@@ -22,10 +22,10 @@ import javax.inject.Inject
  * The list as it is shown: still to do on top, in the order the household chose,
  * and the completed ones underneath.
  *
- * Starred tasks are *not* floated to the top. Wunderlist did that, but it fights
- * dragging: a row that jumps somewhere else the moment you star it makes the
- * position you dragged it to meaningless, and position is the thing both phones
- * have to agree on (F5.5). A star is a mark, not a sort.
+ * Nothing here sorts by starred. A star *writes a position* instead — it moves
+ * the row to the top once, as an edit both phones agree on (F5.5) — so a row that
+ * is later dragged somewhere else stays where it was dragged. Sorting by the flag
+ * would make dragging a starred row pointless.
  */
 data class TaskBoard(
     val active: List<TaskEntity> = emptyList(),
@@ -61,11 +61,24 @@ class TaskListViewModel
             if (listId.value != id) listId.value = id
         }
 
+        /**
+         * The task this device just added, for the screen to scroll to and light
+         * up. Null once the screen has taken it: it is a one-off event, and a
+         * rotation should not replay it.
+         */
+        private val _added = MutableStateFlow<String?>(null)
+        val added: StateFlow<String?> = _added
+
         fun add(title: String) {
             val trimmed = title.trim()
             val id = listId.value
             if (trimmed.isEmpty() || id == null) return
-            viewModelScope.launch { repo.addTask(id, trimmed) }
+            viewModelScope.launch { _added.value = repo.addTask(id, trimmed) }
+        }
+
+        /** Called by the screen once it has scrolled to what was added. */
+        fun addSeen() {
+            _added.value = null
         }
 
         fun setDone(

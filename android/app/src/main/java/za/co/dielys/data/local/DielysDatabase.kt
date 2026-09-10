@@ -2,6 +2,8 @@ package za.co.dielys.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
  * The local replica plus the outbox.
@@ -35,10 +37,21 @@ abstract class DielysDatabase : RoomDatabase() {
     abstract fun syncState(): SyncStateDao
 
     companion object {
-        const val VERSION = 1
+        const val VERSION = 2
         const val NAME = "dielys.db"
 
-        /** Empty at version 1. Every later version adds one entry here. */
-        val MIGRATIONS = emptyArray<androidx.room.migration.Migration>()
+        /**
+         * 1 → 2: per-account list ordering (PROTOCOL.md "Ordering the lists").
+         * Additive and nullable, so every existing row keeps its data and simply
+         * has no order yet — which sorts it where it sorted before.
+         */
+        private val MIGRATION_1_2 =
+            object : Migration(1, 2) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE lists ADD COLUMN position TEXT")
+                }
+            }
+
+        val MIGRATIONS = arrayOf<Migration>(MIGRATION_1_2)
     }
 }

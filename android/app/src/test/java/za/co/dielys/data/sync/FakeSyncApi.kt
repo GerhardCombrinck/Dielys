@@ -141,6 +141,17 @@ class FakeSyncApi : SyncApi {
         return memberOf.toList()
     }
 
+    override suspend fun setListPosition(
+        listId: String,
+        position: String,
+    ) {
+        gate()
+        val index = memberOf.indexOfFirst { it.listId == listId }
+        // 403 for a list this account is not on, the way the Worker answers (L3).
+        if (index < 0) throw ApiException.Rejected(status = 403, code = ErrorCode.FORBIDDEN)
+        memberOf[index] = memberOf[index].copy(position = position)
+    }
+
     override suspend fun registerPushToken(fcmToken: String) {
         gate()
         if (rejectPushToken) throw ApiException.Rejected(status = 400, code = ErrorCode.MALFORMED)

@@ -179,14 +179,14 @@ export function selectMembership(
 ): Membership | null {
   const rows = [
     ...sql.exec(
-      "SELECT list_id, role FROM memberships WHERE user_id = ? AND list_id = ?",
+      "SELECT list_id, role, position FROM memberships WHERE user_id = ? AND list_id = ?",
       userId,
       listId,
     ),
   ];
   const row = rows[0];
   if (row === undefined) return null;
-  return { listId: String(row.list_id), role: String(row.role) as MembershipRole };
+  return toMembership(row);
 }
 
 /** How many people are on a list at all. Zero means it is unclaimed. */
@@ -195,16 +195,60 @@ export function countListMembers(sql: SqlStorage, listId: string): number {
   return Number(row.n);
 }
 
+/**
+ * The caller's lists in the caller's own order (PROTOCOL.md "Ordering the
+ * lists").
+ *
+ * `COALESCE(position, '~')` puts the unordered ones last: '~' is 0x7E, above
+ * every character the base-62 position alphabet uses, so no real key can sort
+ * past it. Among those, oldest membership first — a list you were invited to
+ * this morning belongs at the bottom, not in the middle of an order somebody
+ * arranged. BINARY collation throughout, like every other position comparison.
+ */
 export function selectMemberships(sql: SqlStorage, userId: string): Membership[] {
   const cursor = sql.exec(
-    "SELECT list_id, role FROM memberships WHERE user_id = ? ORDER BY created_at",
+    `SELECT list_id, role, position FROM memberships
+     WHERE user_id = ?
+     ORDER BY COALESCE(position, '~'), created_at, list_id`,
     userId,
   );
-  return [...cursor].map((row) => ({
+  return [...cursor].map(toMembership);
+}
+
+/**
+ * Moves one list in one member's order. Returns false when the caller is not on
+ * that list, which the route answers as a 403 — never a 404, so this cannot be
+ * used to ask which list ids exist (L3).
+ *
+ * One row, never a renumbering of the others: that is the whole point of a
+ * fractional index (F5.5), and it is what lets two of the caller's own devices
+ * reorder while offline and merge rather than fight.
+ */
+export function updateMembershipPosition(
+  sql: SqlStorage,
+  userId: string,
+  listId: string,
+  position: string,
+): boolean {
+  const rows = [
+    ...sql.exec(
+      `UPDATE memberships SET position = ? WHERE user_id = ? AND list_id = ?
+       RETURNING list_id`,
+      position,
+      userId,
+      listId,
+    ),
+  ];
+  return rows.length > 0;
+}
+
+function toMembership(row: Record<string, SqlStorageValue>): Membership {
+  return {
     listId: String(row.list_id),
     // Written by insertMembership from a MembershipRole; SQLite has no enum.
     role: String(row.role) as MembershipRole,
-  }));
+    position: row.position === null || row.position === undefined ? null : String(row.position),
+  };
 }
 
 /**

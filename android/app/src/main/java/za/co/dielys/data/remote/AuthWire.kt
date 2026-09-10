@@ -81,6 +81,25 @@ data class AcceptInviteResponse(
 data class Membership(
     val listId: String,
     val role: String,
+    /**
+     * Where this list sits in *this* account's ordering (F5.5). Per membership,
+     * not per list: the two people sharing a list each keep their own order.
+     * Null until this account has dragged something, and null sorts last.
+     */
+    val position: String? = null,
+)
+
+/** `POST /auth/memberships/position` — one list, moved in the caller's own order. */
+@Serializable
+data class SetListPositionRequest(
+    val listId: String,
+    val position: String,
+)
+
+@Serializable
+data class SetListPositionResponse(
+    val listId: String,
+    val position: String,
 )
 
 @Serializable

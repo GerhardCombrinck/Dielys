@@ -25,6 +25,7 @@ import {
   validateRefreshRequest,
   validateRegisterDeviceRequest,
   validateRegisterRequest,
+  validateSetListPositionRequest,
 } from "./domain/validate.js";
 import { log } from "./lib/log.js";
 
@@ -66,6 +67,8 @@ export default {
           return await handleRefresh(request, env, now);
         case "/auth/memberships":
           return await handleMemberships(request, env);
+        case "/auth/memberships/position":
+          return await handleSetListPosition(request, env);
         case "/devices/token":
           return await handleRegisterDevice(request, env, now);
         case "/admin/users":
@@ -222,6 +225,34 @@ async function handleMemberships(request: Request, env: Env): Promise<Response> 
 
   const memberships = await usersRoom(env).listMemberships(auth.value.userId);
   return Response.json({ memberships });
+}
+
+/**
+ * Moves one list in the caller's own ordering (PROTOCOL.md "Ordering the
+ * lists"). It touches the caller's membership row and nothing on the list, so
+ * it never reaches a `ListRoom` and the other member never hears about it.
+ */
+async function handleSetListPosition(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") return errorResponse("malformed", 405);
+
+  const auth = await authenticate(request, env);
+  if (!auth.ok) return errorResponse(auth.code, auth.status);
+
+  const body = await readJson(request);
+  if (body === null) return errorResponse("malformed", 400);
+
+  const parsed = validateSetListPositionRequest(body);
+  if (!parsed.ok) return errorResponse("malformed", 400);
+
+  const result = await usersRoom(env).setListPosition(
+    auth.value.userId,
+    parsed.value.listId,
+    parsed.value.position,
+  );
+  // 403 for a list the caller is not on, never 404 (L3).
+  if (!result.ok) return errorResponse(result.code, 403);
+
+  return Response.json(result.value);
 }
 
 /**

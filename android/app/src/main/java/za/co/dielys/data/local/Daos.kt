@@ -13,8 +13,31 @@ import kotlinx.coroutines.flow.Flow
  */
 @Dao
 interface ListDao {
-    @Query("SELECT * FROM lists WHERE deleted_at IS NULL ORDER BY title, id")
+    /**
+     * This account's own order. `COALESCE(position, '~')` puts the undragged
+     * ones last: '~' is above every character the base-62 position alphabet
+     * uses, so no real key sorts past it. Title breaks the tie among those, and
+     * id breaks it again — two devices dragging offline can mint the same key
+     * (H3.9). BINARY collation throughout, never a locale-aware one.
+     */
+    @Query(
+        """
+        SELECT * FROM lists
+        WHERE deleted_at IS NULL
+        ORDER BY COALESCE(position, '~'), title, id
+        """,
+    )
     fun observeAll(): Flow<List<ListEntity>>
+
+    /** The same order, once, for working out what a drag landed between. */
+    @Query(
+        """
+        SELECT * FROM lists
+        WHERE deleted_at IS NULL
+        ORDER BY COALESCE(position, '~'), title, id
+        """,
+    )
+    suspend fun all(): List<ListEntity>
 
     @Query("SELECT * FROM lists WHERE id = :id")
     fun observe(id: String): Flow<ListEntity?>
@@ -42,6 +65,17 @@ interface ListDao {
     suspend fun setRole(
         id: String,
         role: String,
+    )
+
+    /**
+     * The order alone. Discovery writes this without touching the title, which
+     * the changelog owns — the two arrive from different places and neither may
+     * clobber the other.
+     */
+    @Query("UPDATE lists SET position = :position WHERE id = :id")
+    suspend fun setPosition(
+        id: String,
+        position: String?,
     )
 }
 
@@ -77,9 +111,10 @@ interface TaskDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(task: TaskEntity)
 
-    /** Feeds the count on the lists screen's row — every non-deleted task, done ones included. */
+    /** Feeds the count on the lists screen's row: what is still to do, so a
+     * finished list reads 0 rather than however many things it once held. */
     @Query(
-        "SELECT list_id AS listId, COUNT(*) AS count FROM tasks WHERE deleted_at IS NULL GROUP BY list_id",
+        "SELECT list_id AS listId, COUNT(*) AS count FROM tasks WHERE deleted_at IS NULL AND done = 0 GROUP BY list_id",
     )
     fun observeCountsByList(): Flow<List<ListItemCount>>
 }

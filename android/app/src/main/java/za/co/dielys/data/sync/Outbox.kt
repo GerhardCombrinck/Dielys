@@ -5,6 +5,7 @@ import za.co.dielys.data.remote.DielysJson
 import za.co.dielys.data.remote.ListMutation
 import za.co.dielys.data.remote.ListPatch
 import za.co.dielys.data.remote.Mutation
+import za.co.dielys.data.remote.SetListPositionRequest
 import za.co.dielys.data.remote.TaskMutation
 import za.co.dielys.data.remote.TaskPatch
 import za.co.dielys.domain.Clock
@@ -23,6 +24,14 @@ object OutboxKind {
      * the server before any mutation for that list.
      */
     const val CLAIM = "claim"
+
+    /**
+     * `POST /auth/memberships/position` — where a list sits in this account's
+     * own order. Queues like the rest so a drag made on a train still lands, but
+     * it is not a list mutation: it goes to `UsersRoom`, not to the changelog,
+     * and the other member never hears about it.
+     */
+    const val ORDER = "order"
 }
 
 /**
@@ -73,6 +82,29 @@ class OutboxFactory
                     patch = patch,
                 )
             return row(OutboxKind.LIST, listId, entityId, key, encode(mutation))
+        }
+
+        /**
+         * Where [listId] sits in this account's own order.
+         *
+         * The body is the request, stored the same way a mutation's is, so the
+         * drain stays "send what was recorded" for every kind of row. There is no
+         * idempotency key in it — the endpoint is last-write-wins on one column
+         * this account owns — but the row still carries one as its unique key,
+         * because the outbox table requires it.
+         */
+        fun order(
+            listId: String,
+            position: String,
+        ): OutboxEntity {
+            val request = SetListPositionRequest(listId = listId, position = position)
+            return row(
+                OutboxKind.ORDER,
+                listId,
+                listId,
+                Uuid7.generate(clock.nowMillis()),
+                DielysJson.outbound.encodeToString(SetListPositionRequest.serializer(), request),
+            )
         }
 
         fun claim(listId: String): OutboxEntity =

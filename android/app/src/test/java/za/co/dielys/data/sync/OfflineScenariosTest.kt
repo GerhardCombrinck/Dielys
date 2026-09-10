@@ -143,11 +143,13 @@ class OfflineScenariosTest {
             assertEquals(SyncOutcome.Success, alice.engine.sync())
             assertEquals(SyncOutcome.Success, bob.engine.catchUp(listId))
 
+            // Added newest-first, so the screen reads Jam, Eggs, Bread, Milk.
             val (milk, bread, eggs, jam) = ids
             val beforeMoves = api.sentBodies.size
             api.online = false
-            alice.repo.moveTask(eggs, afterId = milk, beforeId = bread)
-            bob.repo.moveTask(jam, afterId = milk, beforeId = bread)
+            // Both devices drop their row into the same gap: below Bread, above Milk.
+            alice.repo.moveTask(eggs, afterId = bread, beforeId = milk)
+            bob.repo.moveTask(jam, afterId = bread, beforeId = milk)
 
             // Same gap, same key, no coordination — that is the whole point of a
             // fractional index (F5.5), and it is why the id has to break the tie.
@@ -167,7 +169,7 @@ class OfflineScenariosTest {
             assertEquals(SyncOutcome.Success, bob.engine.sync())
             assertEquals(SyncOutcome.Success, alice.engine.sync())
 
-            val expected = listOf(milk) + listOf(eggs, jam).sorted() + listOf(bread)
+            val expected = listOf(bread) + listOf(eggs, jam).sorted() + listOf(milk)
             assertEquals(
                 expected,
                 alice.db
@@ -261,8 +263,9 @@ class OfflineScenariosTest {
             assertTrue(dead.dead)
             assertEquals("400 malformed", dead.lastError)
             // Kept, and still on screen. Dropping what the user typed is worse.
+            // Newest first: an added task goes to the top of the list.
             assertEquals(
-                listOf("Milk", "Bread"),
+                listOf("Bread", "Milk"),
                 phone.db
                     .tasks()
                     .inList(listId)

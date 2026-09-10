@@ -108,6 +108,20 @@ class ListsViewModel
             viewModelScope.launch { repo.renameList(listId, trimmed) }
         }
 
+        /**
+         * Where the dragged list landed: [afterId] is the row it should sit
+         * below, [beforeId] the row above. Null on either side is an end of the
+         * screen. The order is this account's own — see PROTOCOL.md "Ordering the
+         * lists".
+         */
+        fun move(
+            listId: String,
+            afterId: String?,
+            beforeId: String?,
+        ) {
+            viewModelScope.launch { repo.moveList(listId, afterId, beforeId) }
+        }
+
         fun delete(listId: String) {
             viewModelScope.launch { repo.deleteList(listId) }
         }

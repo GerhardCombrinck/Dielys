@@ -35,6 +35,19 @@ interface SyncApi {
     suspend fun memberships(): List<Membership>
 
     /**
+     * `POST /auth/memberships/position`. Moves one list in this account's own
+     * ordering; nobody else on the list sees it.
+     *
+     * No idempotency key: the whole request is one last-write-wins column that
+     * this account alone owns, so a replay is the same state (unlike a list
+     * mutation, which is why those carry one).
+     */
+    suspend fun setListPosition(
+        listId: String,
+        position: String,
+    )
+
+    /**
      * `POST /lists/{listId}/invite`. Owner only (L3) — a member asking gets a
      * 403, which arrives as [ApiException.Rejected].
      *

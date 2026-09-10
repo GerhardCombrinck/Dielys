@@ -6,6 +6,8 @@ import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.local.OutboxEntity
 import za.co.dielys.data.local.PushTokenStore
 import za.co.dielys.data.remote.ApiException
+import za.co.dielys.data.remote.DielysJson
+import za.co.dielys.data.remote.SetListPositionRequest
 import za.co.dielys.data.remote.SyncApi
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -107,18 +109,26 @@ class SyncEngine
 
             for (membership in memberships) {
                 val known = db.lists().find(membership.listId)
-                when {
-                    known == null ->
-                        db.lists().upsert(
-                            ListEntity(
-                                id = membership.listId,
-                                title = "",
-                                role = membership.role,
-                            ),
-                        )
+                if (known == null) {
+                    db.lists().upsert(
+                        ListEntity(
+                            id = membership.listId,
+                            title = "",
+                            role = membership.role,
+                            position = membership.position,
+                        ),
+                    )
+                    continue
+                }
 
-                    known.role != membership.role ->
-                        db.lists().setRole(membership.listId, membership.role)
+                if (known.role != membership.role) {
+                    db.lists().setRole(membership.listId, membership.role)
+                }
+                // The outbox drains before this runs, so anything the server
+                // reports back is at least as new as what was dragged here. A
+                // drag made after this call is a new outbox row, not a lost one.
+                if (known.position != membership.position) {
+                    db.lists().setPosition(membership.listId, membership.position)
                 }
             }
             return SyncOutcome.Success
@@ -191,6 +201,18 @@ class SyncEngine
             try {
                 if (row.entityType == OutboxKind.CLAIM) {
                     api.claimList(row.listId)
+                    db.outbox().delete(row.id)
+                    SendResult.Done(gap = false)
+                } else if (row.entityType == OutboxKind.ORDER) {
+                    // Not a list mutation: it lands on this account's membership
+                    // row, so there is no ack to apply and no changelog to fall
+                    // behind. The local write already happened when the user dragged.
+                    val request =
+                        DielysJson.wire.decodeFromString(
+                            SetListPositionRequest.serializer(),
+                            row.body,
+                        )
+                    api.setListPosition(request.listId, request.position)
                     db.outbox().delete(row.id)
                     SendResult.Done(gap = false)
                 } else {

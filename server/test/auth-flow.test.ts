@@ -566,6 +566,92 @@ describe("memberships", () => {
   it("requires a token", async () => {
     expect((await get("/auth/memberships")).status).toBe(401);
   });
+
+  it("orders by the caller's own position, unpositioned lists last and oldest first", async () => {
+    const email = uniqueEmail();
+    await createUser(email);
+    const tokens = await login(email);
+    const first = crypto.randomUUID();
+    const second = crypto.randomUUID();
+    const third = crypto.randomUUID();
+    for (const listId of [first, second, third]) {
+      await post(`/lists/${listId}`, {}, tokens.accessToken);
+    }
+
+    // Only the third is dragged, to the top.
+    const moved = await post(
+      "/auth/memberships/position",
+      { listId: third, position: "a0" },
+      tokens.accessToken,
+    );
+    expect(moved.status).toBe(200);
+    expect(await moved.json()).toEqual({ listId: third, position: "a0" });
+
+    const body = (await (await get("/auth/memberships", tokens.accessToken)).json()) as {
+      memberships: Array<{ listId: string; position: string | null }>;
+    };
+    expect(body.memberships.map((m) => m.listId)).toEqual([third, first, second]);
+    expect(body.memberships.map((m) => m.position)).toEqual(["a0", null, null]);
+  });
+
+  it("keeps one member's order to themselves", async () => {
+    const ownerEmail = uniqueEmail();
+    const partnerEmail = uniqueEmail();
+    await createUser(ownerEmail);
+    await createUser(partnerEmail);
+    const owner = await login(ownerEmail);
+    const partner = await login(partnerEmail);
+
+    const listId = crypto.randomUUID();
+    await post(`/lists/${listId}`, {}, owner.accessToken);
+    const invite = (await (
+      await post(`/lists/${listId}/invite`, {}, owner.accessToken)
+    ).json()) as { inviteToken: string };
+    await post("/invites/accept", { inviteToken: invite.inviteToken }, partner.accessToken);
+
+    await post("/auth/memberships/position", { listId, position: "a0" }, owner.accessToken);
+
+    const partnerLists = (await (await get("/auth/memberships", partner.accessToken)).json()) as {
+      memberships: Array<{ listId: string; position: string | null }>;
+    };
+    expect(partnerLists.memberships).toEqual([{ listId, role: "member", position: null }]);
+  });
+
+  it("refuses a list the caller is not on with 403, not 404", async () => {
+    const email = uniqueEmail();
+    await createUser(email);
+    const tokens = await login(email);
+
+    const response = await post(
+      "/auth/memberships/position",
+      { listId: crypto.randomUUID(), position: "a0" },
+      tokens.accessToken,
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it("rejects a position that is empty or over the bound", async () => {
+    const email = uniqueEmail();
+    await createUser(email);
+    const tokens = await login(email);
+    const listId = crypto.randomUUID();
+    await post(`/lists/${listId}`, {}, tokens.accessToken);
+
+    for (const position of ["", "a".repeat(257)]) {
+      const response = await post(
+        "/auth/memberships/position",
+        { listId, position },
+        tokens.accessToken,
+      );
+      expect(response.status).toBe(400);
+    }
+  });
+
+  it("needs a token", async () => {
+    expect((await post("/auth/memberships/position", { listId: "x", position: "a0" })).status).toBe(
+      401,
+    );
+  });
 });
 
 describe("end to end: two people, one list", () => {

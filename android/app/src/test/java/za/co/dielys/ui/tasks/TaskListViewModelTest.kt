@@ -9,6 +9,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -17,6 +18,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import za.co.dielys.data.DeviceStack
 import za.co.dielys.data.sync.FakeSyncApi
+import za.co.dielys.ui.reorder.moved
 
 /**
  * The list screen against a real database. Ticking, starring and dragging all go
@@ -57,7 +59,8 @@ class TaskListViewModelTest {
                 assertTrue(awaitItem().isEmpty)
 
                 val start = awaitItem()
-                assertEquals(listOf("Milk", "Bread"), start.active.map { it.title })
+                // Newest first: an added task goes to the top.
+                assertEquals(listOf("Bread", "Milk"), start.active.map { it.title })
                 assertEquals(emptyList<String>(), start.done.map { it.title })
 
                 viewModel.setDone(milk, true)
@@ -69,25 +72,49 @@ class TaskListViewModelTest {
         }
 
     /**
-     * A star is a mark, not a sort. If it moved the row, the position the user
-     * dragged it to would stop meaning anything — and position is the one thing
-     * both phones have to agree on (F5.5).
+     * A star says "this one first", so it moves the row to the top and writes
+     * the position with it — one patch, so no device ever sees the star without
+     * the move.
      */
     @Test
-    fun `starring a task does not move it`() =
+    fun `starring a task moves it to the top`() =
         runTest(dispatcher) {
             open()
-            phone.repo.addTask(listId, "Milk")
-            val bread = phone.repo.addTask(listId, "Bread")
+            val milk = phone.repo.addTask(listId, "Milk")
+            phone.repo.addTask(listId, "Bread")
+
+            viewModel.board.test {
+                assertTrue(awaitItem().isEmpty)
+                assertEquals(listOf("Bread", "Milk"), awaitItem().active.map { it.title })
+                viewModel.setStarred(milk, true)
+
+                val after = awaitItem().active
+                assertEquals(listOf("Milk", "Bread"), after.map { it.title })
+                assertTrue(after.first().starred)
+            }
+        }
+
+    /**
+     * Unstarring leaves the row where it is. Sending it back down would mean
+     * remembering where it came from, and where an unstarred item belongs is
+     * wherever the person put it.
+     */
+    @Test
+    fun `unstarring leaves the task where it is`() =
+        runTest(dispatcher) {
+            open()
+            val milk = phone.repo.addTask(listId, "Milk")
+            phone.repo.addTask(listId, "Bread")
+            phone.repo.setStarred(milk, true)
 
             viewModel.board.test {
                 assertTrue(awaitItem().isEmpty)
                 assertEquals(listOf("Milk", "Bread"), awaitItem().active.map { it.title })
-                viewModel.setStarred(bread, true)
+                viewModel.setStarred(milk, false)
 
                 val after = awaitItem().active
                 assertEquals(listOf("Milk", "Bread"), after.map { it.title })
-                assertTrue(after.last().starred)
+                assertFalse(after.first().starred)
             }
         }
 
@@ -147,18 +174,19 @@ class TaskListViewModelTest {
                 assertTrue(awaitItem().isEmpty)
 
                 val shown = awaitItem().active
-                assertEquals(listOf(milk, bread, jam), shown.map { it.id })
+                // Newest first, so the screen reads Jam, Bread, Milk.
+                assertEquals(listOf(jam, bread, milk), shown.map { it.id })
 
-                // Milk dragged to the bottom.
+                // Jam dragged to the bottom.
                 val dropped = shown.moved(0, 2)
-                val index = dropped.indexOfFirst { it.id == milk }
+                val index = dropped.indexOfFirst { it.id == jam }
                 viewModel.move(
-                    milk,
+                    jam,
                     dropped.getOrNull(index - 1)?.id,
                     dropped.getOrNull(index + 1)?.id,
                 )
 
-                assertEquals(listOf(bread, jam, milk), awaitItem().active.map { it.id })
+                assertEquals(listOf(bread, milk, jam), awaitItem().active.map { it.id })
             }
 
             assertEquals(
