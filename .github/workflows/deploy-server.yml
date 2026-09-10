@@ -20,6 +20,7 @@ jobs:
         working-directory: server
       - run: npm test
         working-directory: server
+        timeout-minutes: 3
       - name: Deploy to dielys-dev
         uses: cloudflare/wrangler-action@v4
         with:
@@ -44,6 +45,7 @@ jobs:
         working-directory: server
       - run: npm test
         working-directory: server
+        timeout-minutes: 3
       - name: Deploy to dielys-prod
         uses: cloudflare/wrangler-action@v4
         with:

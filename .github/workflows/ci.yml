@@ -36,8 +36,13 @@ jobs:
         working-directory: server
       - run: npx tsc --noEmit
         working-directory: server
+      # Local run is ~8s. The sysctl above usually prevents workerd's sandbox
+      # from hanging on ubuntu-latest, but not always (seen once in three
+      # attempts) — this bounds the damage to minutes instead of the job's
+      # full timeout when it recurs.
       - run: npm test
         working-directory: server
+        timeout-minutes: 3
 
   android:
     runs-on: ubuntu-latest
