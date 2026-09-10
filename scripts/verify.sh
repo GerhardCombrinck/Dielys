@@ -11,6 +11,7 @@
 #   scripts/verify.sh server android
 #   FAST=1 scripts/verify.sh       # skip android (the slow one)
 #   CLEAN=1 scripts/verify.sh      # reinstall node deps from the lockfile
+#   DIELYS_TEST_TIMEOUT=300 ...    # seconds one node test leg may take (default 45)
 #
 # Toolchain: JAVA_HOME/ANDROID_HOME are used when already set, otherwise the
 # script falls back to ~/.dielys-toolchain (see scripts/AGENTS.md).
@@ -72,6 +73,11 @@ ensure_node_deps() {
   fi
 }
 
+# The Workers test pool sometimes leaves a workerd running and the test process
+# waiting on it forever (cloudflare/workers-sdk#15498). Bounding and retrying
+# that lives in one script, which ci.yml runs too, so the two cannot drift.
+# See scripts/AGENTS.md.
+
 verify_node_component() {
   name=$1
   dir="$REPO_ROOT/$name"
@@ -80,7 +86,7 @@ verify_node_component() {
   # Same three commands as the workflow, in the same order.
   (cd "$dir" && npx biome ci .) || ok=1
   (cd "$dir" && npx tsc --noEmit) || ok=1
-  (cd "$dir" && npm test --silent) || ok=1
+  sh "$REPO_ROOT/scripts/node-tests.sh" "$name" || ok=1
   return $ok
 }
 
