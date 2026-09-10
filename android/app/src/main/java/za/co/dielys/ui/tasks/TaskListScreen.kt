@@ -1,20 +1,31 @@
 package za.co.dielys.ui.tasks
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -42,6 +53,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -53,7 +65,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -67,7 +81,12 @@ import za.co.dielys.data.local.TaskEntity
 import za.co.dielys.ui.SyncStatus
 import za.co.dielys.ui.TextPrompt
 import za.co.dielys.ui.lists.displayTitle
+import za.co.dielys.ui.reorder.ReorderState
+import za.co.dielys.ui.reorder.draftStillWanted
+import za.co.dielys.ui.reorder.moved
 import za.co.dielys.ui.theme.PillShape
+import za.co.dielys.ui.theme.listAccent
+import za.co.dielys.ui.theme.onListAccent
 
 /**
  * One list. Everything on it comes from Room and every action writes to Room —
@@ -93,6 +112,17 @@ fun TaskListScreen(
 
     var renaming by remember { mutableStateOf<TaskEntity?>(null) }
 
+    // What was just added on this device: the list scrolls to it and the row
+    // lights up, because a new item at the top of a list that is scrolled down is
+    // otherwise added out of sight.
+    val added by viewModel.added.collectAsStateWithLifecycle()
+    var highlighted by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(added) {
+        val id = added ?: return@LaunchedEffect
+        highlighted = id
+        viewModel.addSeen()
+    }
+
     // The order a drag is producing, before the write has come back through Room.
     var draft by remember { mutableStateOf<List<TaskEntity>?>(null) }
     var draggingId by remember { mutableStateOf<String?>(null) }
@@ -105,16 +135,21 @@ fun TaskListScreen(
         if (!wanted) draft = null
     }
 
+    // The header wears the same colour as this list's dot on the Lists screen,
+    // so opening a list is visibly the same list you tapped.
+    val accent = listAccent(listId)
+    val onAccent = onListAccent(accent)
+
     Scaffold(
-        modifier = modifier.imePadding(),
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text(list?.displayTitle ?: "") },
                 colors =
                     TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = accent,
+                        titleContentColor = onAccent,
+                        navigationIconContentColor = onAccent,
                     ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -125,7 +160,7 @@ fun TaskListScreen(
                     SyncStatus(
                         pending = pending,
                         stuck = stuck,
-                        labelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
+                        labelColor = onAccent.copy(alpha = 0.85f),
                     )
                 },
             )
@@ -140,6 +175,8 @@ fun TaskListScreen(
                     active = active,
                     done = board.done,
                     draggingId = draggingId,
+                    highlightedId = highlighted,
+                    scrollTo = added,
                     onDragStart = { index -> draggingId = active.getOrNull(index)?.id },
                     onDragMove = { from, to -> draft = active.moved(from, to) },
                     onDragEnd = {
@@ -191,6 +228,8 @@ private fun Tasks(
     active: List<TaskEntity>,
     done: List<TaskEntity>,
     draggingId: String?,
+    highlightedId: String?,
+    scrollTo: String?,
     onDragStart: (Int) -> Unit,
     onDragMove: (Int, Int) -> Unit,
     onDragEnd: () -> Unit,
@@ -211,10 +250,20 @@ private fun Tasks(
     // land, not go hunting for a collapsed section.
     var doneExpanded by remember { mutableStateOf(true) }
 
+    // Added tasks go to the top, so that is where the screen goes. Animated, so
+    // it is visibly the list moving rather than a different list appearing.
+    LaunchedEffect(scrollTo) {
+        if (scrollTo != null) listState.animateScrollToItem(0)
+    }
+
     LazyColumn(
         state = listState,
+        // A gap between cards, not a line inside one: CARD_GAP is what keeps
+        // consecutive rows from reading as a single block now that each one
+        // stands on its own surface.
+        verticalArrangement = Arrangement.spacedBy(CARD_GAP),
         modifier =
-            Modifier.fillMaxSize().pointerInput(Unit) {
+            Modifier.fillMaxSize().padding(horizontal = 16.dp).pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = { offset ->
                         reorder.start(offset.y, count.value)?.let { start.value(it) }
@@ -236,8 +285,13 @@ private fun Tasks(
     ) {
         items(active, key = { it.id }) { task ->
             val dragging = task.id == draggingId
+            // Animated so the row eases back down on drop; the offset itself
+            // stays unanimated, because it has to track the finger exactly.
+            val lift by animateFloatAsState(if (dragging) 1f else 0f, label = "drag-lift")
             TaskRow(
                 task = task,
+                dragging = dragging,
+                highlighted = task.id == highlightedId,
                 onToggle = { onToggle(task.id, it) },
                 onStar = { onStar(task.id, !task.starred) },
                 onRename = { onRename(task) },
@@ -245,9 +299,21 @@ private fun Tasks(
                 modifier =
                     Modifier
                         .zIndex(if (dragging) 1f else 0f)
+                        // Placement animation on every row but the dragged one:
+                        // that one is already being placed by the finger, and two
+                        // things moving it at once reads as lag. This is what makes
+                        // a starred task visibly travel to the top instead of
+                        // teleporting there.
+                        .then(if (dragging) Modifier else Modifier.animateItem())
                         .graphicsLayer {
                             translationY = if (dragging) reorder.draggingOffset else 0f
-                            shadowElevation = if (dragging) DRAG_ELEVATION else 0f
+                            // The whole row lifts as one card: shadowed and
+                            // slightly larger, rather than a ripple boxed around
+                            // the title. Square corners throughout — no shape or
+                            // clip here, so there is nothing for the lift to round.
+                            shadowElevation = lift * DRAG_ELEVATION
+                            scaleX = 1f + lift * DRAG_SCALE
+                            scaleY = 1f + lift * DRAG_SCALE
                         },
             )
         }
@@ -264,6 +330,7 @@ private fun Tasks(
                 items(done, key = { it.id }) { task ->
                     TaskRow(
                         task = task,
+                        modifier = Modifier.animateItem(),
                         onToggle = { onToggle(task.id, it) },
                         onStar = { onStar(task.id, !task.starred) },
                         onRename = { onRename(task) },
@@ -316,15 +383,95 @@ private fun TaskRow(
     onRename: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    dragging: Boolean = false,
+    highlighted: Boolean = false,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    val background by animateColorAsState(
+        targetValue =
+            if (dragging) {
+                MaterialTheme.colorScheme.surfaceVariant
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
+        label = "drag-background",
+    )
 
-    Surface(modifier = modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    // Starring moves the row to the top, and a row that simply arrives somewhere
+    // else is hard to follow. It lights up instead: the glow is what the eye
+    // tracks on the way up, and it is gone by the time the row settles.
+    //
+    // The state is remembered against the item key, so it survives the move —
+    // this is the same composition travelling, not a new row appearing.
+    val glow = remember { Animatable(0f) }
+    var wasStarred by remember { mutableStateOf(task.starred) }
+    val glowColor = MaterialTheme.colorScheme.secondary
+    LaunchedEffect(task.starred) {
+        if (task.starred && !wasStarred) {
+            glow.snapTo(1f)
+            glow.animateTo(0f, tween(STAR_GLOW_MILLIS, easing = LinearOutSlowInEasing))
+        }
+        wasStarred = task.starred
+    }
+
+    // The same light, held longer: a task that was just typed stays lit while the
+    // eye finds it, then fades rather than switching off.
+    LaunchedEffect(highlighted) {
+        if (!highlighted) return@LaunchedEffect
+        glow.snapTo(1f)
+        glow.animateTo(
+            targetValue = 0f,
+            animationSpec =
+                keyframes {
+                    durationMillis = ADDED_GLOW_MILLIS
+                    1f at ADDED_GLOW_HOLD_MILLIS using LinearOutSlowInEasing
+                    0f at ADDED_GLOW_MILLIS
+                },
+        )
+    }
+
+    // The title alone renames, but the press it belongs to draws across the whole
+    // row: the shared interaction source puts the ripple on the Row while the
+    // click stays on the Text, so a tap does not read as if only the words were hit.
+    val press = remember { MutableInteractionSource() }
+
+    Surface(
+        color = background,
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    // Lifts with the light, so the row reads as picked up rather
+                    // than repainted. Square, like every other card — no shape or
+                    // clip, so the corners never round mid-animation.
+                    shadowElevation = glow.value * STAR_GLOW_ELEVATION
+                }.drawWithContent {
+                    drawContent()
+                    val strength = glow.value
+                    if (strength > 0f) {
+                        // Brightest at the leading edge — the side the row is
+                        // travelling towards — and fading across the rest.
+                        drawRect(
+                            brush =
+                                Brush.horizontalGradient(
+                                    listOf(
+                                        glowColor.copy(alpha = STAR_GLOW_ALPHA * strength),
+                                        glowColor.copy(alpha = STAR_GLOW_ALPHA * 0.45f * strength),
+                                        Color.Transparent,
+                                    ),
+                                ),
+                        )
+                    }
+                },
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.indication(press, ripple()),
+        ) {
             TaskCheckbox(
                 checked = task.done,
                 onCheckedChange = onToggle,
-                modifier = Modifier.padding(start = 16.dp),
+                modifier = Modifier.padding(start = 2.dp),
             )
 
             Text(
@@ -334,8 +481,11 @@ private fun TaskRow(
                 modifier =
                     Modifier
                         .weight(1f)
-                        .clickable(onClick = onRename)
-                        .padding(start = 14.dp, top = 14.dp, bottom = 14.dp)
+                        .clickable(
+                            interactionSource = press,
+                            indication = null,
+                            onClick = onRename,
+                        ).padding(start = 8.dp, top = 16.dp, bottom = 16.dp)
                         .alpha(if (task.done) DONE_ALPHA else 1f),
             )
 
@@ -394,27 +544,39 @@ private fun TaskCheckbox(
         if (dark) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
     val borderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
 
+    // The tap target is the 48dp box Material asks for; the 20dp square inside is
+    // only what it looks like. Ticking things off is done one-handed in a shop,
+    // and a 20dp target is a miss half the time.
     Box(
         modifier =
             modifier
-                .size(20.dp)
-                .clip(RoundedCornerShape(5.dp))
-                .then(
-                    if (checked) {
-                        Modifier.background(fillColor)
-                    } else {
-                        Modifier.border(2.dp, borderColor, RoundedCornerShape(5.dp))
-                    },
-                ).clickable(onClick = { onCheckedChange(!checked) }),
+                .size(CHECKBOX_TOUCH_TARGET)
+                .clip(CircleShape)
+                .clickable(onClick = { onCheckedChange(!checked) }),
         contentAlignment = Alignment.Center,
     ) {
-        if (checked) {
-            Icon(
-                Icons.Filled.Check,
-                contentDescription = null,
-                tint = if (dark) CheckGlyphOnAmber else Color.White,
-                modifier = Modifier.size(14.dp),
-            )
+        Box(
+            modifier =
+                Modifier
+                    .size(20.dp)
+                    .clip(RoundedCornerShape(5.dp))
+                    .then(
+                        if (checked) {
+                            Modifier.background(fillColor)
+                        } else {
+                            Modifier.border(2.dp, borderColor, RoundedCornerShape(5.dp))
+                        },
+                    ),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (checked) {
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = if (dark) CheckGlyphOnAmber else Color.White,
+                    modifier = Modifier.size(14.dp),
+                )
+            }
         }
     }
 }
@@ -433,7 +595,15 @@ private fun AddTaskBar(onAdd: (String) -> Unit) {
 
     Surface(tonalElevation = 3.dp) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            // union, not two paddings: with the keyboard up the IME inset already
+            // covers the nav bar, and adding both leaves a gap under the field.
+            // Scaffold does not inset its own bottomBar, so edge-to-edge would
+            // otherwise slide this under the system buttons.
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
+                    .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             OutlinedTextField(
@@ -490,6 +660,24 @@ private fun Empty() {
 }
 
 private const val DRAG_ELEVATION = 12f
+
+/** Breathing room between cards, so neighbours read as separate surfaces. */
+private val CARD_GAP = 8.dp
+
+/** How long the star's glow takes to fade — long enough to follow the row up,
+ * short enough that it is over before the next thing is tapped. */
+private const val STAR_GLOW_MILLIS = 700
+private const val STAR_GLOW_ALPHA = 0.38f
+private const val STAR_GLOW_ELEVATION = 8f
+
+/** Two seconds for something just typed: long enough to look up from the
+ * keyboard and find it, and it fades instead of ending. */
+private const val ADDED_GLOW_MILLIS = 2000
+private const val ADDED_GLOW_HOLD_MILLIS = 700
+
+/** Material's minimum, and what a thumb in a shop actually needs. */
+private val CHECKBOX_TOUCH_TARGET = 48.dp
+private const val DRAG_SCALE = 0.02f
 private const val DONE_ALPHA = 0.6f
 
 /** NavyDeep — the check glyph reads dark against the dark-mode done checkbox's amber fill. */

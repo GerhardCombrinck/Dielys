@@ -26,6 +26,15 @@ data class ListEntity(
     @ColumnInfo(name = "updated_at") val updatedAt: String? = null,
     /** `owner` or `member`, from `/auth/memberships`. Null until that call lands. */
     @ColumnInfo(name = "role") val role: String? = null,
+    /**
+     * Where this list sits in *this account's* order — the same fractional index
+     * tasks use (F5.5), held on the membership server-side rather than on the
+     * list, because the other person on a shared list keeps their own order.
+     *
+     * Null on a list nobody has dragged yet. Those sort after every positioned
+     * one, so a list that arrives by invite lands at the bottom.
+     */
+    @ColumnInfo(name = "position") val position: String? = null,
 ) {
     /**
      * L3: only the owner may invite. Null — a list whose membership has not been

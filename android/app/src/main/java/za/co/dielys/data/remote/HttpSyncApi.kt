@@ -90,6 +90,21 @@ class HttpSyncApi
                 request(url("auth", "memberships"), body = null),
             ).memberships
 
+        override suspend fun setListPosition(
+            listId: String,
+            position: String,
+        ) {
+            // The answer echoes what was sent, so there is nothing to read back.
+            request(
+                url("auth", "memberships", "position"),
+                DielysJson.wire
+                    .encodeToString(
+                        SetListPositionRequest.serializer(),
+                        SetListPositionRequest(listId = listId, position = position),
+                    ).toRequestBody(jsonMedia),
+            )
+        }
+
         override suspend fun createInvite(listId: String): CreateInviteResponse =
             decode(
                 CreateInviteResponse.serializer(),

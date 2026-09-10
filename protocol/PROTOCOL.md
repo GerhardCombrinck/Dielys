@@ -92,7 +92,8 @@ rules are CODE_STANDARD.md L1–L3.
 |---|---|---|---|
 | POST | `/auth/login` | none | `LoginRequest` → `TokenPair` |
 | POST | `/auth/refresh` | none | `RefreshRequest` → `TokenPair`, rotating the refresh token |
-| GET | `/auth/memberships` | access token | Lists the caller can reach |
+| GET | `/auth/memberships` | access token | Lists the caller can reach, in the caller's own order |
+| POST | `/auth/memberships/position` | access token | `SetListPositionRequest` → `SetListPositionResponse` |
 | POST | `/lists/{listId}` | access token | Claim a client-generated list id as owner |
 | POST | `/lists/{listId}/invite` | access token, owner | → `CreateInviteResponse` |
 | POST | `/invites/accept` | access token | `AcceptInviteRequest` → `AcceptInviteResponse` |
@@ -119,6 +120,17 @@ the invitee — already logged in as themselves — POSTs it to `/invites/accept
 
 A request for a list the caller is not a member of returns **403, not 404**: membership must
 not double as an oracle for which list ids exist.
+
+### Ordering the lists
+
+The order the lists appear in belongs to the **member**, not the list: `Membership.position`
+is a fractional index (F5.5) stored per `(user, list)` in `UsersRoom`, so two people sharing a
+list each drag their own copy around without touching the other's screen. It is not part of a
+list's changelog for the same reason — a `ListRoom` change is seen by everybody on that list.
+
+`POST /auth/memberships/position` sets one membership's key, computed client-side from the two
+neighbours it was dropped between. A membership with a null position sorts after every
+positioned one, by age, so a newly joined list lands at the bottom rather than in the middle.
 
 ## Wake push (M1)
 

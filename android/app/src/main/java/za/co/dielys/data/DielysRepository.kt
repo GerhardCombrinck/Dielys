@@ -16,6 +16,7 @@ import za.co.dielys.domain.Clock
 import za.co.dielys.domain.Position
 import za.co.dielys.domain.Timestamps
 import za.co.dielys.domain.Uuid7
+import za.co.dielys.domain.seedPositions
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -96,16 +97,21 @@ class DielysRepository
         }
 
         /**
-         * Appends. The new key comes from the last task already in the list, so 62
-         * additions in a row stay two characters (F5.5).
+         * Prepends. What was just typed is what the person is still thinking
+         * about, so it goes where they are looking rather than at the far end of
+         * a list they have to scroll.
+         *
+         * Prepending lengthens the key, unlike appending, which is the price:
+         * `between(null, first)` has to find room below an existing key rather
+         * than incrementing past the last one (F5.5).
          */
         suspend fun addTask(
             listId: String,
             title: String,
         ): String {
             val id = Uuid7.generate(clock.nowMillis())
-            val last = db.tasks().inList(listId).lastOrNull()
-            val position = Position.between(last?.position, null)
+            val first = db.tasks().inList(listId).firstOrNull()
+            val position = Position.between(null, first?.position)
 
             // A task create MUST carry title and position — the server invents
             // defaults for nothing only the client can know.
@@ -131,12 +137,42 @@ class DielysRepository
             commitTask(task.copy(done = done), TaskPatch(done = done))
         }
 
+        /**
+         * Starring also moves the task to the top — the star is what somebody
+         * uses to say "this one first", and leaving it in place halfway down the
+         * list makes them do the dragging themselves.
+         *
+         * Unstarring leaves it where it is. Sending it back down would mean
+         * remembering where it came from, and the honest answer to "where does an
+         * unstarred item belong" is "wherever the person put it".
+         *
+         * One patch, so the two land together: a device that saw the star without
+         * the move would show it in the old place until the next change arrived.
+         */
         suspend fun setStarred(
             taskId: String,
             starred: Boolean,
         ) {
             val task = db.tasks().find(taskId) ?: return
-            commitTask(task.copy(starred = starred), TaskPatch(starred = starred))
+            if (!starred) {
+                commitTask(task.copy(starred = false), TaskPatch(starred = false))
+                return
+            }
+
+            val first = db.tasks().inList(task.listId).firstOrNull()
+            // Already at the top, or the only row: starring must not mint a key
+            // below its own.
+            val position =
+                if (first == null || first.id == task.id) {
+                    task.position
+                } else {
+                    Position.between(null, first.position)
+                }
+
+            commitTask(
+                task.copy(starred = true, position = position),
+                TaskPatch(starred = true, position = position),
+            )
         }
 
         suspend fun renameTask(
@@ -172,6 +208,59 @@ class DielysRepository
             val before = beforeId?.let { db.tasks().find(it) }
             val position = Position.between(after?.position, before?.position)
             commitTask(task.copy(position = position), TaskPatch(position = position))
+        }
+
+        /**
+         * Moves one list in this account's own order — the lists screen's drag.
+         *
+         * Not a list mutation: it goes to `UsersRoom` as a membership position
+         * (PROTOCOL.md "Ordering the lists"), so the other person on a shared list
+         * keeps their own order. Same fractional index as a task, and the same
+         * one-row rule: a move never renumbers the lists around it (F5.5).
+         *
+         * Lists that predate this feature have no key at all. Rather than invent
+         * one for the whole screen on first launch, the first drag seeds every
+         * list that is missing one, in the order they are already shown — so what
+         * the person sees before the drag is what they see after it, minus the row
+         * they moved.
+         */
+        suspend fun moveList(
+            listId: String,
+            afterId: String?,
+            beforeId: String?,
+        ) {
+            val ordered = db.lists().all()
+            if (ordered.none { it.id == listId }) return
+
+            val seeded =
+                seedPositions(
+                    ordered,
+                    positionOf = { it.position },
+                    withPosition = { list, key -> list.copy(position = key) },
+                )
+            val byId = seeded.associateBy { it.id }
+            val moved = byId[listId] ?: return
+            val position =
+                Position.between(byId[afterId]?.position, byId[beforeId]?.position)
+
+            // Rows the seed gave a key to — the ones that had none — plus the move
+            // itself. All of them are this account's own membership rows, so they
+            // queue as ORDER rows rather than as list mutations.
+            val unseeded = ordered.filter { it.position == null }.map { it.id }.toSet()
+            val seedWrites = seeded.filter { it.id in unseeded && it.id != listId }
+
+            commit(
+                entity = {
+                    for (list in seedWrites) db.lists().upsert(list)
+                    db.lists().upsert(moved.copy(position = position))
+                },
+                rows =
+                    seedWrites.map {
+                        // seedPositions leaves none of these null.
+                        outbox.order(listId = it.id, position = checkNotNull(it.position))
+                    } +
+                        outbox.order(listId = listId, position = position),
+            )
         }
 
         private suspend fun commitTask(

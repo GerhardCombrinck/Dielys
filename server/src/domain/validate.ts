@@ -29,6 +29,7 @@ import {
   type RefreshRequest,
   type RegisterDeviceRequest,
   type RegisterRequest,
+  type SetListPositionRequest,
   type TaskPatch,
 } from "@dielys/protocol";
 
@@ -301,6 +302,20 @@ export function validateAcceptInviteRequest(input: unknown): Validated<AcceptInv
     return fail("inviteToken");
   }
   return { ok: true, value: { inviteToken: token } };
+}
+
+/**
+ * `POST /auth/memberships/position`. The position is checked for shape here and
+ * for *legality* nowhere: an unparseable key sorts somewhere harmless in one
+ * person's own list and cannot corrupt anybody else's, so a bound is the whole
+ * boundary check this needs (F3).
+ */
+export function validateSetListPositionRequest(input: unknown): Validated<SetListPositionRequest> {
+  if (!isRecord(input)) return fail("not an object");
+  if (!isId(input.listId)) return fail("listId");
+  if (!isBoundedString(input.position, MAX_POSITION_LENGTH)) return fail("position");
+  if (input.position === "") return fail("position is empty");
+  return { ok: true, value: { listId: input.listId, position: input.position } };
 }
 
 /**

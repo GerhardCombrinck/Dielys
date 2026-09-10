@@ -42,6 +42,7 @@ import {
   selectRefreshToken,
   selectUserByEmail,
   selectUserById,
+  updateMembershipPosition,
   updateUserPassword,
   upsertDevice,
   upsertRateLimit,
@@ -278,6 +279,31 @@ export class UsersRoom extends DurableObject {
 
   async listMemberships(userId: string): Promise<Membership[]> {
     return selectMemberships(this.sql, userId);
+  }
+
+  /**
+   * Moves one list in this user's own ordering (PROTOCOL.md "Ordering the
+   * lists"). Nobody else on the list sees it: the key lives on the membership,
+   * not on the list.
+   *
+   * Last-write-wins on one column the caller alone owns, so a replayed request
+   * is the same state and no idempotency key is needed. Refused with
+   * `forbidden` rather than `not-found` when the caller is not a member (L3).
+   */
+  async setListPosition(
+    userId: string,
+    listId: string,
+    position: string,
+  ): Promise<UsersResult<{ listId: string; position: string }>> {
+    let moved = false;
+    this.ctx.storage.transactionSync(() => {
+      moved = updateMembershipPosition(this.sql, userId, listId, position);
+    });
+    if (!moved) {
+      log("warn", "usersroom.position.not-a-member", { userId, listId });
+      return { ok: false, code: "forbidden" };
+    }
+    return { ok: true, value: { listId, position } };
   }
 
   /**
