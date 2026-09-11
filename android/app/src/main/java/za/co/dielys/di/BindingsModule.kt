@@ -6,6 +6,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import za.co.dielys.data.SessionRepository
 import za.co.dielys.data.local.DeviceIdentity
+import za.co.dielys.data.local.DoneSectionPrefs
 import za.co.dielys.data.local.NewTaskPlacement
 import za.co.dielys.data.local.PushTokenStore
 import za.co.dielys.data.local.SessionSignal
@@ -74,4 +75,9 @@ abstract class BindingsModule {
     @Binds
     @Singleton
     abstract fun newTaskPlacement(impl: UiPrefs): NewTaskPlacement
+
+    /** Same reason as [newTaskPlacement] — one seam, two faces of [UiPrefs]. */
+    @Binds
+    @Singleton
+    abstract fun doneSectionPrefs(impl: UiPrefs): DoneSectionPrefs
 }

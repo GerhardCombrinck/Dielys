@@ -134,6 +134,10 @@ fun TaskListScreen(
     var draggingId by remember { mutableStateOf<String?>(null) }
     val active = draft ?: board.active
 
+    // Local to this phone — read once per list rather than watched, since
+    // nothing else changes it while this screen is open.
+    var doneExpanded by remember(listId) { mutableStateOf(viewModel.isDoneExpanded(listId)) }
+
     LaunchedEffect(board.active, draft) {
         val current = draft ?: return@LaunchedEffect
         val wanted =
@@ -217,6 +221,11 @@ fun TaskListScreen(
                     ghostText = ghostText,
                     ghostId = pendingId,
                     ghostAtTop = newItemsOnTop,
+                    doneExpanded = doneExpanded,
+                    onToggleDoneExpanded = {
+                        doneExpanded = !doneExpanded
+                        viewModel.setDoneExpanded(listId, doneExpanded)
+                    },
                     onDragStart = { index -> draggingId = active.getOrNull(index)?.id },
                     onDragMove = { from, to -> draft = active.moved(from, to) },
                     onDragEnd = {
@@ -272,6 +281,8 @@ private fun Tasks(
     ghostText: String?,
     ghostId: String?,
     ghostAtTop: Boolean,
+    doneExpanded: Boolean,
+    onToggleDoneExpanded: () -> Unit,
     onDragStart: (Int) -> Unit,
     onDragMove: (Int, Int) -> Unit,
     onDragEnd: () -> Unit,
@@ -288,9 +299,6 @@ private fun Tasks(
     val moveRow = rememberUpdatedState(onDragMove)
     val end = rememberUpdatedState(onDragEnd)
     val cancel = rememberUpdatedState(onDragCancel)
-    // Default expanded: a person who just finished something wants to see it
-    // land, not go hunting for a collapsed section.
-    var doneExpanded by remember { mutableStateOf(true) }
 
     // Keyed on ghostId once there is one, so the placeholder and the real row
     // Room eventually produces are the same LazyColumn item — the id carries
@@ -391,7 +399,7 @@ private fun Tasks(
                 DoneHeading(
                     count = done.size,
                     expanded = doneExpanded,
-                    onClick = { doneExpanded = !doneExpanded },
+                    onClick = onToggleDoneExpanded,
                 )
             }
             if (doneExpanded) {

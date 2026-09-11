@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import za.co.dielys.data.DielysRepository
+import za.co.dielys.data.local.DoneSectionPrefs
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.local.NewTaskPlacement
 import za.co.dielys.data.local.TaskEntity
@@ -44,6 +45,7 @@ class TaskListViewModel
     constructor(
         private val repo: DielysRepository,
         private val clock: Clock,
+        private val doneSection: DoneSectionPrefs,
         placement: NewTaskPlacement,
     ) : ViewModel() {
         private val listId = MutableStateFlow<String?>(null)
@@ -70,6 +72,15 @@ class TaskListViewModel
         fun open(id: String) {
             if (listId.value != id) listId.value = id
         }
+
+        /** Local to this phone, not part of [board] — a Room read would also
+         *  make it something the sync engine has to carry. */
+        fun isDoneExpanded(listId: String): Boolean = doneSection.isExpanded(listId)
+
+        fun setDoneExpanded(
+            listId: String,
+            expanded: Boolean,
+        ) = doneSection.setExpanded(listId, expanded)
 
         /**
          * Mints the id up front and hands it back before the write lands, so the

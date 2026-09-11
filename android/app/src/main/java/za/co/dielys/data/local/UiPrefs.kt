@@ -21,6 +21,22 @@ interface NewTaskPlacement {
 }
 
 /**
+ * Whether a list's Done section is expanded — read once when the screen opens
+ * rather than watched, since nothing else on the phone changes it while that
+ * screen is showing. Per list (keyed on [DoneSectionPrefs.isExpanded]'s
+ * `listId`), because a long list someone has tidied away and a short one they
+ * are still filling are different questions.
+ */
+interface DoneSectionPrefs {
+    fun isExpanded(listId: String): Boolean
+
+    fun setExpanded(
+        listId: String,
+        expanded: Boolean,
+    )
+}
+
+/**
  * Small display choices that belong to this phone, not to a list — so they
  * live in preferences rather than Room and never cross the sync boundary.
  * Two people on the same shared list can set these differently.
@@ -30,7 +46,8 @@ class UiPrefs
     @Inject
     constructor(
         @ApplicationContext context: Context,
-    ) : NewTaskPlacement {
+    ) : NewTaskPlacement,
+        DoneSectionPrefs {
         private val prefs: SharedPreferences =
             context.getSharedPreferences("dielys-ui-prefs", Context.MODE_PRIVATE)
 
@@ -44,7 +61,21 @@ class UiPrefs
             _newItemsOnTop.value = value
         }
 
+        // Default expanded, matching the behaviour before this was
+        // rememberable: a person who just finished something wants to see it
+        // land, not go hunting for a collapsed section.
+        override fun isExpanded(listId: String): Boolean =
+            prefs.getBoolean(KEY_DONE_EXPANDED_PREFIX + listId, true)
+
+        override fun setExpanded(
+            listId: String,
+            expanded: Boolean,
+        ) {
+            prefs.edit().putBoolean(KEY_DONE_EXPANDED_PREFIX + listId, expanded).apply()
+        }
+
         private companion object {
             const val KEY_NEW_ITEMS_ON_TOP = "new-items-on-top"
+            const val KEY_DONE_EXPANDED_PREFIX = "done-expanded-"
         }
     }

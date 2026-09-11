@@ -18,6 +18,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import za.co.dielys.data.DeviceStack
+import za.co.dielys.data.local.DoneSectionPrefs
 import za.co.dielys.data.local.NewTaskPlacement
 import za.co.dielys.data.sync.FakeSyncApi
 import za.co.dielys.ui.reorder.moved
@@ -43,7 +44,16 @@ class TaskListViewModelTest {
             object : NewTaskPlacement {
                 override val newItemsOnTop = MutableStateFlow(true)
             }
-        viewModel = TaskListViewModel(phone.repo, phone.clock, placement)
+        val doneSection =
+            object : DoneSectionPrefs {
+                override fun isExpanded(listId: String) = true
+
+                override fun setExpanded(
+                    listId: String,
+                    expanded: Boolean,
+                ) = Unit
+            }
+        viewModel = TaskListViewModel(phone.repo, phone.clock, doneSection, placement)
     }
 
     @After
