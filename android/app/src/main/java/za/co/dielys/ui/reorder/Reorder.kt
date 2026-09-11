@@ -209,9 +209,26 @@ class ReorderState(
                     middle <= item.offset + item.size
             } ?: return
 
+        // A LazyColumn pins the *key* of its first visible item to the top
+        // across a change to the list, so reordering the row that happens to be
+        // that anchor drags the viewport along after it: pick up the first row,
+        // move it down two, and the list scrolls down two with it, leaving the
+        // row somewhere further down than the finger asked for (#53). Only the
+        // first visible row can be the anchor, which is why every other row
+        // moves cleanly.
+        //
+        // Re-pinning by index instead holds the viewport where it is. The
+        // request is applied on the next measure, by which time the new order is
+        // in place — anchoring to a position rather than to a row that is in the
+        // middle of leaving it.
+        val anchor = listState.firstVisibleItemIndex
+        val anchorOffset = listState.firstVisibleItemScrollOffset
+
         onMove(current.index, target.index)
         // draggingKey is left untouched: the row being dragged has not
         // changed, only its index has, and the next read resolves that fresh.
+
+        listState.requestScrollToItem(anchor, anchorOffset)
     }
 
     private fun itemAt(key: Any): LazyListItemInfo? =
