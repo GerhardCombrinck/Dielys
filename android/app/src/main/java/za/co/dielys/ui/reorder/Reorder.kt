@@ -49,9 +49,21 @@ fun draftStillWanted(
 class ReorderState(
     private val listState: LazyListState,
 ) {
+    /**
+     * Key (`items(..., key = ...)`) of the row under the finger, or null when
+     * nothing is being dragged. Identity, not a slot: the LazyColumn can still
+     * be composed with yesterday's order for a frame after [drag] asks for a
+     * swap, since the state change that reorders `active` and the recomposition
+     * that lays it back out are two separate steps. Tracking *which row*
+     * rather than *which index* means a lookup in that gap finds the row
+     * itself wherever it currently sits, instead of whatever row is still
+     * sitting at the index the swap was asked for.
+     */
+    private var draggingKey by mutableStateOf<Any?>(null)
+
     /** Index of the row under the finger, or null when nothing is being dragged. */
-    var draggingIndex by mutableStateOf<Int?>(null)
-        private set
+    val draggingIndex: Int?
+        get() = draggingItem?.index
 
     private var accumulated by mutableFloatStateOf(0f)
     private var initialOffset by mutableIntStateOf(0)
@@ -69,7 +81,7 @@ class ReorderState(
             draggingItem?.let { item -> (initialOffset + accumulated) - item.offset } ?: 0f
 
     private val draggingItem: LazyListItemInfo?
-        get() = draggingIndex?.let { index -> itemAt(index) }
+        get() = draggingKey?.let { key -> itemAt(key) }
 
     /**
      * @param y where the long press landed, in pixels from the top of the list.
@@ -85,7 +97,7 @@ class ReorderState(
                 item.index < count && y >= item.offset && y <= item.offset + item.size
             } ?: return null
 
-        draggingIndex = picked.index
+        draggingKey = picked.key
         initialOffset = picked.offset
         accumulated = 0f
         limit = count
@@ -109,22 +121,23 @@ class ReorderState(
 
         val target =
             listState.layoutInfo.visibleItemsInfo.firstOrNull { item ->
-                item.index != current.index &&
+                item.key != current.key &&
                     item.index < limit &&
                     middle >= item.offset &&
                     middle <= item.offset + item.size
             } ?: return
 
         onMove(current.index, target.index)
-        draggingIndex = target.index
+        // draggingKey is left untouched: the row being dragged has not
+        // changed, only its index has, and the next read resolves that fresh.
     }
 
     fun stop() {
-        draggingIndex = null
+        draggingKey = null
         accumulated = 0f
         initialOffset = 0
     }
 
-    private fun itemAt(index: Int): LazyListItemInfo? =
-        listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
+    private fun itemAt(key: Any): LazyListItemInfo? =
+        listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == key }
 }
