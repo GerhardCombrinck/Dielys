@@ -8,8 +8,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -61,9 +63,20 @@ class TaskListViewModel
         val board: StateFlow<TaskBoard> =
             listId
                 .filterNotNull()
-                .flatMapLatest { repo.observeTasks(it) }
-                .map { tasks -> TaskBoard(tasks.filterNot { it.done }, tasks.filter { it.done }) }
-                .asState(TaskBoard())
+                .flatMapLatest { id ->
+                    // A fresh empty frame on every switch, not just the very first
+                    // subscription — otherwise opening list B renders list A's
+                    // stale board (including its Done section) until Room answers,
+                    // and animateItem() then animates that stale-to-real jump.
+                    flow {
+                        emit(TaskBoard())
+                        emitAll(
+                            repo.observeTasks(id).map { tasks ->
+                                TaskBoard(tasks.filterNot { it.done }, tasks.filter { it.done })
+                            },
+                        )
+                    }
+                }.asState(TaskBoard())
 
         val pending: StateFlow<Int> = repo.observePendingCount().asState(0)
         val stuck: StateFlow<Int> = repo.observeStuckCount().asState(0)
