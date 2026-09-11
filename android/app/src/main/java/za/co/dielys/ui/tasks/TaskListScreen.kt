@@ -540,9 +540,11 @@ private fun TaskRow(
         )
     }
 
-    // The title alone renames, but the press it belongs to draws across the whole
-    // row: the shared interaction source puts the ripple on the Row while the
-    // click stays on the Text, so a tap does not read as if only the words were hit.
+    // Tapping the title does nothing but acknowledge the tap — editing is a
+    // deliberate action off the options menu, not a side effect of trying to
+    // read a long line. The shared interaction source puts the ripple on the
+    // Row while the click target stays the Text, so it does not read as if
+    // only the words were hit.
     val press = remember { MutableInteractionSource() }
 
     Surface(
@@ -594,7 +596,7 @@ private fun TaskRow(
                         .clickable(
                             interactionSource = press,
                             indication = null,
-                            onClick = onRename,
+                            onClick = {},
                         ).padding(start = 8.dp, top = 16.dp, bottom = 16.dp)
                         .alpha(if (task.done) DONE_ALPHA else 1f),
             )
