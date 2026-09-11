@@ -61,6 +61,7 @@
 
     <!-- Lists screen. -->
     <string name="lists_title">Lyste</string>
+    <string name="lists_tagline">Sit dit op die lys</string>
     <string name="new_list_label">Nuwe lys</string>
     <string name="rename_list_title">Hernoem lys</string>
     <string name="not_synced_yet">Nog nie gesinkroniseer nie</string>

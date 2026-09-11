@@ -1,9 +1,8 @@
 <resources>
-    <!-- Brand — the same in every language (#42): a wordmark and taglines are
-         identity, not instructions, so they are never translated. -->
+    <!-- Brand — the same in every language (#42): a wordmark is identity, not
+         instructions, so it is never translated. -->
     <string name="app_name" translatable="false">Die Lys</string>
     <string name="brand_tagline" translatable="false">SIT DIT OP DIE LYS</string>
-    <string name="lists_tagline" translatable="false">Twee mense, één lys.</string>
 
     <!-- Shared actions and labels, reused across several dialogs. -->
     <string name="action_save">Save</string>
@@ -66,8 +65,11 @@
     <string name="empty_list_title">Nothing on this list</string>
     <string name="empty_list_subtitle">Type below to add the first thing.</string>
 
-    <!-- Lists screen. -->
+    <!-- Lists screen. `lists_tagline` sits under the title and describes what
+         the app is for, so unlike the wordmark above it it does get translated
+         (#55). -->
     <string name="lists_title">Lists</string>
+    <string name="lists_tagline">Put it on the list</string>
     <string name="new_list_label">New list</string>
     <string name="rename_list_title">Rename list</string>
     <string name="not_synced_yet">Not synced yet</string>

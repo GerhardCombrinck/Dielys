@@ -57,6 +57,7 @@
     <string name="empty_list_subtitle">Nwalani fhasi uri ni engedze tshithu tsha u thoma.</string>
 
     <string name="lists_title">Mitevhe</string>
+    <string name="lists_tagline">I vhee kha mutevhe</string>
     <string name="new_list_label">Mutevhe muswa</string>
     <string name="rename_list_title">Shandukisa dzina la mutevhe</string>
     <string name="not_synced_yet">A tho ngo tanganyiswa</string>

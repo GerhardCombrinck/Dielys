@@ -57,6 +57,7 @@
     <string name="empty_list_subtitle">Thayipha ngezansi ukuze wengeze into yokuqala.</string>
 
     <string name="lists_title">Izinhlu</string>
+    <string name="lists_tagline">Kufake ohlwini</string>
     <string name="new_list_label">Uhlu olusha</string>
     <string name="rename_list_title">Shintsha igama lohlu</string>
     <string name="not_synced_yet">Akukavumelaniswa</string>

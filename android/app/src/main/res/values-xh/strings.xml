@@ -57,6 +57,7 @@
     <string name="empty_list_subtitle">Chwetheza ngezantsi ukongeza into yokuqala.</string>
 
     <string name="lists_title">Uluhlu</string>
+    <string name="lists_tagline">Yifake eluhlwini</string>
     <string name="new_list_label">Uluhlu olutsha</string>
     <string name="rename_list_title">Tshintsha igama loluhlu</string>
     <string name="not_synced_yet">Ayikalungelelaniswa</string>
