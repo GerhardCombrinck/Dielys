@@ -400,6 +400,85 @@ private fun rememberGhostRowState(
     return GhostRowState(key, visible)
 }
 
+/** The two row taps that reorder the list, wrapped so each one also leaves the
+ *  viewport somewhere sensible. See [rememberRowMoves]. */
+private class RowMoves(
+    val toggle: (String, Boolean) -> Unit,
+    val star: (TaskEntity) -> Unit,
+)
+
+/**
+ * Ticking a row off and starring one both move it, and `LazyColumn` pins the
+ * first visible row's *key* — so both drag the viewport somewhere nobody asked
+ * for. This is what each should do instead. Pulled out of [Tasks] to keep that
+ * function's own branching under the complexity threshold.
+ *
+ * Both wait for the new order rather than acting on the tap: Room answers
+ * several frames later, and until it does the list has not moved, so anything
+ * sent at the tap acts on the old one.
+ */
+@Composable
+private fun rememberRowMoves(
+    active: List<TaskEntity>,
+    done: List<TaskEntity>,
+    listState: LazyListState,
+    onToggle: (String, Boolean) -> Unit,
+    onStar: (String, Boolean) -> Unit,
+): RowMoves {
+    // #56: ticking the row pinned to the top sends that key down into the Done
+    // section and the viewport follows it there. Put it back. Any other row
+    // leaving does not move the anchor, which is what makes re-pinning to the
+    // same place a no-op there.
+    var repin by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    LaunchedEffect(active, done) {
+        val (index, offset) = repin ?: return@LaunchedEffect
+        repin = null
+        listState.requestScrollToItem(index, offset)
+    }
+
+    // #58: starring sends the row to the top of the list, which is off the top
+    // of the *screen* the moment the list is scrolled at all — and the pinning
+    // above means even a list already at the top slides down by exactly one row
+    // to keep its old first row in place, hiding the row just starred. Either
+    // way it vanishes, and the glow meant to be followed up there plays where
+    // nobody can see it. Go up with it.
+    var chasing by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(active) {
+        val id = chasing ?: return@LaunchedEffect
+        // Not at the top yet, so this is some other change and the star is
+        // still on its way. Scrolling now would leave what is being looked at
+        // for no reason.
+        if (active.firstOrNull()?.id != id) return@LaunchedEffect
+        chasing = null
+        // Instant, not animated, for the same reason the repin above is: the
+        // server echoes the star back a moment later, rewriting the row with
+        // its own timestamp, and that re-lays the list out. A scroll animation
+        // still in flight when that lands gets disturbed mid-travel — the
+        // twitch that showed up exactly as the sync icon went green. There is
+        // nothing to disturb once the viewport is already where it belongs.
+        //
+        // Nothing is lost by not animating it: the row itself still travels,
+        // because animateItem() is what carries it up to the top, glow and
+        // all. The viewport only has to be somewhere that can see it happen.
+        listState.requestScrollToItem(0)
+    }
+
+    return RowMoves(
+        toggle = { id, value ->
+            repin = listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset
+            onToggle(id, value)
+        },
+        star = { task ->
+            // Nothing to follow on the way out — unstarring leaves the row where
+            // it is — nor for a row already at the top, which will not move, so
+            // there would be no new order to wait for and the wait would never
+            // end.
+            if (!task.starred && active.firstOrNull()?.id != task.id) chasing = task.id
+            onStar(task.id, !task.starred)
+        },
+    )
+}
+
 @Composable
 private fun Tasks(
     active: List<TaskEntity>,
@@ -444,23 +523,7 @@ private fun Tasks(
 
     val ghost = rememberGhostRowState(ghostText, ghostId, ghostAtTop, active, listState)
 
-    // Ticking the row the LazyColumn has pinned to the top sends that key down
-    // into the Done section, and the viewport follows it there (#56) — the same
-    // anchoring that used to drag the list along with a reordered first row.
-    // Unlike a drag, the new order arrives from Room several frames after the
-    // tap, so the viewport is put back when the lists actually change rather
-    // than at the tap itself. Any other row leaving does not move the anchor,
-    // which is what makes re-pinning to the same place a no-op there.
-    var repin by remember { mutableStateOf<Pair<Int, Int>?>(null) }
-    LaunchedEffect(active, done) {
-        val (index, offset) = repin ?: return@LaunchedEffect
-        repin = null
-        listState.requestScrollToItem(index, offset)
-    }
-    val toggleHoldingScroll: (String, Boolean) -> Unit = { id, value ->
-        repin = listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset
-        onToggle(id, value)
-    }
+    val moves = rememberRowMoves(active, done, listState, onToggle, onStar)
 
     LazyColumn(
         state = listState,
@@ -492,8 +555,8 @@ private fun Tasks(
                 accent = accent,
                 dragging = dragging,
                 highlighted = task.id == highlightedId,
-                onToggle = { toggleHoldingScroll(task.id, it) },
-                onStar = { onStar(task.id, !task.starred) },
+                onToggle = { moves.toggle(task.id, it) },
+                onStar = { moves.star(task) },
                 onRename = { onRename(task) },
                 onDelete = { onDelete(task.id) },
                 modifier =
@@ -538,8 +601,8 @@ private fun Tasks(
                         task = task,
                         accent = accent,
                         modifier = Modifier.animateItem(),
-                        onToggle = { toggleHoldingScroll(task.id, it) },
-                        onStar = { onStar(task.id, !task.starred) },
+                        onToggle = { moves.toggle(task.id, it) },
+                        onStar = { moves.star(task) },
                         onRename = { onRename(task) },
                         onDelete = { onDelete(task.id) },
                     )
