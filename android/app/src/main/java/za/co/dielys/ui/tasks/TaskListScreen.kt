@@ -599,21 +599,27 @@ private fun TaskRow(
                         .alpha(if (task.done) DONE_ALPHA else 1f),
             )
 
-            IconButton(onClick = onStar) {
-                Icon(
-                    imageVector = if (task.starred) Icons.Filled.Star else Icons.Outlined.Star,
-                    contentDescription = if (task.starred) "Unstar" else "Star",
-                    // onSurfaceVariant read as nearly as bright as a starred row's
-                    // fill, so every row looked starred at a glance. Unstarred now
-                    // barely shows at all; starred is the one state meant to draw
-                    // the eye.
-                    tint =
-                        if (task.starred) {
-                            Color.White
-                        } else {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = STAR_UNSTARRED_ALPHA)
-                        },
-                )
+            // Starring and renaming are both about what is still to do; a done
+            // task keeps only the option to remove it.
+            if (!task.done) {
+                IconButton(onClick = onStar) {
+                    Icon(
+                        imageVector = if (task.starred) Icons.Filled.Star else Icons.Outlined.Star,
+                        contentDescription = if (task.starred) "Unstar" else "Star",
+                        // onSurfaceVariant read as nearly as bright as a starred
+                        // row's fill, so every row looked starred at a glance.
+                        // Unstarred now barely shows at all; starred is the one
+                        // state meant to draw the eye.
+                        tint =
+                            if (task.starred) {
+                                Color.White
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(
+                                    alpha = STAR_UNSTARRED_ALPHA,
+                                )
+                            },
+                    )
+                }
             }
 
             Box {
@@ -621,13 +627,15 @@ private fun TaskRow(
                     Icon(Icons.Filled.MoreVert, contentDescription = "Task options")
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Edit") },
-                        onClick = {
-                            menuOpen = false
-                            onRename()
-                        },
-                    )
+                    if (!task.done) {
+                        DropdownMenuItem(
+                            text = { Text("Edit") },
+                            onClick = {
+                                menuOpen = false
+                                onRename()
+                            },
+                        )
+                    }
                     DropdownMenuItem(
                         text = { Text("Delete") },
                         onClick = {
