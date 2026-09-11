@@ -84,6 +84,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -895,7 +896,13 @@ private fun AddTaskBar(
                 placeholder = { Text(stringResource(R.string.add_item_placeholder)) },
                 singleLine = true,
                 shape = PillShape,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                // Matches TextPrompt: the first letter, from the keyboard, so a
+                // deliberate lowercase entry is still one backspace away.
+                keyboardOptions =
+                    KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences,
+                        imeAction = ImeAction.Done,
+                    ),
                 keyboardActions = KeyboardActions(onDone = { onSubmit() }),
                 modifier = Modifier.weight(1f),
             )

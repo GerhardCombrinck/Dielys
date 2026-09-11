@@ -17,6 +17,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import za.co.dielys.R
 
 /**
@@ -56,7 +57,15 @@ fun TextPrompt(
                 // long title is all on screen at once instead of scrolling
                 // sideways past the edge of a fixed line.
                 maxLines = MAX_VISIBLE_LINES,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                // Sentences, not Words: the ask is the first letter, and Words
+                // would turn "milk and eggs" into a headline. A keyboard hint
+                // rather than something forced on the text, so a deliberate
+                // "iPhone charger" survives being typed.
+                keyboardOptions =
+                    KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences,
+                        imeAction = ImeAction.Done,
+                    ),
                 keyboardActions = KeyboardActions(onDone = { submit() }),
                 modifier = Modifier.focusRequester(focus),
             )
