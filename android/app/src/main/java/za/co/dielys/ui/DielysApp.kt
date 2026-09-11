@@ -50,9 +50,11 @@ fun DielysApp() {
     // whole subtree leaves composition when there is no session.
     var openList by rememberSaveable { mutableStateOf<String?>(null) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
+    // One level at a time. Settings can be opened from either screen now (#59),
+    // so closing both at once would answer back from Settings by returning to
+    // the lists rather than to the list that was open behind it.
     BackHandler(enabled = openList != null || settingsOpen) {
-        openList = null
-        settingsOpen = false
+        if (settingsOpen) settingsOpen = false else openList = null
     }
 
     when {
@@ -65,7 +67,11 @@ fun DielysApp() {
         openList != null -> {
             val listId = openList
             if (listId != null) {
-                TaskListScreen(listId = listId, onBack = { openList = null })
+                TaskListScreen(
+                    listId = listId,
+                    onBack = { openList = null },
+                    onSettings = { settingsOpen = true },
+                )
             }
         }
 
@@ -73,7 +79,6 @@ fun DielysApp() {
             ListsScreen(
                 onOpen = { openList = it },
                 onSettings = { settingsOpen = true },
-                accountInitials = initialsFrom(session.email),
                 viewModel = lists,
             )
     }
@@ -82,13 +87,4 @@ fun DielysApp() {
     if (invitation != null) {
         InvitationDialog(onAccept = lists::acceptInvitation, onDecline = lists::declineInvitation)
     }
-}
-
-/** "gerhard.combrinck@…" → "GC" — the initials shown on the avatar chip, since
- * there is no display name, only the email typed at sign-in. */
-private fun initialsFrom(email: String?): String {
-    val local = email?.substringBefore('@').orEmpty()
-    val words = local.split(Regex("[^A-Za-z]+")).filter { it.isNotEmpty() }
-    val initials = words.take(2).map { it.first().uppercaseChar() }.joinToString("")
-    return initials.ifEmpty { "?" }
 }

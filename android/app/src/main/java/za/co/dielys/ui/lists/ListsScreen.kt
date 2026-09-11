@@ -57,6 +57,7 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import za.co.dielys.R
 import za.co.dielys.data.local.ListEntity
+import za.co.dielys.ui.SettingsButton
 import za.co.dielys.ui.SyncStatus
 import za.co.dielys.ui.TextPrompt
 import za.co.dielys.ui.reorder.ReorderState
@@ -71,7 +72,6 @@ import za.co.dielys.ui.theme.listAccent
 fun ListsScreen(
     onOpen: (String) -> Unit,
     onSettings: () -> Unit,
-    accountInitials: String,
     modifier: Modifier = Modifier,
     viewModel: ListsViewModel,
 ) {
@@ -122,21 +122,7 @@ fun ListsScreen(
                     if (anySharedList) {
                         SyncStatus(pending = pending, stuck = stuck)
                     }
-                    Box(
-                        modifier =
-                            Modifier
-                                .padding(end = 16.dp)
-                                .size(40.dp)
-                                .background(MaterialTheme.colorScheme.primary, CircleShape)
-                                .clickable(onClick = onSettings),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            accountInitials,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    }
+                    SettingsButton(onClick = onSettings)
                 },
             )
         },

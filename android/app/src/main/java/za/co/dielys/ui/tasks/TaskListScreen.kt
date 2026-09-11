@@ -92,6 +92,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import za.co.dielys.R
 import za.co.dielys.data.local.TaskEntity
+import za.co.dielys.ui.SettingsButton
 import za.co.dielys.ui.SyncStatus
 import za.co.dielys.ui.TextPrompt
 import za.co.dielys.ui.lists.displayTitle
@@ -117,6 +118,7 @@ import kotlin.math.sin
 fun TaskListScreen(
     listId: String,
     onBack: () -> Unit,
+    onSettings: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TaskListViewModel = viewModel(),
 ) {
@@ -207,7 +209,10 @@ fun TaskListScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                expandedHeight = 80.dp,
+                // The same height as the lists screen's bar (#59). The actions
+                // sit centred in it, so anything shorter puts the chip and the
+                // sync icon 8dp higher here than on the screen you just left.
+                expandedHeight = 96.dp,
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(modifier = Modifier.size(12.dp).background(accent, CircleShape))
@@ -233,6 +238,10 @@ fun TaskListScreen(
                     if (currentList?.isShared == true) {
                         SyncStatus(pending = pending, stuck = stuck)
                     }
+                    // The same control in the same place as the lists screen
+                    // (#59), so crossing between the two does not rearrange the
+                    // header under the thumb already reaching for it.
+                    SettingsButton(onClick = onSettings)
                 },
             )
         },
