@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -37,7 +38,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
@@ -74,6 +74,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -82,6 +83,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import za.co.dielys.R
 import za.co.dielys.data.local.TaskEntity
 import za.co.dielys.ui.SyncStatus
 import za.co.dielys.ui.TextPrompt
@@ -812,7 +814,8 @@ private fun AddTaskBar(
                 modifier =
                     Modifier
                         .padding(start = 8.dp)
-                        .size(52.dp)
+                        .size(ADD_BUTTON_SIZE)
+                        .clip(CircleShape)
                         .background(
                             color =
                                 if (value.isBlank()) {
@@ -826,10 +829,15 @@ private fun AddTaskBar(
                         ).clickable(enabled = value.isNotBlank(), onClick = onSubmit),
                 contentAlignment = Alignment.Center,
             ) {
+                // ic_launcher_foreground draws its "D" small within a padded
+                // adaptive-icon canvas — see AuthScreen.kt's badge for the same
+                // crop. Scaling well past the button and clipping to its circle
+                // reproduces the tightly-cropped mark instead of the padded one.
                 Icon(
-                    Icons.AutoMirrored.Filled.Send,
+                    painter = painterResource(R.drawable.ic_launcher_foreground),
                     contentDescription = "Add",
                     tint = Color.White,
+                    modifier = Modifier.requiredSize(ADD_BUTTON_SIZE * ADD_BUTTON_LOGO_SCALE),
                 )
             }
         }
@@ -861,6 +869,12 @@ private val CARD_GAP = 8.dp
 private const val STAR_GLOW_MILLIS = 700
 private const val STAR_GLOW_ALPHA = 0.38f
 private const val STAR_GLOW_ELEVATION = 8f
+
+private val ADD_BUTTON_SIZE = 52.dp
+
+/** Same ratio as the "D" badge on AuthScreen.kt: the launcher icon's padded
+ *  canvas needs about 1.8x the button size to crop tightly to the mark. */
+private const val ADD_BUTTON_LOGO_SCALE = 1.8125f
 
 /** An unstarred star's outline — dim enough not to read as starred. */
 private const val STAR_OUTLINE_ALPHA = 0.5f
