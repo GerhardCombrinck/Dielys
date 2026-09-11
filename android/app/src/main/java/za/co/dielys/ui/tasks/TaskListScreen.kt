@@ -106,7 +106,17 @@ fun TaskListScreen(
     LaunchedEffect(listId) { viewModel.open(listId) }
 
     val list by viewModel.list.collectAsStateWithLifecycle()
-    val board by viewModel.board.collectAsStateWithLifecycle()
+
+    // [list] and [board] live on one shared, retained ViewModel (there is no
+    // navigation library to scope a fresh instance per list — see
+    // DielysApp.kt), and the switch between lists happens through a
+    // LaunchedEffect below rather than during this composition. So the very
+    // first frame after opening a different list would otherwise still show
+    // the previous list's rows — Done section included — for an instant,
+    // before Room answers for this one. Comparing the ids is a cheap way to
+    // tell "stale" from "mine" without waiting on that switch.
+    val rawBoard by viewModel.board.collectAsStateWithLifecycle()
+    val board = if (list?.id == listId) rawBoard else TaskBoard()
     val pending by viewModel.pending.collectAsStateWithLifecycle()
     val stuck by viewModel.stuck.collectAsStateWithLifecycle()
     val newItemsOnTop by viewModel.newItemsOnTop.collectAsStateWithLifecycle()
@@ -172,7 +182,7 @@ fun TaskListScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(modifier = Modifier.size(12.dp).background(accent, CircleShape))
                         Text(
-                            list?.displayTitle ?: "",
+                            list?.takeIf { it.id == listId }?.displayTitle ?: "",
                             modifier = Modifier.padding(start = 14.dp),
                         )
                     }
