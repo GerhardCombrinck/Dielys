@@ -266,11 +266,14 @@ describe("delivery status (ADR 0005 follow-up)", () => {
 });
 
 describe("Android App Link verification (ADR 0005)", () => {
-  it("serves a well-formed assetlinks.json naming the app's package", async () => {
+  it("serves a well-formed assetlinks.json naming the release and debug packages", async () => {
     const response = await SELF.fetch("https://dielys.test/.well-known/assetlinks.json");
     expect(response.status).toBe(200);
     const body = (await response.json()) as Array<{ target: { package_name: string } }>;
-    expect(body[0]?.target.package_name).toBe("za.co.dielys");
+    expect(body.map((statement) => statement.target.package_name)).toEqual([
+      "za.co.dielys",
+      "za.co.dielys.debug",
+    ]);
   });
 
   it("serves a fallback page at /magic for when the App Link did not open the app", async () => {

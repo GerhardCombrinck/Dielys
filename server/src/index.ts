@@ -334,9 +334,12 @@ async function handleMagicLinkStatus(
   return Response.json(result);
 }
 
-/** Package name for `za.co.dielys` — public (it is the app's own id, already
- * in `android/app/build.gradle.kts`), so a constant rather than a secret. */
-const ANDROID_PACKAGE_NAME = "za.co.dielys";
+/** Package names of the release app and the debug build (`applicationIdSuffix
+ * ".debug"`, so it can sit beside a release install) — public (they are the
+ * app's own ids, already in `android/app/build.gradle.kts`), so constants
+ * rather than secrets. Magic links from dev and prod both point at
+ * `https://dielys.com`, so this one file has to vouch for both. */
+const ANDROID_PACKAGE_NAMES = ["za.co.dielys", "za.co.dielys.debug"];
 
 /**
  * `GET /.well-known/assetlinks.json` (ADR 0005) — what makes `https://dielys.com`
@@ -357,16 +360,14 @@ function androidAssetLinks(env: Env): unknown[] {
   const raw = env.ANDROID_CERT_SHA256_FINGERPRINTS;
   const fingerprints =
     typeof raw === "string" && raw.trim().length > 0 ? raw.split(",").map((fp) => fp.trim()) : [];
-  return [
-    {
-      relation: ["delegate_permission/common.handle_all_urls"],
-      target: {
-        namespace: "android_app",
-        package_name: ANDROID_PACKAGE_NAME,
-        sha256_cert_fingerprints: fingerprints,
-      },
+  return ANDROID_PACKAGE_NAMES.map((packageName) => ({
+    relation: ["delegate_permission/common.handle_all_urls"],
+    target: {
+      namespace: "android_app",
+      package_name: packageName,
+      sha256_cert_fingerprints: fingerprints,
     },
-  ];
+  }));
 }
 
 /**
