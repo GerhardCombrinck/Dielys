@@ -429,6 +429,24 @@ private fun Tasks(
 
     val ghost = rememberGhostRowState(ghostText, ghostId, ghostAtTop, active, listState)
 
+    // Ticking the row the LazyColumn has pinned to the top sends that key down
+    // into the Done section, and the viewport follows it there (#56) — the same
+    // anchoring that used to drag the list along with a reordered first row.
+    // Unlike a drag, the new order arrives from Room several frames after the
+    // tap, so the viewport is put back when the lists actually change rather
+    // than at the tap itself. Any other row leaving does not move the anchor,
+    // which is what makes re-pinning to the same place a no-op there.
+    var repin by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    LaunchedEffect(active, done) {
+        val (index, offset) = repin ?: return@LaunchedEffect
+        repin = null
+        listState.requestScrollToItem(index, offset)
+    }
+    val toggleHoldingScroll: (String, Boolean) -> Unit = { id, value ->
+        repin = listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset
+        onToggle(id, value)
+    }
+
     LazyColumn(
         state = listState,
         // A gap between cards, not a line inside one: CARD_GAP is what keeps
@@ -458,7 +476,7 @@ private fun Tasks(
                 task = task,
                 dragging = dragging,
                 highlighted = task.id == highlightedId,
-                onToggle = { onToggle(task.id, it) },
+                onToggle = { toggleHoldingScroll(task.id, it) },
                 onStar = { onStar(task.id, !task.starred) },
                 onRename = { onRename(task) },
                 onDelete = { onDelete(task.id) },
@@ -503,7 +521,7 @@ private fun Tasks(
                     TaskRow(
                         task = task,
                         modifier = Modifier.animateItem(),
-                        onToggle = { onToggle(task.id, it) },
+                        onToggle = { toggleHoldingScroll(task.id, it) },
                         onStar = { onStar(task.id, !task.starred) },
                         onRename = { onRename(task) },
                         onDelete = { onDelete(task.id) },
