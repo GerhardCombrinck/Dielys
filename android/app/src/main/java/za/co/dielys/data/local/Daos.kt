@@ -77,6 +77,12 @@ interface ListDao {
         id: String,
         position: String?,
     )
+
+    @Query("UPDATE lists SET member_count = :memberCount WHERE id = :id")
+    suspend fun setMemberCount(
+        id: String,
+        memberCount: Int,
+    )
 }
 
 @Dao

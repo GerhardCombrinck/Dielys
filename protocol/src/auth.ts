@@ -114,6 +114,12 @@ export interface Membership {
    * invited to appears at the bottom instead of jumping into the middle.
    */
   position: string | null;
+  /**
+   * How many people are on this list, this caller included. A client uses
+   * this to tell a shared list from a solo one — sync status is only
+   * interesting once someone else can make the local copy go stale.
+   */
+  memberCount: number;
 }
 
 export interface MembershipsResponse {

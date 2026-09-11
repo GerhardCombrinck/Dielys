@@ -35,6 +35,9 @@ data class ListEntity(
      * one, so a list that arrives by invite lands at the bottom.
      */
     @ColumnInfo(name = "position") val position: String? = null,
+    /** How many people are on this list, this device's account included.
+     *  Defaults to 1 — solo — until membership sync says otherwise. */
+    @ColumnInfo(name = "member_count", defaultValue = "1") val memberCount: Int = 1,
 ) {
     /**
      * L3: only the owner may invite. Null — a list whose membership has not been
@@ -42,6 +45,10 @@ data class ListEntity(
      * is known rather than offered and then refused.
      */
     val ownedByMe: Boolean get() = role == MembershipRole.OWNER
+
+    /** Sync status is only interesting once someone else can make the local
+     *  copy go stale — a solo list never has anything to be behind on. */
+    val isShared: Boolean get() = memberCount > 1
 }
 
 @Entity(

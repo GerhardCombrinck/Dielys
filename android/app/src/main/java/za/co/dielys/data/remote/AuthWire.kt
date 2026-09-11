@@ -133,6 +133,8 @@ data class Membership(
      * Null until this account has dragged something, and null sorts last.
      */
     val position: String? = null,
+    /** How many people are on this list, this account included. */
+    val memberCount: Int = 1,
 )
 
 /** `POST /auth/memberships/position` — one list, moved in the caller's own order. */

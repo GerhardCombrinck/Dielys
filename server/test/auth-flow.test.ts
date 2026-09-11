@@ -761,8 +761,12 @@ describe("memberships", () => {
 
     const response = await get("/auth/memberships", tokens.accessToken);
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { memberships: Array<{ listId: string }> };
+    const body = (await response.json()) as {
+      memberships: Array<{ listId: string; memberCount: number }>;
+    };
     expect(body.memberships.map((m) => m.listId).sort()).toEqual([first, second].sort());
+    // Nobody else is on either list yet.
+    expect(body.memberships.map((m) => m.memberCount)).toEqual([1, 1]);
   });
 
   it("requires a token", async () => {
@@ -814,7 +818,9 @@ describe("memberships", () => {
     const partnerLists = (await (await get("/auth/memberships", partner.accessToken)).json()) as {
       memberships: Array<{ listId: string; position: string | null }>;
     };
-    expect(partnerLists.memberships).toEqual([{ listId, role: "member", position: null }]);
+    expect(partnerLists.memberships).toEqual([
+      { listId, role: "member", position: null, memberCount: 2 },
+    ]);
   });
 
   it("refuses a list the caller is not on with 403, not 404", async () => {

@@ -116,6 +116,7 @@ class SyncEngine
                             title = "",
                             role = membership.role,
                             position = membership.position,
+                            memberCount = membership.memberCount,
                         ),
                     )
                     continue
@@ -129,6 +130,9 @@ class SyncEngine
                 // drag made after this call is a new outbox row, not a lost one.
                 if (known.position != membership.position) {
                     db.lists().setPosition(membership.listId, membership.position)
+                }
+                if (known.memberCount != membership.memberCount) {
+                    db.lists().setMemberCount(membership.listId, membership.memberCount)
                 }
             }
             return SyncOutcome.Success

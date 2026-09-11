@@ -179,7 +179,10 @@ export function selectMembership(
 ): Membership | null {
   const rows = [
     ...sql.exec(
-      "SELECT list_id, role, position FROM memberships WHERE user_id = ? AND list_id = ?",
+      `SELECT m.list_id, m.role, m.position,
+              (SELECT COUNT(*) FROM memberships m2 WHERE m2.list_id = m.list_id) AS member_count
+         FROM memberships m
+        WHERE m.user_id = ? AND m.list_id = ?`,
       userId,
       listId,
     ),
@@ -207,9 +210,11 @@ export function countListMembers(sql: SqlStorage, listId: string): number {
  */
 export function selectMemberships(sql: SqlStorage, userId: string): Membership[] {
   const cursor = sql.exec(
-    `SELECT list_id, role, position FROM memberships
-     WHERE user_id = ?
-     ORDER BY COALESCE(position, '~'), created_at, list_id`,
+    `SELECT m.list_id, m.role, m.position,
+            (SELECT COUNT(*) FROM memberships m2 WHERE m2.list_id = m.list_id) AS member_count
+       FROM memberships m
+      WHERE m.user_id = ?
+      ORDER BY COALESCE(m.position, '~'), m.created_at, m.list_id`,
     userId,
   );
   return [...cursor].map(toMembership);
@@ -248,6 +253,7 @@ function toMembership(row: Record<string, SqlStorageValue>): Membership {
     // Written by insertMembership from a MembershipRole; SQLite has no enum.
     role: String(row.role) as MembershipRole,
     position: row.position === null || row.position === undefined ? null : String(row.position),
+    memberCount: Number(row.member_count),
   };
 }
 

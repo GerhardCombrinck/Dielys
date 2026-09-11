@@ -81,6 +81,37 @@ class MigrationTest {
             db.close()
         }
 
+    @Test
+    fun `2 to 3 defaults every existing list to solo`() =
+        runTest {
+            val file = File(context.cacheDir, "migration-test-2-3.db")
+            file.delete()
+
+            createSchema(file, version = 2)
+
+            openAtVersion1(file).use { old ->
+                old.execSQL(
+                    """
+                    INSERT INTO lists (id, title, background_photo_url, deleted_at, updated_at, role)
+                    VALUES ('list-1', 'Inkopies', NULL, NULL, '2026-09-01T06:00:00.000Z', 'owner')
+                    """.trimIndent(),
+                )
+            }
+
+            val db =
+                Room
+                    .databaseBuilder(context, DielysDatabase::class.java, file.absolutePath)
+                    .addMigrations(*DielysDatabase.MIGRATIONS)
+                    .build()
+
+            val list = db.lists().find("list-1")
+            assertEquals("Inkopies", list?.title)
+            // Nobody has told this row otherwise yet, so it reads as solo — the
+            // next membership sync corrects it if that turns out to be wrong.
+            assertEquals(1, list?.memberCount)
+            db.close()
+        }
+
     /** Writes the tables and indices the exported schema for [version] declares. */
     private fun createSchema(
         file: File,

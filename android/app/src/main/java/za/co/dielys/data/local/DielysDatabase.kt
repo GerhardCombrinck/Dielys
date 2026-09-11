@@ -37,7 +37,7 @@ abstract class DielysDatabase : RoomDatabase() {
     abstract fun syncState(): SyncStateDao
 
     companion object {
-        const val VERSION = 2
+        const val VERSION = 3
         const val NAME = "dielys.db"
 
         /**
@@ -52,6 +52,20 @@ abstract class DielysDatabase : RoomDatabase() {
                 }
             }
 
-        val MIGRATIONS = arrayOf<Migration>(MIGRATION_1_2)
+        /**
+         * 2 → 3: how many people are on a list, so the UI can tell a shared list
+         * from a solo one. Defaulted to 1 — solo — for every existing row; the
+         * next membership sync corrects it for any that are actually shared.
+         */
+        private val MIGRATION_2_3 =
+            object : Migration(2, 3) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "ALTER TABLE lists ADD COLUMN member_count INTEGER NOT NULL DEFAULT 1",
+                    )
+                }
+            }
+
+        val MIGRATIONS = arrayOf<Migration>(MIGRATION_1_2, MIGRATION_2_3)
     }
 }

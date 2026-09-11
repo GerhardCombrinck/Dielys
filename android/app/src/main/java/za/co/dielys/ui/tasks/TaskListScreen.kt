@@ -124,8 +124,9 @@ fun TaskListScreen(
     // the previous list's rows — Done section included — for an instant,
     // before Room answers for this one. Comparing the ids is a cheap way to
     // tell "stale" from "mine" without waiting on that switch.
+    val currentList = list?.takeIf { it.id == listId }
     val rawBoard by viewModel.board.collectAsStateWithLifecycle()
-    val board = if (list?.id == listId) rawBoard else TaskBoard()
+    val board = if (currentList != null) rawBoard else TaskBoard()
     val pending by viewModel.pending.collectAsStateWithLifecycle()
     val stuck by viewModel.stuck.collectAsStateWithLifecycle()
     val newItemsOnTop by viewModel.newItemsOnTop.collectAsStateWithLifecycle()
@@ -191,7 +192,7 @@ fun TaskListScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(modifier = Modifier.size(12.dp).background(accent, CircleShape))
                         Text(
-                            list?.takeIf { it.id == listId }?.displayTitle ?: "",
+                            currentList?.displayTitle ?: "",
                             modifier = Modifier.padding(start = 14.dp),
                         )
                     }
@@ -206,7 +207,9 @@ fun TaskListScreen(
                     }
                 },
                 actions = {
-                    SyncStatus(pending = pending, stuck = stuck)
+                    if (currentList?.isShared == true) {
+                        SyncStatus(pending = pending, stuck = stuck)
+                    }
                 },
             )
         },

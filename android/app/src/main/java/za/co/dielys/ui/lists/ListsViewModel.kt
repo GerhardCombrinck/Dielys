@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import za.co.dielys.data.DielysRepository
@@ -76,6 +77,11 @@ class ListsViewModel
 
         /** Edits the server refused for good. Rare, and never silent. */
         val stuck: StateFlow<Int> = repo.observeStuckCount().asState(0)
+
+        /** Sync status is only worth showing once at least one list has someone
+         *  else on it to go out of sync with. */
+        val anySharedList: StateFlow<Boolean> =
+            repo.observeLists().map { it.any(ListEntity::isShared) }.asState(false)
 
         /**
          * The invite being made or shown. Null when the dialog is closed — and it

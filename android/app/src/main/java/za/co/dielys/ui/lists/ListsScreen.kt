@@ -72,6 +72,7 @@ fun ListsScreen(
     val rows by viewModel.lists.collectAsStateWithLifecycle()
     val pending by viewModel.pending.collectAsStateWithLifecycle()
     val stuck by viewModel.stuck.collectAsStateWithLifecycle()
+    val anySharedList by viewModel.anySharedList.collectAsStateWithLifecycle()
     val invite by viewModel.invite.collectAsStateWithLifecycle()
     var creating by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<ListEntity?>(null) }
@@ -111,7 +112,9 @@ fun ListsScreen(
                         containerColor = MaterialTheme.colorScheme.background,
                     ),
                 actions = {
-                    SyncStatus(pending = pending, stuck = stuck)
+                    if (anySharedList) {
+                        SyncStatus(pending = pending, stuck = stuck)
+                    }
                     Box(
                         modifier =
                             Modifier
