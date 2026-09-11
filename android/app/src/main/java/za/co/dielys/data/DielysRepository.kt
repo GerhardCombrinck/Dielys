@@ -97,9 +97,14 @@ class DielysRepository
         }
 
         /**
-         * Prepends. What was just typed is what the person is still thinking
-         * about, so it goes where they are looking rather than at the far end of
-         * a list they have to scroll.
+         * Prepends or appends among the *active* tasks, per [atTop] — a device
+         * setting (UiPrefs), not list data, so two phones on the same list can
+         * choose differently and this takes it as a plain argument rather than
+         * reading it itself.
+         *
+         * Done tasks are ignored when finding the edge: they share the position
+         * order but not the section, so a done task sitting at either end must
+         * not become the new task's neighbour.
          *
          * Prepending lengthens the key, unlike appending, which is the price:
          * `between(null, first)` has to find room below an existing key rather
@@ -108,10 +113,16 @@ class DielysRepository
         suspend fun addTask(
             listId: String,
             title: String,
+            atTop: Boolean = true,
+            id: String = Uuid7.generate(clock.nowMillis()),
         ): String {
-            val id = Uuid7.generate(clock.nowMillis())
-            val first = db.tasks().inList(listId).firstOrNull()
-            val position = Position.between(null, first?.position)
+            val active = db.tasks().inList(listId).filterNot { it.done }
+            val position =
+                if (atTop) {
+                    Position.between(null, active.firstOrNull()?.position)
+                } else {
+                    Position.between(active.lastOrNull()?.position, null)
+                }
 
             // A task create MUST carry title and position — the server invents
             // defaults for nothing only the client can know.

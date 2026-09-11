@@ -91,8 +91,9 @@ fun ListsScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
+                expandedHeight = 96.dp,
                 title = {
-                    Column {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
                             "Lists",
                             style = MaterialTheme.typography.headlineSmall,

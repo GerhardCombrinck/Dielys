@@ -86,7 +86,6 @@ import za.co.dielys.ui.reorder.draftStillWanted
 import za.co.dielys.ui.reorder.moved
 import za.co.dielys.ui.theme.PillShape
 import za.co.dielys.ui.theme.listAccent
-import za.co.dielys.ui.theme.onListAccent
 
 /**
  * One list. Everything on it comes from Room and every action writes to Room —
@@ -109,19 +108,25 @@ fun TaskListScreen(
     val board by viewModel.board.collectAsStateWithLifecycle()
     val pending by viewModel.pending.collectAsStateWithLifecycle()
     val stuck by viewModel.stuck.collectAsStateWithLifecycle()
+    val newItemsOnTop by viewModel.newItemsOnTop.collectAsStateWithLifecycle()
 
     var renaming by remember { mutableStateOf<TaskEntity?>(null) }
 
-    // What was just added on this device: the list scrolls to it and the row
-    // lights up, because a new item at the top of a list that is scrolled down is
-    // otherwise added out of sight.
-    val added by viewModel.added.collectAsStateWithLifecycle()
-    var highlighted by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(added) {
-        val id = added ?: return@LaunchedEffect
-        highlighted = id
-        viewModel.addSeen()
-    }
+    // The field's own text, lifted up here so the list above it can preview
+    // what is being typed before it is saved.
+    var draftText by remember { mutableStateOf("") }
+
+    // The id and text of an add already sent to the view model — reserved at
+    // submit time, before Room has a row for it. Separate from [draftText],
+    // which clears immediately so the field is ready for the next item.
+    //
+    // The id is what lets the ghost row and the real row Room eventually
+    // produces be *one* LazyColumn item throughout: both are keyed on it, so
+    // the swap between them is a slot's content changing, not a second row
+    // appearing next to the first (see ghostAtTop's item(key = ...) below).
+    var pendingId by remember { mutableStateOf<String?>(null) }
+    var pendingText by remember { mutableStateOf<String?>(null) }
+    val ghostText = pendingText ?: draftText.ifBlank { null }
 
     // The order a drag is producing, before the write has come back through Room.
     var draft by remember { mutableStateOf<List<TaskEntity>?>(null) }
@@ -135,21 +140,41 @@ fun TaskListScreen(
         if (!wanted) draft = null
     }
 
+    // What was just added on this device: the row lights up once it is really
+    // there, because a new item appearing at whichever edge is scrolled out of
+    // view otherwise shows no sign it is the one just typed. The scroll itself
+    // happens earlier, at the first keystroke (see ghostText above) — by the
+    // time this fires, that edge is already in view.
+    var highlighted by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(active, pendingId) {
+        val id = pendingId ?: return@LaunchedEffect
+        if (active.none { it.id == id }) return@LaunchedEffect
+        highlighted = id
+        pendingId = null
+        pendingText = null
+    }
+
     // The header wears the same colour as this list's dot on the Lists screen,
     // so opening a list is visibly the same list you tapped.
     val accent = listAccent(listId)
-    val onAccent = onListAccent(accent)
 
     Scaffold(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(list?.displayTitle ?: "") },
+                expandedHeight = 80.dp,
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(12.dp).background(accent, CircleShape))
+                        Text(
+                            list?.displayTitle ?: "",
+                            modifier = Modifier.padding(start = 14.dp),
+                        )
+                    }
+                },
                 colors =
                     TopAppBarDefaults.topAppBarColors(
-                        containerColor = accent,
-                        titleContentColor = onAccent,
-                        navigationIconContentColor = onAccent,
+                        containerColor = MaterialTheme.colorScheme.background,
                     ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -157,18 +182,30 @@ fun TaskListScreen(
                     }
                 },
                 actions = {
-                    SyncStatus(
-                        pending = pending,
-                        stuck = stuck,
-                        labelColor = onAccent.copy(alpha = 0.85f),
-                    )
+                    SyncStatus(pending = pending, stuck = stuck)
                 },
             )
         },
-        bottomBar = { AddTaskBar(onAdd = viewModel::add) },
+        bottomBar = {
+            AddTaskBar(
+                value = draftText,
+                onValueChange = { draftText = it },
+                onSubmit = {
+                    val trimmed = draftText.trim()
+                    draftText = ""
+                    if (trimmed.isNotEmpty()) {
+                        val id = viewModel.add(trimmed)
+                        if (id != null) {
+                            pendingId = id
+                            pendingText = trimmed
+                        }
+                    }
+                },
+            )
+        },
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            if (board.isEmpty) {
+            if (board.isEmpty && ghostText == null) {
                 Empty()
             } else {
                 Tasks(
@@ -176,7 +213,9 @@ fun TaskListScreen(
                     done = board.done,
                     draggingId = draggingId,
                     highlightedId = highlighted,
-                    scrollTo = added,
+                    ghostText = ghostText,
+                    ghostId = pendingId,
+                    ghostAtTop = newItemsOnTop,
                     onDragStart = { index -> draggingId = active.getOrNull(index)?.id },
                     onDragMove = { from, to -> draft = active.moved(from, to) },
                     onDragEnd = {
@@ -198,7 +237,7 @@ fun TaskListScreen(
 
     renaming?.let { task ->
         TextPrompt(
-            title = "Rename",
+            title = "Edit",
             label = "Task",
             initial = task.title,
             onDismiss = { renaming = null },
@@ -229,7 +268,9 @@ private fun Tasks(
     done: List<TaskEntity>,
     draggingId: String?,
     highlightedId: String?,
-    scrollTo: String?,
+    ghostText: String?,
+    ghostId: String?,
+    ghostAtTop: Boolean,
     onDragStart: (Int) -> Unit,
     onDragMove: (Int, Int) -> Unit,
     onDragEnd: () -> Unit,
@@ -250,10 +291,22 @@ private fun Tasks(
     // land, not go hunting for a collapsed section.
     var doneExpanded by remember { mutableStateOf(true) }
 
-    // Added tasks go to the top, so that is where the screen goes. Animated, so
-    // it is visibly the list moving rather than a different list appearing.
-    LaunchedEffect(scrollTo) {
-        if (scrollTo != null) listState.animateScrollToItem(0)
+    // Keyed on ghostId once there is one, so the placeholder and the real row
+    // Room eventually produces are the same LazyColumn item — the id carries
+    // across the swap, so there is never a moment with both on screen at once.
+    // Before a submit there is no id yet; a constant stands in for it, which
+    // costs nothing since a ghost never collides with a real task's key.
+    val ghostKey = ghostId ?: GHOST_TYPING_KEY
+    val ghostVisible = ghostText != null && (ghostId == null || active.none { it.id == ghostId })
+
+    // A new item lands wherever the setting says, so that is where the screen
+    // goes — as soon as there is something to show there, not once the write
+    // comes back. Keyed on whether there is a ghost at all, not the text
+    // itself, so typing further characters does not re-trigger the scroll.
+    LaunchedEffect(ghostText != null) {
+        if (ghostText == null) return@LaunchedEffect
+        val target = if (ghostAtTop) 0 else active.size
+        listState.animateScrollToItem(target)
     }
 
     LazyColumn(
@@ -283,6 +336,12 @@ private fun Tasks(
                 )
             },
     ) {
+        if (ghostAtTop && ghostVisible) {
+            item(key = ghostKey) {
+                GhostRow(text = ghostText ?: "", modifier = Modifier.animateItem())
+            }
+        }
+
         items(active, key = { it.id }) { task ->
             val dragging = task.id == draggingId
             // Animated so the row eases back down on drop; the offset itself
@@ -316,6 +375,12 @@ private fun Tasks(
                             scaleY = 1f + lift * DRAG_SCALE
                         },
             )
+        }
+
+        if (!ghostAtTop && ghostVisible) {
+            item(key = ghostKey) {
+                GhostRow(text = ghostText ?: "", modifier = Modifier.animateItem())
+            }
         }
 
         if (done.isNotEmpty()) {
@@ -372,6 +437,48 @@ private fun DoneHeading(
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = DONE_ALPHA),
             modifier = Modifier.padding(start = 4.dp).rotate(rotation),
         )
+    }
+}
+
+/**
+ * A stand-in for the row that is about to exist: same shape as [TaskRow], so
+ * the swap to the real thing once it is saved is that same LazyColumn item's
+ * content changing, not a different element appearing in its place. Unchecked
+ * and unstarred always — a task that does not exist yet cannot be either.
+ */
+@Composable
+private fun GhostRow(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface.copy(alpha = GHOST_SURFACE_ALPHA),
+        modifier = modifier,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier.padding(start = 2.dp).size(CHECKBOX_TOUCH_TARGET),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    modifier =
+                        Modifier
+                            .size(20.dp)
+                            .clip(RoundedCornerShape(5.dp))
+                            .border(
+                                2.dp,
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = GHOST_TEXT_ALPHA),
+                                RoundedCornerShape(5.dp),
+                            ),
+                )
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = GHOST_TEXT_ALPHA),
+                modifier = Modifier.weight(1f).padding(start = 8.dp, top = 16.dp, bottom = 16.dp),
+            )
+        }
     }
 }
 
@@ -508,7 +615,7 @@ private fun TaskRow(
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
-                        text = { Text("Rename") },
+                        text = { Text("Edit") },
                         onClick = {
                             menuOpen = false
                             onRename()
@@ -582,16 +689,12 @@ private fun TaskCheckbox(
 }
 
 @Composable
-private fun AddTaskBar(onAdd: (String) -> Unit) {
-    var draft by remember { mutableStateOf("") }
+private fun AddTaskBar(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+) {
     val dark = isSystemInDarkTheme()
-
-    val submit = {
-        if (draft.isNotBlank()) {
-            onAdd(draft)
-            draft = ""
-        }
-    }
 
     Surface(tonalElevation = 3.dp) {
         Row(
@@ -607,13 +710,13 @@ private fun AddTaskBar(onAdd: (String) -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             OutlinedTextField(
-                value = draft,
-                onValueChange = { draft = it },
+                value = value,
+                onValueChange = onValueChange,
                 placeholder = { Text("Add an item") },
                 singleLine = true,
                 shape = PillShape,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { submit() }),
+                keyboardActions = KeyboardActions(onDone = { onSubmit() }),
                 modifier = Modifier.weight(1f),
             )
             Box(
@@ -623,7 +726,7 @@ private fun AddTaskBar(onAdd: (String) -> Unit) {
                         .size(52.dp)
                         .background(
                             color =
-                                if (draft.isBlank()) {
+                                if (value.isBlank()) {
                                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
                                 } else if (dark) {
                                     MaterialTheme.colorScheme.primaryContainer
@@ -631,7 +734,7 @@ private fun AddTaskBar(onAdd: (String) -> Unit) {
                                     MaterialTheme.colorScheme.primary
                                 },
                             shape = CircleShape,
-                        ).clickable(enabled = draft.isNotBlank(), onClick = submit),
+                        ).clickable(enabled = value.isNotBlank(), onClick = onSubmit),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -679,6 +782,13 @@ private const val ADDED_GLOW_HOLD_MILLIS = 700
 private val CHECKBOX_TOUCH_TARGET = 48.dp
 private const val DRAG_SCALE = 0.02f
 private const val DONE_ALPHA = 0.6f
+
+/** Faint enough to read as not-yet-real without the row's text going hard to read. */
+private const val GHOST_SURFACE_ALPHA = 0.5f
+private const val GHOST_TEXT_ALPHA = 0.55f
+
+/** Stands in for the ghost row's key before there is a real task id to use. */
+private const val GHOST_TYPING_KEY = "ghost-typing"
 
 /** NavyDeep — the check glyph reads dark against the dark-mode done checkbox's amber fill. */
 private val CheckGlyphOnAmber = Color(0xFF0E1728)

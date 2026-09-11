@@ -3,6 +3,7 @@ package za.co.dielys.ui.tasks
 import app.cash.turbine.test
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -17,6 +18,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import za.co.dielys.data.DeviceStack
+import za.co.dielys.data.local.NewTaskPlacement
 import za.co.dielys.data.sync.FakeSyncApi
 import za.co.dielys.ui.reorder.moved
 
@@ -37,7 +39,11 @@ class TaskListViewModelTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         phone = DeviceStack(api, "device-a")
-        viewModel = TaskListViewModel(phone.repo)
+        val placement =
+            object : NewTaskPlacement {
+                override val newItemsOnTop = MutableStateFlow(true)
+            }
+        viewModel = TaskListViewModel(phone.repo, phone.clock, placement)
     }
 
     @After

@@ -6,9 +6,11 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import za.co.dielys.data.SessionRepository
 import za.co.dielys.data.local.DeviceIdentity
+import za.co.dielys.data.local.NewTaskPlacement
 import za.co.dielys.data.local.PushTokenStore
 import za.co.dielys.data.local.SessionSignal
 import za.co.dielys.data.local.SessionStore
+import za.co.dielys.data.local.UiPrefs
 import za.co.dielys.data.remote.AccessTokens
 import za.co.dielys.data.remote.AuthApi
 import za.co.dielys.data.remote.HttpAuthApi
@@ -67,4 +69,9 @@ abstract class BindingsModule {
     @Binds
     @Singleton
     abstract fun sessionSignal(impl: SessionStore): SessionSignal
+
+    /** Tested on the JVM, where there is no `Context` to back [UiPrefs] with. */
+    @Binds
+    @Singleton
+    abstract fun newTaskPlacement(impl: UiPrefs): NewTaskPlacement
 }

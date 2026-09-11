@@ -15,7 +15,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import za.co.dielys.data.DielysRepository
 import za.co.dielys.data.local.ListEntity
+import za.co.dielys.data.local.NewTaskPlacement
 import za.co.dielys.data.local.TaskEntity
+import za.co.dielys.domain.Clock
+import za.co.dielys.domain.Uuid7
 import javax.inject.Inject
 
 /**
@@ -40,8 +43,15 @@ class TaskListViewModel
     @Inject
     constructor(
         private val repo: DielysRepository,
+        private val clock: Clock,
+        placement: NewTaskPlacement,
     ) : ViewModel() {
         private val listId = MutableStateFlow<String?>(null)
+
+        /** Where a new task lands — a device setting, read live rather than
+         *  snapshotted, so flipping it in Settings takes effect immediately on a
+         *  screen already open. */
+        val newItemsOnTop: StateFlow<Boolean> = placement.newItemsOnTop
 
         val list: StateFlow<ListEntity?> =
             listId.filterNotNull().flatMapLatest { repo.observeList(it) }.asState(null)
@@ -62,23 +72,22 @@ class TaskListViewModel
         }
 
         /**
-         * The task this device just added, for the screen to scroll to and light
-         * up. Null once the screen has taken it: it is a one-off event, and a
-         * rotation should not replay it.
+         * Mints the id up front and hands it back before the write lands, so the
+         * screen can key a placeholder row under it — the same id Room's flow
+         * will eventually carry, so what the screen renders is one continuous
+         * item, not a placeholder later joined by a second, separate row.
+         *
+         * Null only if no list is open, which the screen cannot reach in
+         * practice ([open] runs before the add bar does).
          */
-        private val _added = MutableStateFlow<String?>(null)
-        val added: StateFlow<String?> = _added
-
-        fun add(title: String) {
+        fun add(title: String): String? {
             val trimmed = title.trim()
-            val id = listId.value
-            if (trimmed.isEmpty() || id == null) return
-            viewModelScope.launch { _added.value = repo.addTask(id, trimmed) }
-        }
-
-        /** Called by the screen once it has scrolled to what was added. */
-        fun addSeen() {
-            _added.value = null
+            val listId = this.listId.value
+            if (trimmed.isEmpty() || listId == null) return null
+            val taskId = Uuid7.generate(clock.nowMillis())
+            val atTop = newItemsOnTop.value
+            viewModelScope.launch { repo.addTask(listId, trimmed, atTop, taskId) }
+            return taskId
         }
 
         fun setDone(
