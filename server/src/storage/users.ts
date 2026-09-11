@@ -3,7 +3,7 @@
  * reads and writes rows; it does not decide whether a password is right or
  * whether a token may be rotated.
  */
-import type { Membership, MembershipRole } from "@dielys/protocol";
+import type { ListMember, Membership, MembershipRole } from "@dielys/protocol";
 import type { PasswordHash } from "../auth/password.js";
 
 export interface UserRow {
@@ -218,6 +218,56 @@ export function selectMemberships(sql: SqlStorage, userId: string): Membership[]
     userId,
   );
   return [...cursor].map(toMembership);
+}
+
+/**
+ * Everyone on one list, for the "shared with" sheet (#60).
+ *
+ * The email comes from the users table rather than the membership, because
+ * there is no display name anywhere in this system — the address somebody
+ * signed in with is the only thing that names them to the other person on
+ * the list.
+ *
+ * Owner first, then oldest membership: the owner is the one answer somebody
+ * opening this is most likely looking for, and the rest in the order they
+ * joined is the only order that does not change under them.
+ */
+export function selectListMembers(sql: SqlStorage, listId: string): ListMember[] {
+  const cursor = sql.exec(
+    `SELECT m.user_id, m.role, u.email
+       FROM memberships m
+       JOIN users u ON u.id = m.user_id
+      WHERE m.list_id = ?
+      ORDER BY CASE m.role WHEN 'owner' THEN 0 ELSE 1 END, m.created_at, m.user_id`,
+    listId,
+  );
+  return [...cursor].map((row) => ({
+    userId: String(row.user_id),
+    email: String(row.email),
+    role: String(row.role) as MembershipRole,
+  }));
+}
+
+/**
+ * Takes one person off one list. Returns false when there was no such
+ * membership, which the route answers the same way it answers "not yours" —
+ * never a 404, so this cannot be used to ask who is on a list you are not on
+ * (L3), the same rule [updateMembershipPosition] follows.
+ *
+ * The list's own rows are untouched. A membership is this server's record of
+ * who may reach the list; the list itself belongs to its owner either way, and
+ * the copy already on the removed person's phone is theirs — this is about
+ * access from here on, not about reaching into somebody's device.
+ */
+export function deleteMembership(sql: SqlStorage, userId: string, listId: string): boolean {
+  const rows = [
+    ...sql.exec(
+      "DELETE FROM memberships WHERE user_id = ? AND list_id = ? RETURNING list_id",
+      userId,
+      listId,
+    ),
+  ];
+  return rows.length > 0;
 }
 
 /**

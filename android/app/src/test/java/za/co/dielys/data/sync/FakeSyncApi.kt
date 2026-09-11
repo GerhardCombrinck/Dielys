@@ -8,6 +8,7 @@ import za.co.dielys.data.remote.CreateInviteResponse
 import za.co.dielys.data.remote.DielysJson
 import za.co.dielys.data.remote.ErrorCode
 import za.co.dielys.data.remote.ListChange
+import za.co.dielys.data.remote.ListMember
 import za.co.dielys.data.remote.ListMutation
 import za.co.dielys.data.remote.Membership
 import za.co.dielys.data.remote.MembershipRole
@@ -81,6 +82,18 @@ class FakeSyncApi : SyncApi {
      * the other device accepted.
      */
     val memberOf: MutableList<Membership> = mutableListOf()
+
+    /**
+     * What `GET /lists/{id}/members` answers, per list (#60). Set by a test that
+     * cares; a list nobody has set up answers with nobody on it.
+     */
+    val membersOf: MutableMap<String, MutableList<ListMember>> = mutableMapOf()
+
+    /** Every removal this fake was asked for, as `listId to userId`. */
+    val removedMembers: MutableList<Pair<String, String>> = mutableListOf()
+
+    /** Makes the next [removeMember] fail with this code, once. */
+    var rejectRemoveWith: String? = null
 
     private val heads = mutableMapOf<String, Long>()
     private val changelog = mutableMapOf<String, MutableList<ChangeEnvelope>>()
@@ -163,6 +176,24 @@ class FakeSyncApi : SyncApi {
         gate()
         if (rejectPushToken) throw ApiException.Rejected(status = 400, code = ErrorCode.MALFORMED)
         pushTokens += fcmToken
+    }
+
+    override suspend fun listMembers(listId: String): List<ListMember> {
+        gate()
+        return membersOf[listId].orEmpty().toList()
+    }
+
+    override suspend fun removeMember(
+        listId: String,
+        userId: String,
+    ) {
+        gate()
+        rejectRemoveWith?.let { code ->
+            rejectRemoveWith = null
+            throw ApiException.Rejected(status = 403, code = code)
+        }
+        membersOf[listId]?.removeAll { it.userId == userId }
+        removedMembers += listId to userId
     }
 
     override suspend fun createInvite(

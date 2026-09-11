@@ -76,6 +76,20 @@
     <string name="share_note">Yileyo kheli le-imeyili kuphela elingakwazi ukujoyina. Lisebenza izinsuku eziyisikhombisa.</string>
     <string name="share_sending">Ithumela isimemo se-%1$s…</string>
     <string name="share_sent">Isimemo sithunyelwe ku-%1$s. Sisebenza izinsuku eziyisikhombisa, futhi yilelo kheli kuphela elingajoyina u-%2$s.</string>
+    <string name="members_title">Kwabelwane nabo</string>
+    <string name="members_loading">Kuyahlolwa…</string>
+    <string name="members_you">wena</string>
+    <string name="members_owner">umnikazi</string>
+    <string name="members_solo">Akekho omunye okwamanje. Yabelana ngalo ukuze ungenise umuntu.</string>
+    <string name="members_failed">Ayikwazanga ukuhlola ukuthi lwabelwane nobani: %1$s</string>
+    <string name="action_remove">Susa</string>
+    <string name="action_leave">Shiya uhlu</string>
+    <string name="cd_shared_list">Uhlu olwabelwene</string>
+    <string name="confirm_remove_title">Susa u-%1$s?</string>
+    <string name="confirm_remove_body">Ngeke besalubona lolu hlu. Okusevele kukufoni yabo kuhlala lapho.</string>
+    <string name="confirm_leave_title">Shiya lolu hlu?</string>
+    <string name="confirm_leave_body">Luyanyamalala kule foni futhi uyeka ukuthola izinguquko. Umnikazi angakumema futhi.</string>
+
     <string name="join_list_title">Joyina uhlu</string>
     <string name="join_paste_prompt">Namathisela isimemo osithunyelwe ngumuntu.</string>
     <string name="join_invite_label">Isimemo</string>

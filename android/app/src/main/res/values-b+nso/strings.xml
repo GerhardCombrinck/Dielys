@@ -81,6 +81,20 @@
     <string name="share_note">Ke aterese yeo fela ya imeile yeo e tla kgona go tsenela. E šoma matšatši a šupago.</string>
     <string name="share_sending">E romela taletšo ya %1$s…</string>
     <string name="share_sent">Taletšo e romilwe go %1$s. E šoma matšatši a šupago, gomme ke aterese yeo fela yeo e ka tsenelago %2$s.</string>
+    <string name="members_title">Go abelanwe le</string>
+    <string name="members_loading">Go a lekolwa…</string>
+    <string name="members_you">wena</string>
+    <string name="members_owner">mong</string>
+    <string name="members_solo">Ga go yo mongwe gabjale. Abelana le yena go mo tsenya.</string>
+    <string name="members_failed">Ga ya kgona go lekola gore le abelanwe le mang: %1$s</string>
+    <string name="action_remove">Tloša</string>
+    <string name="action_leave">Tlogela lenaneo</string>
+    <string name="cd_shared_list">Lenaneo le abelanwego</string>
+    <string name="confirm_remove_title">Tloša %1$s?</string>
+    <string name="confirm_remove_body">Ba ka se sa bona lenaneo le. Seo se šetšego se le mogaleng wa bona se dula moo.</string>
+    <string name="confirm_leave_title">Tlogela lenaneo le?</string>
+    <string name="confirm_leave_body">Le a nyamelela mogaleng wo gomme o kgaotša go hwetša diphetošo. Mong a ka go laletša gape.</string>
+
     <string name="join_list_title">Tsenela lenaneo</string>
     <string name="join_paste_prompt">Kgomaretša taletšo yeo motho a go romeletšego yona.</string>
     <string name="join_invite_label">Taletšo</string>

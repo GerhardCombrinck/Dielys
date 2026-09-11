@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import type { AuthErrorCode, Membership, MembershipRole } from "@dielys/protocol";
+import type { AuthErrorCode, ListMember, Membership, MembershipRole } from "@dielys/protocol";
 import { INVITE_TOKEN_TTL_SECONDS, signInviteToken } from "../auth/jwt.js";
 import {
   generateRefreshToken,
@@ -47,6 +47,7 @@ import {
   deleteExpiredRefreshTokens,
   deleteMagicLink,
   deleteMagicLinksForEmail,
+  deleteMembership,
   deleteRefreshTokensForUser,
   deleteStaleRateLimits,
   insertMagicLink,
@@ -55,6 +56,7 @@ import {
   insertUser,
   markRefreshTokenUsed,
   selectDevicesForList,
+  selectListMembers,
   selectMagicLink,
   selectMagicLinkByRequestId,
   selectMembership,
@@ -534,6 +536,52 @@ export class UsersRoom extends DurableObject {
 
   async listMemberships(userId: string): Promise<Membership[]> {
     return selectMemberships(this.sql, userId);
+  }
+
+  /** Who is on one list (#60). The route has already established that the
+   *  caller is one of them, so there is no check to repeat here. */
+  async listMembers(listId: string): Promise<ListMember[]> {
+    return selectListMembers(this.sql, listId);
+  }
+
+  /**
+   * Takes [targetUserId] off [listId] (#60).
+   *
+   * Two callers may (L3): the owner removing somebody else, or anybody
+   * removing themselves. An owner removing *themselves* is refused — a list
+   * with no owner is one nobody can ever share again, and deleting the list is
+   * the thing they actually mean.
+   *
+   * `forbidden` for a membership that is not there, not `not-found`: the same
+   * rule [setListPosition] follows, so this cannot be used to ask who is on a
+   * list.
+   */
+  async removeMembership(
+    callerUserId: string,
+    listId: string,
+    targetUserId: string,
+  ): Promise<UsersResult<{ listId: string; userId: string }>> {
+    const caller = selectMembership(this.sql, callerUserId, listId);
+    if (caller === null) return { ok: false, code: "forbidden" };
+
+    const removingSelf = callerUserId === targetUserId;
+    if (!removingSelf && caller.role !== "owner") {
+      log("info", "usersroom.membership.remove-denied", { listId });
+      return { ok: false, code: "forbidden" };
+    }
+    if (removingSelf && caller.role === "owner") {
+      log("info", "usersroom.membership.owner-cannot-leave", { listId });
+      return { ok: false, code: "forbidden" };
+    }
+
+    let removed = false;
+    this.ctx.storage.transactionSync(() => {
+      removed = deleteMembership(this.sql, targetUserId, listId);
+    });
+    if (!removed) return { ok: false, code: "forbidden" };
+
+    log("info", "usersroom.membership.removed", { listId, removingSelf });
+    return { ok: true, value: { listId, userId: targetUserId } };
   }
 
   /**

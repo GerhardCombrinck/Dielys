@@ -159,3 +159,22 @@ object MembershipRole {
     const val OWNER = "owner"
     const val MEMBER = "member"
 }
+
+/**
+ * One person on a shared list (#60). The email is what names them — there is no
+ * display name in this system, only the address somebody signed in with, which
+ * is already the thing the owner typed to invite them.
+ */
+@Serializable
+data class ListMember(
+    val userId: String,
+    val email: String,
+    val role: String,
+) {
+    val isOwner: Boolean get() = role == MembershipRole.OWNER
+}
+
+@Serializable
+data class ListMembersResponse(
+    val members: List<ListMember>,
+)

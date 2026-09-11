@@ -1,5 +1,11 @@
 import { SELF } from "cloudflare:test";
-import type { AcceptInviteResponse, CreateInviteResponse, TokenPair } from "@dielys/protocol";
+import type {
+  AcceptInviteResponse,
+  CreateInviteResponse,
+  ListMembersResponse,
+  RemoveMemberResponse,
+  TokenPair,
+} from "@dielys/protocol";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
@@ -747,6 +753,121 @@ describe("invite email rate limits", () => {
     const refused = await attempt();
     expect(refused.status).toBe(429);
   });
+});
+
+describe("who a list is shared with, and taking someone off it (#60)", () => {
+  /** An owner, a member who accepted an invite, and the list they share. */
+  async function sharedList() {
+    const ownerEmail = uniqueEmail();
+    await createUser(ownerEmail);
+    const owner = await login(ownerEmail);
+    const listId = crypto.randomUUID();
+    await post(`/lists/${listId}`, {}, owner.accessToken);
+
+    const memberEmail = uniqueEmail();
+    const invite = await mintInvite(listId, owner.accessToken, memberEmail);
+    const memberUserId = await createUser(memberEmail);
+    const member = await login(memberEmail, "device-b");
+    const accepted = await post(
+      "/invites/accept",
+      { inviteToken: invite.token },
+      member.accessToken,
+    );
+    expect(accepted.status).toBe(200);
+
+    return { owner, ownerEmail, member, memberEmail, memberUserId, listId };
+  }
+
+  async function membersOf(listId: string, token: string) {
+    const response = await get(`/lists/${listId}/members`, token);
+    expect(response.status).toBe(200);
+    return ((await response.json()) as ListMembersResponse).members;
+  }
+
+  async function remove(listId: string, userId: string, token: string): Promise<Response> {
+    return SELF.fetch(`https://dielys.test/lists/${listId}/members/${userId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  it("names everyone on the list, owner first, to whoever is on it", async () => {
+    const { owner, ownerEmail, member, memberEmail, listId } = await sharedList();
+
+    // The member sees the same answer as the owner: checking that the person
+    // who joined is the person who was invited is not an owner-only need.
+    for (const token of [owner.accessToken, member.accessToken]) {
+      const members = await membersOf(listId, token);
+      expect(members.map((m) => m.role)).toEqual(["owner", "member"]);
+      expect(members.map((m) => m.email)).toEqual([ownerEmail, memberEmail]);
+    }
+  });
+
+  it("refuses someone who is not on the list, without saying whether it exists (L3)", async () => {
+    const { listId } = await sharedList();
+    const strangerEmail = uniqueEmail();
+    await createUser(strangerEmail);
+    const stranger = await login(strangerEmail, "device-c");
+
+    expect((await get(`/lists/${listId}/members`, stranger.accessToken)).status).toBe(403);
+    expect((await get(`/lists/${crypto.randomUUID()}/members`, stranger.accessToken)).status).toBe(
+      403,
+    );
+  });
+
+  it("the owner removes a member, and that member loses access", async () => {
+    const { owner, member, memberUserId, listId } = await sharedList();
+
+    expect((await get(`/lists/${listId}/changes?since=0`, member.accessToken)).status).toBe(200);
+
+    const removed = await remove(listId, memberUserId, owner.accessToken);
+    expect(removed.status).toBe(200);
+    expect((await removed.json()) as RemoveMemberResponse).toMatchObject({
+      listId,
+      userId: memberUserId,
+    });
+
+    expect((await get(`/lists/${listId}/changes?since=0`, member.accessToken)).status).toBe(403);
+    expect((await membersOf(listId, owner.accessToken)).map((m) => m.role)).toEqual(["owner"]);
+  });
+
+  it("a member removes themselves, and is gone", async () => {
+    const { owner, member, memberUserId, listId } = await sharedList();
+
+    expect((await remove(listId, memberUserId, member.accessToken)).status).toBe(200);
+    expect((await get(`/lists/${listId}/changes?since=0`, member.accessToken)).status).toBe(403);
+    expect((await membersOf(listId, owner.accessToken)).map((m) => m.role)).toEqual(["owner"]);
+  });
+
+  it("a member may not remove the owner", async () => {
+    const { owner, member, listId } = await sharedList();
+    const ownerId = await userIdOf(owner.accessToken, listId);
+
+    expect((await remove(listId, ownerId, member.accessToken)).status).toBe(403);
+    expect((await membersOf(listId, owner.accessToken)).map((m) => m.role)).toEqual([
+      "owner",
+      "member",
+    ]);
+  });
+
+  it("the owner may not strand the list by leaving it", async () => {
+    const { owner, listId } = await sharedList();
+    const ownerId = await userIdOf(owner.accessToken, listId);
+
+    expect((await remove(listId, ownerId, owner.accessToken)).status).toBe(403);
+    expect((await membersOf(listId, owner.accessToken)).map((m) => m.role)).toEqual([
+      "owner",
+      "member",
+    ]);
+  });
+
+  /** The caller's own user id, read back off the members list. */
+  async function userIdOf(token: string, listId: string): Promise<string> {
+    const members = await membersOf(listId, token);
+    const owner = members.find((m) => m.role === "owner");
+    if (owner === undefined) throw new Error("no owner on the list");
+    return owner.userId;
+  }
 });
 
 describe("memberships", () => {

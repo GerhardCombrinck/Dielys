@@ -135,7 +135,42 @@ class SyncEngine
                     db.lists().setMemberCount(membership.listId, membership.memberCount)
                 }
             }
+
+            forgetListsNoLongerOurs(memberships.map { it.listId }.toSet())
             return SyncOutcome.Success
+        }
+
+        /**
+         * Drops the local copy of any list this account is not a member of any
+         * more (#60) — removed by the owner, or left from another device.
+         *
+         * Without this the list sits there forever: its socket is refused, its
+         * catch-up 403s, and it quietly shows whatever it last knew while
+         * claiming to be shared with people who can no longer see it. That is a
+         * worse answer than it being gone.
+         *
+         * A list with anything at all in the outbox is left alone. A list made
+         * offline has not been claimed yet, so it is *correctly* absent from the
+         * memberships answer, and forgetting it would throw away the thing
+         * somebody just typed. So would forgetting a list whose claim the server
+         * refused — that one keeps its dead row and stays on screen, where the
+         * stuck count can point at it.
+         *
+         * Reached only after `api.memberships()` returned, so a failure to ask
+         * has already returned above. An empty answer means this account is on
+         * no lists, which is a real state — leaving the only shared list you had.
+         */
+        private suspend fun forgetListsNoLongerOurs(mine: Set<String>) {
+            for (listId in db.lists().knownIds().filterNot { it in mine }) {
+                if (db.outbox().countForList(listId) > 0) continue
+
+                db.withTransaction {
+                    db.listPurge().tasks(listId)
+                    db.listPurge().cursor(listId)
+                    db.listPurge().accent(listId)
+                    db.listPurge().list(listId)
+                }
+            }
         }
 
         /**

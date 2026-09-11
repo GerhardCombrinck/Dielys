@@ -77,6 +77,20 @@
     <string name="share_note">Ngileyo ikheli le-imeyili kwaphela engakghona ukujoyina. Lisebenza amalanga alikhomba.</string>
     <string name="share_sending">Ithumela isimemo se-%1$s…</string>
     <string name="share_sent">Isimemo sithunyelwe ku-%1$s. Sisebenza amalanga alikhomba, begodu ngilelo ikheli kwaphela elingajoyina u-%2$s.</string>
+    <string name="members_title">Kwabelwana nabo</string>
+    <string name="members_loading">Kuyatjhejwa…</string>
+    <string name="members_you">wena</string>
+    <string name="members_owner">umnikazi</string>
+    <string name="members_solo">Akakho omunye okwanje. Yabelana ngalo bona ungenise umuntu.</string>
+    <string name="members_failed">Ayikghonanga ukutjheja bona kwabelwana nobani: %1$s</string>
+    <string name="action_remove">Susa</string>
+    <string name="action_leave">Tjhiya irhelo</string>
+    <string name="cd_shared_list">Irhelo elabelwanwako</string>
+    <string name="confirm_remove_title">Susa u-%1$s?</string>
+    <string name="confirm_remove_body">Angekhe basalibona irhelo leli. Okusele kukufuni yabo kuhlala lapho.</string>
+    <string name="confirm_leave_title">Tjhiya irhelo leli?</string>
+    <string name="confirm_leave_body">Liyanyamalala kufuni le begodu uyalisa ukufumana amatjhuguluko. Umnikazi angakumema godu.</string>
+
     <string name="join_list_title">Joyina irhelo</string>
     <string name="join_paste_prompt">Namathisela isimemo osithunyelwe mumuntu.</string>
     <string name="join_invite_label">Isimemo</string>

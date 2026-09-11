@@ -135,32 +135,57 @@ class HttpSyncApi
                 ),
             )
 
+        override suspend fun listMembers(listId: String): List<ListMember> =
+            decode(
+                ListMembersResponse.serializer(),
+                request(url("lists", listId, "members"), body = null),
+            ).members
+
+        override suspend fun removeMember(
+            listId: String,
+            userId: String,
+        ) {
+            // The answer echoes back what was asked for, so there is nothing to
+            // read: either the membership is gone or this threw saying why.
+            request(url("lists", listId, "members", userId), body = null, method = "DELETE")
+        }
+
         private fun url(vararg segments: String): HttpUrl =
             baseUrl.newBuilder().apply { segments.forEach { addPathSegment(it) } }.build()
 
-        /** Sends the request, refreshing once on a 401. */
+        /**
+         * Sends the request, refreshing once on a 401. [method] overrides the
+         * GET-or-POST the body would otherwise imply — only DELETE needs it, and
+         * only since #60.
+         */
         private suspend fun request(
             url: HttpUrl,
             body: RequestBody?,
+            method: String? = null,
         ): String =
             withContext(Dispatchers.IO) {
-                val first = send(url, body, tokens.current())
+                val first = send(url, body, method, tokens.current())
                 if (first.code != HTTP_UNAUTHORIZED) {
                     return@withContext readOrThrow(first)
                 }
 
                 first.close()
                 val refreshed = tokens.refreshed() ?: throw ApiException.Unauthorized(null)
-                readOrThrow(send(url, body, refreshed))
+                readOrThrow(send(url, body, method, refreshed))
             }
 
         private fun send(
             url: HttpUrl,
             body: RequestBody?,
+            method: String?,
             token: String?,
         ): Response {
             val builder = Request.Builder().url(url)
-            if (body == null) builder.get() else builder.post(body)
+            when {
+                method != null -> builder.method(method, body)
+                body == null -> builder.get()
+                else -> builder.post(body)
+            }
             if (token != null) builder.header("Authorization", "Bearer $token")
             return try {
                 client.newCall(builder.build()).execute()

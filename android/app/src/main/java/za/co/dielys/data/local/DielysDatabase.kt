@@ -33,6 +33,8 @@ abstract class DielysDatabase : RoomDatabase() {
 
     abstract fun listAccents(): ListAccentDao
 
+    abstract fun listPurge(): ListPurgeDao
+
     abstract fun tasks(): TaskDao
 
     abstract fun outbox(): OutboxDao

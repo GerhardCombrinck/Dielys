@@ -36,6 +36,10 @@ const LIST_ROUTE = /^\/lists\/([^/]+)\/(ws|changes|mutate)$/;
 /** `/lists/{listId}` — claim or invite, handled by the Worker itself. */
 const LIST_ROOT_ROUTE = /^\/lists\/([^/]+)$/;
 const INVITE_ROUTE = /^\/lists\/([^/]+)\/invite$/;
+/** `/lists/{listId}/members` — who is on it (#60). */
+const MEMBERS_ROUTE = /^\/lists\/([^/]+)\/members$/;
+/** `/lists/{listId}/members/{userId}` — take one person off it (#60). */
+const MEMBER_ROUTE = /^\/lists\/([^/]+)\/members\/([^/]+)$/;
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -97,6 +101,23 @@ export default {
       const invite = INVITE_ROUTE.exec(url.pathname);
       if (invite !== null) {
         return await handleCreateInvite(request, env, decodeURIComponent(invite[1] as string), now);
+      }
+
+      // Both ahead of LIST_ROUTE, which only knows ws/changes/mutate and would
+      // answer these with a 404 before they were ever tried.
+      const members = MEMBERS_ROUTE.exec(url.pathname);
+      if (members !== null) {
+        return await handleListMembers(request, env, decodeURIComponent(members[1] as string));
+      }
+
+      const member = MEMBER_ROUTE.exec(url.pathname);
+      if (member !== null) {
+        return await handleRemoveMember(
+          request,
+          env,
+          decodeURIComponent(member[1] as string),
+          decodeURIComponent(member[2] as string),
+        );
       }
 
       const claim = LIST_ROOT_ROUTE.exec(url.pathname);
@@ -572,6 +593,51 @@ async function handleCreateInvite(
     return errorResponse(result.code, result.code === "rate-limited" ? 429 : 503);
   }
   return Response.json({ expiresIn: result.value.expiresIn });
+}
+
+/**
+ * Who is on this list (#60). Any member may ask — the sheet is how somebody
+ * checks that the person they invited is the person who joined, which is not
+ * something only the owner has a reason to want.
+ *
+ * `authorizeListAccess` already answers a non-member with `forbidden` rather
+ * than `not-found`, so this cannot be used to ask which list ids exist (L3).
+ */
+async function handleListMembers(request: Request, env: Env, listId: string): Promise<Response> {
+  if (request.method !== "GET") return errorResponse("malformed", 405);
+
+  const auth = await authorizeListAccess(request, env, listId);
+  if (!auth.ok) return errorResponse(auth.code, auth.status);
+
+  const members = await usersRoom(env).listMembers(listId);
+  return Response.json({ members });
+}
+
+/**
+ * Takes one person off a list (#60). The owner may remove anybody else; anybody
+ * may remove themselves. `UsersRoom.removeMembership` is where that rule lives
+ * — including the refusal to let an owner strand their own list — because this
+ * file does routing and auth, not business rules (D1).
+ */
+async function handleRemoveMember(
+  request: Request,
+  env: Env,
+  listId: string,
+  targetUserId: string,
+): Promise<Response> {
+  if (request.method !== "DELETE") return errorResponse("malformed", 405);
+
+  const auth = await authorizeListAccess(request, env, listId);
+  if (!auth.ok) return errorResponse(auth.code, auth.status);
+
+  const result = await usersRoom(env).removeMembership(
+    auth.value.principal.userId,
+    listId,
+    targetUserId,
+  );
+  if (!result.ok) return errorResponse(result.code, 403);
+
+  return Response.json(result.value);
 }
 
 async function handleAcceptInvite(request: Request, env: Env, now: number): Promise<Response> {

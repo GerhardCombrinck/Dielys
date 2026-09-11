@@ -76,6 +76,20 @@
     <string name="share_note">I adirese yoleyo ntsena ya imeyili leyi nga ta kota ku joyina. Yi tirha masiku ya nkombo.</string>
     <string name="share_sending">Yi rhumela xirhambo xa %1$s…</string>
     <string name="share_sent">Xirhambo xi rhumeriwe eka %1$s. Xi tirha masiku ya nkombo, naswona i adirese yoleyo ntsena leyi nga joyinaka %2$s.</string>
+    <string name="members_title">Ku avelaniwe na</string>
+    <string name="members_loading">Swa kamberiwa…</string>
+    <string name="members_you">wena</string>
+    <string name="members_owner">n\'wini</string>
+    <string name="members_solo">A ku na un\'wana sweswi. Avelana na yena leswaku a nghena.</string>
+    <string name="members_failed">A swi kotekanga ku kambela leswaku wu avelaniwe na mani: %1$s</string>
+    <string name="action_remove">Susa</string>
+    <string name="action_leave">Siya nxaxamelo</string>
+    <string name="cd_shared_list">Nxaxamelo lowu avelaniwaka</string>
+    <string name="confirm_remove_title">Susa %1$s?</string>
+    <string name="confirm_remove_body">A va nge he wu voni nxaxamelo lowu. Leswi se swi nga eka riqingho ra vona swi tshama kwalaho.</string>
+    <string name="confirm_leave_title">Siya nxaxamelo lowu?</string>
+    <string name="confirm_leave_body">Wu nyamalala eka riqingho leri naswona u tshika ku kuma ku cinca. N\'wini a nga ku rhamba nakambe.</string>
+
     <string name="join_list_title">Joyina nxaxamelo</string>
     <string name="join_paste_prompt">Namarhela xirhambo lexi munhu a ku rhumeleke xona.</string>
     <string name="join_invite_label">Xirhambo</string>

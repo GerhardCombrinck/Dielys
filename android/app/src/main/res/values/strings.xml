@@ -92,6 +92,23 @@
     <string name="share_note">Only that email address will be able to join. It works for seven days.</string>
     <string name="share_sending">Sending an invite for %1$s…</string>
     <string name="share_sent">Invite sent to %1$s. It works for seven days, and only that address can join %2$s.</string>
+    <!-- Who a list is shared with (#60), behind the people icon on its row.
+         `members_you` marks the row for this account; `members_owner` marks
+         whoever made the list. -->
+    <string name="members_title">Shared with</string>
+    <string name="members_loading">Checking…</string>
+    <string name="members_you">you</string>
+    <string name="members_owner">owner</string>
+    <string name="members_solo">Nobody else yet. Share it to let somebody in.</string>
+    <string name="members_failed">Could not check who this is shared with: %1$s</string>
+    <string name="action_remove">Remove</string>
+    <string name="action_leave">Leave list</string>
+    <string name="cd_shared_list">Shared list</string>
+    <string name="confirm_remove_title">Remove %1$s?</string>
+    <string name="confirm_remove_body">They will not see this list any more. What is already on their phone stays there.</string>
+    <string name="confirm_leave_title">Leave this list?</string>
+    <string name="confirm_leave_body">It disappears from this phone and you stop getting changes. The owner can invite you again.</string>
+
     <string name="join_list_title">Join a list</string>
     <string name="join_paste_prompt">Paste the invite somebody sent you.</string>
     <string name="join_invite_label">Invite</string>

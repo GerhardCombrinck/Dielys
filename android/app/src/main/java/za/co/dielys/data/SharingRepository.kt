@@ -52,6 +52,56 @@ sealed interface JoinResult {
 }
 
 /**
+ * One person on a shared list, as the screen needs them (#60).
+ *
+ * Not the wire type: the UI may not import `data.remote` at all (E1.2), and
+ * that rule is worth more than saving this mapping. The email is what names
+ * them — there is no display name in this system, only the address the owner
+ * typed to invite them.
+ */
+data class Member(
+    val userId: String,
+    val email: String,
+    val isOwner: Boolean,
+)
+
+/** Who is on a list, for the sheet behind the shared icon (#60). */
+sealed interface MembersResult {
+    data class Loaded(
+        val members: List<Member>,
+    ) : MembersResult
+
+    /** Not on this list any more — someone removed this account while the
+     *  screen was open, or between opening the sheet and asking. */
+    data object NotYours : MembersResult
+
+    data object Offline : MembersResult
+
+    data class ServerProblem(
+        val detail: String,
+    ) : MembersResult
+}
+
+sealed interface RemoveResult {
+    data object Removed : RemoveResult
+
+    /**
+     * The server refused: a member trying to remove somebody other than
+     * themselves, or an owner trying to leave their own list. One answer for
+     * both, because the server gives one — and because the screen only ever
+     * offers the actions that are allowed, so reaching this at all means the
+     * membership changed underneath.
+     */
+    data object NotAllowed : RemoveResult
+
+    data object Offline : RemoveResult
+
+    data class ServerProblem(
+        val detail: String,
+    ) : RemoveResult
+}
+
+/**
  * Making and accepting invites (L3).
  *
  * Separate from [SessionRepository] because it is not about the session: these
@@ -115,5 +165,62 @@ class SharingRepository
                 JoinResult.Offline
             } catch (error: ApiException.Unavailable) {
                 JoinResult.ServerProblem("server error ${error.status}")
+            }
+
+        /**
+         * Who is on [listId] (#60). Read live rather than kept in Room: it is
+         * only ever looked at while a sheet is open, and a stale answer about
+         * who can see your shopping list is worse than a spinner.
+         */
+        suspend fun members(listId: String): MembersResult =
+            try {
+                MembersResult.Loaded(
+                    api.listMembers(listId).map {
+                        Member(userId = it.userId, email = it.email, isOwner = it.isOwner)
+                    },
+                )
+            } catch (error: ApiException.Rejected) {
+                if (error.code == ErrorCode.FORBIDDEN) {
+                    MembersResult.NotYours
+                } else {
+                    MembersResult.ServerProblem(error.code ?: "rejected")
+                }
+            } catch (_: ApiException.Unauthorized) {
+                MembersResult.ServerProblem(ErrorCode.UNAUTHORIZED)
+            } catch (_: ApiException.Transport) {
+                MembersResult.Offline
+            } catch (error: ApiException.Unavailable) {
+                MembersResult.ServerProblem("server error ${error.status}")
+            }
+
+        /**
+         * Takes one person off [listId] — the owner removing somebody, or this
+         * account leaving (#60).
+         *
+         * Asks for a sync afterwards for the same reason [join] does: the member
+         * count on every affected screen comes from `/auth/memberships`, and
+         * waiting up to half an hour to stop saying "shared" would be its own
+         * small lie (H3.12).
+         */
+        suspend fun removeMember(
+            listId: String,
+            userId: String,
+        ): RemoveResult =
+            try {
+                api.removeMember(listId, userId)
+                scheduler.requestSync()
+                RemoveResult.Removed
+            } catch (error: ApiException.Rejected) {
+                if (error.code == ErrorCode.FORBIDDEN) {
+                    RemoveResult.NotAllowed
+                } else {
+                    RemoveResult.ServerProblem(error.code ?: "rejected")
+                }
+            } catch (_: ApiException.Unauthorized) {
+                RemoveResult.ServerProblem(ErrorCode.UNAUTHORIZED)
+            } catch (_: ApiException.Transport) {
+                RemoveResult.Offline
+            } catch (error: ApiException.Unavailable) {
+                RemoveResult.ServerProblem("server error ${error.status}")
             }
     }

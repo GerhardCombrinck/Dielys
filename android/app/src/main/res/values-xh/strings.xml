@@ -76,6 +76,20 @@
     <string name="share_note">Yiloo dilesi ye-imeyile kuphela enokujoyina. Isebenza iintsuku ezisixhenxe.</string>
     <string name="share_sending">Ithumela isimemo se-%1$s…</string>
     <string name="share_sent">Isimemo sithunyelwe ku-%1$s. Sisebenza iintsuku ezisixhenxe, kwaye yiloo dilesi kuphela enokujoyina u-%2$s.</string>
+    <string name="members_title">Kwabelwana nabo</string>
+    <string name="members_loading">Kuyakhangelwa…</string>
+    <string name="members_you">wena</string>
+    <string name="members_owner">umnini</string>
+    <string name="members_solo">Akukho mntu wumbi okwangoku. Yabelana ngalo ukuze ungenise umntu.</string>
+    <string name="members_failed">Ayikwazanga ukukhangela ukuba lwabelwana nabani: %1$s</string>
+    <string name="action_remove">Susa</string>
+    <string name="action_leave">Shiya uluhlu</string>
+    <string name="cd_shared_list">Uluhlu olwabelwanayo</string>
+    <string name="confirm_remove_title">Susa u-%1$s?</string>
+    <string name="confirm_remove_body">Abasayi kulubona olu luhlu. Oko sele kukwifowuni yabo kuhlala apho.</string>
+    <string name="confirm_leave_title">Shiya olu luhlu?</string>
+    <string name="confirm_leave_body">Luyanyamalala kule fowuni kwaye uyeka ukufumana utshintsho. Umnini unokukumema kwakhona.</string>
+
     <string name="join_list_title">Joyina uluhlu</string>
     <string name="join_paste_prompt">Ncamathisela isimemo osithunyelweyo ngumntu.</string>
     <string name="join_invite_label">Isimemo</string>

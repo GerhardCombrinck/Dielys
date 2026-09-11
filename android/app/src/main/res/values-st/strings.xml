@@ -76,6 +76,20 @@
     <string name="share_note">Ke aterese eo feela ya imeile e tla kgona ho kena. E sebetsa matsatsi a supileng.</string>
     <string name="share_sending">E romela memo ya %1$s…</string>
     <string name="share_sent">Memo e rometswe ho %1$s. E sebetsa matsatsi a supileng, mme ke aterese eo feela e ka kenang ho %2$s.</string>
+    <string name="members_title">Ho arolelanwe le</string>
+    <string name="members_loading">E a hlahlojwa…</string>
+    <string name="members_you">wena</string>
+    <string name="members_owner">mong</string>
+    <string name="members_solo">Ha ho motho e mong hajwale. Arolelana le yena ho mo kenya.</string>
+    <string name="members_failed">E hlolehile ho hlahloba hore na le arolelanwe le mang: %1$s</string>
+    <string name="action_remove">Tlosa</string>
+    <string name="action_leave">Tlohela lenane</string>
+    <string name="cd_shared_list">Lenane le arolelanwang</string>
+    <string name="confirm_remove_title">Tlosa %1$s?</string>
+    <string name="confirm_remove_body">Ba ke ke ba hlola ba bona lenane lena. Se seng se le fonong ya bona se dula moo.</string>
+    <string name="confirm_leave_title">Tlohela lenane lena?</string>
+    <string name="confirm_leave_body">Le a nyamela fonong ena mme o kgaotsa ho fumana diphetoho. Mong a ka o memela hape.</string>
+
     <string name="join_list_title">Kena lenaneng</string>
     <string name="join_paste_prompt">Momahanya memo eo motho a e o rometseng.</string>
     <string name="join_invite_label">Memo</string>

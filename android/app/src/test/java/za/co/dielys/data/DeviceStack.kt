@@ -2,6 +2,7 @@ package za.co.dielys.data
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import za.co.dielys.data.local.AccountIdentity
 import za.co.dielys.data.local.DeviceIdentity
 import za.co.dielys.data.local.DielysDatabase
 import za.co.dielys.data.local.PushTokenStore
@@ -34,6 +35,7 @@ class DeviceStack(
     // nothing here needs the collector running. The repository still asks it
     // which colour a new list gets, and that is a plain query.
     val accents = ListAccents(db, CoroutineScope(Dispatchers.Unconfined))
+    val account = FixedAccount(userId = "$deviceId-user", email = "$deviceId@dielys.test")
     val repo =
         DielysRepository(
             db = db,
@@ -60,6 +62,13 @@ class FakePushTokens(
 class FixedDevice(
     override val deviceId: String,
 ) : DeviceIdentity
+
+/** Who a test is signed in as, for the screens that have to recognise
+ *  themselves among the people on a shared list (#60). */
+class FixedAccount(
+    override val userId: String? = null,
+    override val email: String? = null,
+) : AccountIdentity
 
 /**
  * Counts requests instead of enqueuing work. The repository must never wait for a

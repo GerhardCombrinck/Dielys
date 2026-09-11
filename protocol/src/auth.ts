@@ -127,6 +127,46 @@ export interface MembershipsResponse {
 }
 
 /**
+ * One person on a shared list, for the "shared with" sheet (#60).
+ *
+ * The email is what names them: there is no display name anywhere in this
+ * system, only the address somebody signed in with. That is already known to
+ * everyone on the list — the owner typed it to invite them — so showing it back
+ * to the people on that list tells them nothing they did not already have.
+ */
+export interface ListMember {
+  userId: string;
+  email: string;
+  role: MembershipRole;
+}
+
+/**
+ * `GET /lists/{listId}/members` — who is on this list. Any member may ask; a
+ * non-member gets the same `forbidden` every other list route gives them, never
+ * a 404, so this cannot be used to ask which list ids exist (L3).
+ */
+export interface ListMembersResponse {
+  members: ListMember[];
+}
+
+/**
+ * `DELETE /lists/{listId}/members/{userId}` — takes one person off the list.
+ *
+ * Two callers are allowed, and no others (L3): the owner removing somebody
+ * else, or anybody removing themselves. The owner may not remove themselves,
+ * because a list with no owner is one nobody can ever share again — they delete
+ * the list instead.
+ *
+ * Only the membership goes. The list's own rows are untouched, and so is the
+ * copy already on the removed person's phone: this decides who may reach the
+ * list from now on, not what is already on somebody's device.
+ */
+export interface RemoveMemberResponse {
+  listId: string;
+  userId: string;
+}
+
+/**
  * `POST /auth/memberships/position` — moves one list in the caller's own
  * ordering. The client computes the key from the neighbours it dropped between,
  * exactly as it does for a task, so a move writes one row and never renumbers

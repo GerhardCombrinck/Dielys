@@ -22,6 +22,24 @@ interface DeviceIdentity {
 }
 
 /**
+ * Who this device is signed in as, for the one screen that has to point at a
+ * row and say "that one is you" — the "shared with" sheet (#60).
+ *
+ * Its own face of the same store rather than a look at all of it, for the same
+ * reason [DeviceIdentity] is: a caller that needs to recognise itself in a list
+ * of people has no business with tokens.
+ *
+ * Both null before anybody has signed in. [userId] is null on a session that
+ * predates the server sending one back, which is why the sheet matches on
+ * [email] and uses the id only to act.
+ */
+interface AccountIdentity {
+    val userId: String?
+
+    val email: String?
+}
+
+/**
  * The FCM registration token, and whether the server has been told about it.
  *
  * Separate from the session for the same reason [DeviceIdentity] is: the sync
@@ -70,6 +88,7 @@ class SessionStore
     constructor(
         @ApplicationContext context: Context,
     ) : DeviceIdentity,
+        AccountIdentity,
         PushTokenStore,
         SessionSignal {
         private val prefs: SharedPreferences =
@@ -102,7 +121,7 @@ class SessionStore
                 session.value = value != null
             }
 
-        var userId: String?
+        override var userId: String?
             get() = prefs.getString(KEY_USER_ID, null)
             set(value) = prefs.edit().putString(KEY_USER_ID, value).apply()
 
@@ -110,7 +129,7 @@ class SessionStore
          * Not sent by the server on login or refresh — kept from the sign-in
          * form so Settings has something to show.
          */
-        var email: String?
+        override var email: String?
             get() = prefs.getString(KEY_EMAIL, null)
             set(value) = prefs.edit().putString(KEY_EMAIL, value).apply()
 

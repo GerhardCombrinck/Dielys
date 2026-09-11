@@ -69,6 +69,22 @@ interface SyncApi {
     suspend fun acceptInvite(inviteToken: String): AcceptInviteResponse
 
     /**
+     * `GET /lists/{listId}/members` (#60). Any member may ask; anyone else gets
+     * a 403, never a 404, so this cannot be used to ask which lists exist (L3).
+     */
+    suspend fun listMembers(listId: String): List<ListMember>
+
+    /**
+     * `DELETE /lists/{listId}/members/{userId}` (#60). The owner may remove
+     * anybody else, and anybody may remove themselves; everything else is a
+     * 403, including an owner trying to leave their own list.
+     */
+    suspend fun removeMember(
+        listId: String,
+        userId: String,
+    )
+
+    /**
      * `POST /devices/token`. Not a sync call, but it belongs to the same
      * transport: it needs the bearer token and the refresh-once-on-401 handling,
      * and a second client for one endpoint would duplicate both.

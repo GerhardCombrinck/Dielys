@@ -76,6 +76,20 @@
     <string name="share_note">Ke aterese eo fela ya imeile e e tla kgonang go tsenela. E dira malatsi a le supa.</string>
     <string name="share_sending">E romela taletso ya %1$s…</string>
     <string name="share_sent">Taletso e rometswe go %1$s. E dira malatsi a le supa, mme ke aterese eo fela e e ka tsenelang %2$s.</string>
+    <string name="members_title">Go abelanwe le</string>
+    <string name="members_loading">Go a tlhatlhobiwa…</string>
+    <string name="members_you">wena</string>
+    <string name="members_owner">mong</string>
+    <string name="members_solo">Ga go na ope o mongwe gone jaana. Abelana le ene go mo tsenya.</string>
+    <string name="members_failed">Ga e a kgona go tlhatlhoba gore le abelanwe le mang: %1$s</string>
+    <string name="action_remove">Tlosa</string>
+    <string name="action_leave">Tlogela lenaane</string>
+    <string name="cd_shared_list">Lenaane le le abelanwang</string>
+    <string name="confirm_remove_title">Tlosa %1$s?</string>
+    <string name="confirm_remove_body">Ba ka se tlhole ba bona lenaane le. Se se setseng mo mogaleng wa bone se nna foo.</string>
+    <string name="confirm_leave_title">Tlogela lenaane le?</string>
+    <string name="confirm_leave_body">Le a nyelela mo mogaleng o mme o khutlisa go bona diphetogo. Mong a ka go laletsa gape.</string>
+
     <string name="join_list_title">Tsenela lenaane</string>
     <string name="join_paste_prompt">Kgomaretsa taletso e mongwe a e go rometseng.</string>
     <string name="join_invite_label">Taletso</string>

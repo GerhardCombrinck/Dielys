@@ -44,6 +44,7 @@ class ListsViewModelTest {
                 phone.accents,
                 phone.sharing,
                 phone.invites,
+                phone.account,
                 AndroidStringProvider(ApplicationProvider.getApplicationContext()),
             )
     }

@@ -76,6 +76,20 @@
     <string name="share_note">Ndi yeneyo adresi ya imeili fhedzi ine ya do kona u dzhena. I shuma maduvha a sumbe.</string>
     <string name="share_sending">I khou rumela tshiitisi tsha %1$s…</string>
     <string name="share_sent">Tshiitisi tsho rumelwa kha %1$s. Tshi shuma maduvha a sumbe, nahone ndi yeneyo adresi fhedzi ine ya nga dzhena kha %2$s.</string>
+    <string name="members_title">Ho kovhekanwa na</string>
+    <string name="members_loading">Hu khou sedzwa…</string>
+    <string name="members_you">inwi</string>
+    <string name="members_owner">mune</string>
+    <string name="members_solo">A hu na munwe zwino. Kovhekanani nae uri a dzhene.</string>
+    <string name="members_failed">A zwo ngo konadzea u sedza uri wo kovhekanwa na nnyi: %1$s</string>
+    <string name="action_remove">Bvisani</string>
+    <string name="action_leave">Litshani mutevhe</string>
+    <string name="cd_shared_list">Mutevhe wo kovhekanwaho</string>
+    <string name="confirm_remove_title">Bvisani %1$s?</string>
+    <string name="confirm_remove_body">Vha nga si tsha vhona uyu mutevhe. Zwine zwa vha hone kha lutingo lwavho zwi dzula henefho.</string>
+    <string name="confirm_leave_title">Litshani uyu mutevhe?</string>
+    <string name="confirm_leave_body">U a ngala kha ulu lutingo nahone ni litsha u wana tshanduko. Mune a nga ni ramba hafhu.</string>
+
     <string name="join_list_title">Dzhenani kha mutevhe</string>
     <string name="join_paste_prompt">Nambatedzani tshiitisi tshe muthu a ni rumela.</string>
     <string name="join_invite_label">Tshiitisi</string>

@@ -76,6 +76,20 @@
     <string name="share_note">Ngulelo likheli le-imeyili kuphela lelingakhona kujoyina. Lisebenta emalanga lasikhombisa.</string>
     <string name="share_sending">Itfumela simemo se-%1$s…</string>
     <string name="share_sent">Simemo sitfunyelwe ku-%1$s. Sisebenta emalanga lasikhombisa, futsi ngulelo likheli kuphela lelingajoyina u-%2$s.</string>
+    <string name="members_title">Kwabelwane nabo</string>
+    <string name="members_loading">Kuyahlolwa…</string>
+    <string name="members_you">wena</string>
+    <string name="members_owner">umnikati</string>
+    <string name="members_solo">Kute lomunye njengamanje. Yabelana ngalo kute ungenise umuntfu.</string>
+    <string name="members_failed">Ayikhonanga kuhlola kutsi kwabelwane nabani: %1$s</string>
+    <string name="action_remove">Susa</string>
+    <string name="action_leave">Shiya luhlu</string>
+    <string name="cd_shared_list">Luhlu lolwabelwene</string>
+    <string name="confirm_remove_title">Susa u-%1$s?</string>
+    <string name="confirm_remove_body">Ngeke basalubona lolu luhlu. Lokusevele kucingo labo kuhlala lapho.</string>
+    <string name="confirm_leave_title">Shiya lolu luhlu?</string>
+    <string name="confirm_leave_body">Luyanyamalala kulelicingo futsi uyekela kutfola lutjintjo. Umnikati angakumema futsi.</string>
+
     <string name="join_list_title">Joyina luhlu</string>
     <string name="join_paste_prompt">Namatsisela simemo lositfunyelwe ngumuntfu.</string>
     <string name="join_invite_label">Simemo</string>

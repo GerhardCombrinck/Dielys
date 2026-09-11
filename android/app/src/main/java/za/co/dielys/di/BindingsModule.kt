@@ -5,6 +5,7 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import za.co.dielys.data.SessionRepository
+import za.co.dielys.data.local.AccountIdentity
 import za.co.dielys.data.local.AndroidStringProvider
 import za.co.dielys.data.local.DeviceIdentity
 import za.co.dielys.data.local.DoneSectionPrefs
@@ -55,6 +56,12 @@ abstract class BindingsModule {
     @Binds
     @Singleton
     abstract fun deviceIdentity(impl: SessionStore): DeviceIdentity
+
+    /** Same store again, for the one screen that has to recognise this account
+     *  among the people on a shared list (#60). */
+    @Binds
+    @Singleton
+    abstract fun accountIdentity(impl: SessionStore): AccountIdentity
 
     /**
      * Same store, second face. The sync engine and the push handler need the two

@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -58,7 +59,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import za.co.dielys.R
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.ui.SettingsButton
-import za.co.dielys.ui.SyncStatus
 import za.co.dielys.ui.TextPrompt
 import za.co.dielys.ui.reorder.ReorderState
 import za.co.dielys.ui.reorder.draftStillWanted
@@ -76,9 +76,7 @@ fun ListsScreen(
     viewModel: ListsViewModel,
 ) {
     val rows by viewModel.lists.collectAsStateWithLifecycle()
-    val pending by viewModel.pending.collectAsStateWithLifecycle()
-    val stuck by viewModel.stuck.collectAsStateWithLifecycle()
-    val anySharedList by viewModel.anySharedList.collectAsStateWithLifecycle()
+    val members by viewModel.members.collectAsStateWithLifecycle()
     val invite by viewModel.invite.collectAsStateWithLifecycle()
     var creating by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<ListEntity?>(null) }
@@ -118,12 +116,10 @@ fun ListsScreen(
                     TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background,
                     ),
-                actions = {
-                    if (anySharedList) {
-                        SyncStatus(pending = pending, stuck = stuck)
-                    }
-                    SettingsButton(onClick = onSettings)
-                },
+                // Sync status used to live here. It is on each row now (#60),
+                // where it can say *which* list is shared rather than that some
+                // list somewhere is.
+                actions = { SettingsButton(onClick = onSettings) },
             )
         },
     ) { padding ->
@@ -147,6 +143,7 @@ fun ListsScreen(
                     onOpen = onOpen,
                     onRename = { renaming = it },
                     onColour = { colouring = it.id },
+                    onMembers = { viewModel.openMembers(it.id) },
                     onShare = viewModel::invite,
                     onDelete = viewModel::delete,
                     modifier = Modifier.weight(1f),
@@ -191,6 +188,14 @@ fun ListsScreen(
         )
     }
 
+    members?.let { state ->
+        MembersDialog(
+            state = state,
+            onRemove = viewModel::removeMember,
+            onDismiss = viewModel::dismissMembers,
+        )
+    }
+
     invite?.let { state ->
         InviteDialog(
             state = state,
@@ -216,6 +221,7 @@ private fun Lists(
     onOpen: (String) -> Unit,
     onRename: (ListEntity) -> Unit,
     onColour: (ListEntity) -> Unit,
+    onMembers: (ListEntity) -> Unit,
     onShare: (ListEntity) -> Unit,
     onDelete: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -280,6 +286,7 @@ private fun Lists(
                 onOpen = { onOpen(row.list.id) },
                 onRename = { onRename(row.list) },
                 onColour = { onColour(row.list) },
+                onMembers = { onMembers(row.list) },
                 onShare = { onShare(row.list) },
                 onDelete = { onDelete(row.list.id) },
                 dragging = dragging,
@@ -326,6 +333,7 @@ private fun ListRow(
     onOpen: () -> Unit,
     onRename: () -> Unit,
     onColour: () -> Unit,
+    onMembers: () -> Unit,
     onShare: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -369,6 +377,19 @@ private fun ListRow(
                     stringResource(R.string.not_synced_yet),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.secondary,
+                )
+            }
+        }
+
+        // Only on a list somebody else is actually on (#60). Plain, not tinted
+        // by sync state: this says "other people can see this", which is a fact
+        // about the list, and mixing a warning colour into it would make an
+        // ordinary shared list look like a problem.
+        if (list.isShared) {
+            IconButton(onClick = onMembers) {
+                Icon(
+                    Icons.Filled.Group,
+                    contentDescription = stringResource(R.string.cd_shared_list),
                 )
             }
         }

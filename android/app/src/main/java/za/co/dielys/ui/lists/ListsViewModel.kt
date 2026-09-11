@@ -18,8 +18,12 @@ import za.co.dielys.data.DielysRepository
 import za.co.dielys.data.InviteResult
 import za.co.dielys.data.JoinResult
 import za.co.dielys.data.ListAccents
+import za.co.dielys.data.Member
+import za.co.dielys.data.MembersResult
 import za.co.dielys.data.PendingInvite
+import za.co.dielys.data.RemoveResult
 import za.co.dielys.data.SharingRepository
+import za.co.dielys.data.local.AccountIdentity
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.local.StringProvider
 import za.co.dielys.domain.InviteLink
@@ -65,6 +69,38 @@ sealed interface InviteState {
 }
 
 /**
+ * The "shared with" sheet (#60), from the moment the people icon is tapped.
+ *
+ * Read live from the server rather than from Room: it is only ever on screen
+ * while the sheet is open, and a stale answer about who can see your list is
+ * worse than a moment of "checking…".
+ */
+sealed interface MembersState {
+    val listId: String
+
+    data class Loading(
+        override val listId: String,
+    ) : MembersState
+
+    data class Loaded(
+        override val listId: String,
+        val members: List<Member>,
+        /** This account, so the sheet knows which row is "you" and whether to
+         *  offer Remove on the others or Leave on itself. */
+        val meUserId: String?,
+        val iAmOwner: Boolean,
+        /** Set while a remove or leave is in flight, so the row it names can
+         *  say so instead of the whole sheet going blank. */
+        val working: String? = null,
+    ) : MembersState
+
+    data class Failed(
+        override val listId: String,
+        val message: String,
+    ) : MembersState
+}
+
+/**
  * The lists screen, fed entirely by Room (E1.2). Every action below writes
  * locally and returns; the outbox and `WorkManager` deal with the server, so
  * nothing on this screen can be blocked by a bad signal.
@@ -77,6 +113,7 @@ class ListsViewModel
         private val accents: ListAccents,
         private val sharing: SharingRepository,
         private val invites: PendingInvite,
+        private val account: AccountIdentity,
         private val strings: StringProvider,
     ) : ViewModel() {
         val lists: StateFlow<List<ListRow>> =
@@ -95,11 +132,6 @@ class ListsViewModel
         /** Edits the server refused for good. Rare, and never silent. */
         val stuck: StateFlow<Int> = repo.observeStuckCount().asState(0)
 
-        /** Sync status is only worth showing once at least one list has someone
-         *  else on it to go out of sync with. */
-        val anySharedList: StateFlow<Boolean> =
-            repo.observeLists().map { it.any(ListEntity::isShared) }.asState(false)
-
         /**
          * The invite being made or shown. Null when the dialog is closed — and it
          * is not restored across process death on purpose: a token that has been
@@ -108,6 +140,10 @@ class ListsViewModel
          */
         private val _invite = MutableStateFlow<InviteState?>(null)
         val invite: StateFlow<InviteState?> = _invite.asStateFlow()
+
+        /** The "shared with" sheet, or null when it is closed (#60). */
+        private val _members = MutableStateFlow<MembersState?>(null)
+        val members: StateFlow<MembersState?> = _members.asStateFlow()
 
         /**
          * An invite that arrived by tapping a link. Offered, never acted on: a
@@ -202,6 +238,96 @@ class ListsViewModel
 
         fun dismissInvite() {
             _invite.value = null
+        }
+
+        /**
+         * The "shared with" sheet (#60). Opens showing "checking…" and asks the
+         * server, rather than opening on whatever Room last heard: the member
+         * count in Room is a number, and this question is about names.
+         */
+        fun openMembers(listId: String) {
+            _members.value = MembersState.Loading(listId)
+            viewModelScope.launch { loadMembers(listId) }
+        }
+
+        fun dismissMembers() {
+            _members.value = null
+        }
+
+        /**
+         * Takes somebody off the list — the owner removing them, or this account
+         * leaving. Reloads rather than removing the row locally: whether the
+         * sheet should still be open at all depends on who just went, and the
+         * server is the one that knows the answer.
+         */
+        fun removeMember(
+            listId: String,
+            userId: String,
+        ) {
+            val current = _members.value
+            if (current is MembersState.Loaded && current.listId == listId) {
+                _members.value = current.copy(working = userId)
+            }
+
+            viewModelScope.launch {
+                when (val result = sharing.removeMember(listId, userId)) {
+                    RemoveResult.Removed -> {
+                        // Leaving takes the sheet with it: there is no list left
+                        // to be shown the members of, and the row underneath is
+                        // on its way out with the next sync.
+                        if (userId == account.userId) {
+                            _members.value = null
+                        } else {
+                            loadMembers(listId)
+                        }
+                    }
+
+                    RemoveResult.NotAllowed ->
+                        // Only reachable if the membership changed underneath —
+                        // the sheet offers nothing the server would refuse — so
+                        // showing what is true now beats explaining the refusal.
+                        loadMembers(listId)
+
+                    RemoveResult.Offline -> fail(listId, strings.get(R.string.error_offline))
+                    is RemoveResult.ServerProblem -> fail(listId, result.detail)
+                }
+            }
+        }
+
+        private suspend fun loadMembers(listId: String) {
+            when (val result = sharing.members(listId)) {
+                is MembersResult.Loaded ->
+                    _members.value =
+                        MembersState.Loaded(
+                            listId = listId,
+                            members = result.members,
+                            meUserId = result.members.firstOrNull(::isMe)?.userId,
+                            iAmOwner = result.members.firstOrNull(::isMe)?.isOwner == true,
+                        )
+
+                // Already off this list. Nothing to show and nothing to do about
+                // it here; the next sync takes the row off the screen too.
+                MembersResult.NotYours -> _members.value = null
+                MembersResult.Offline -> fail(listId, strings.get(R.string.error_offline))
+                is MembersResult.ServerProblem -> fail(listId, result.detail)
+            }
+        }
+
+        /**
+         * Matched on the email rather than the id: the id is only stored from
+         * the server's own login answer, and a session that predates that would
+         * otherwise never recognise itself and would be offered Remove on its
+         * own row.
+         */
+        private fun isMe(member: Member): Boolean =
+            member.email.equals(account.email?.trim(), ignoreCase = true)
+
+        private fun fail(
+            listId: String,
+            detail: String,
+        ) {
+            _members.value =
+                MembersState.Failed(listId, strings.get(R.string.members_failed, detail))
         }
 
         /**

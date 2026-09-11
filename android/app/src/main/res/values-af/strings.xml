@@ -81,6 +81,20 @@
     <string name="share_note">Net daardie e-posadres sal kan aansluit. Dit werk vir sewe dae.</string>
     <string name="share_sending">Stuur \'n uitnodiging vir %1$s…</string>
     <string name="share_sent">Uitnodiging gestuur aan %1$s. Dit werk vir sewe dae, en net daardie adres kan by %2$s aansluit.</string>
+    <string name="members_title">Gedeel met</string>
+    <string name="members_loading">Kyk tans…</string>
+    <string name="members_you">jy</string>
+    <string name="members_owner">eienaar</string>
+    <string name="members_solo">Nog niemand anders nie. Deel dit om iemand in te laat.</string>
+    <string name="members_failed">Kon nie kyk met wie dit gedeel is nie: %1$s</string>
+    <string name="action_remove">Verwyder</string>
+    <string name="action_leave">Verlaat lys</string>
+    <string name="cd_shared_list">Gedeelde lys</string>
+    <string name="confirm_remove_title">Verwyder %1$s?</string>
+    <string name="confirm_remove_body">Hulle sal hierdie lys nie meer sien nie. Wat reeds op hul foon is, bly daar.</string>
+    <string name="confirm_leave_title">Verlaat hierdie lys?</string>
+    <string name="confirm_leave_body">Dit verdwyn van hierdie foon af en jy kry nie meer veranderinge nie. Die eienaar kan jou weer nooi.</string>
+
     <string name="join_list_title">Sluit by \'n lys aan</string>
     <string name="join_paste_prompt">Plak die uitnodiging wat iemand vir jou gestuur het.</string>
     <string name="join_invite_label">Uitnodiging</string>

@@ -85,6 +85,38 @@ interface ListDao {
     )
 }
 
+/**
+ * Every local trace of a list this account is no longer a member of (#60) —
+ * removed by the owner, or left from another device.
+ *
+ * Real deletes, unlike every other one in this app (F5.3). A tombstone says
+ * "this list is gone"; these say "this list is not mine", which is not a fact
+ * about the list at all — it still exists, and the people still on it must not
+ * see it disappear. There is nothing here to converge, so there is nothing to
+ * keep a marker for.
+ *
+ * Its own DAO rather than a method on each of the four, so that what has to be
+ * removed together is written down together — and so the caller cannot forget
+ * one and leave a list's rows behind with no list to belong to. They are still
+ * four calls, wrapped in one transaction by `SyncEngine.discoverLists`, which
+ * is also where the rule lives about which lists may be forgotten at all.
+ */
+@Dao
+interface ListPurgeDao {
+    @Query("DELETE FROM tasks WHERE list_id = :listId")
+    suspend fun tasks(listId: String)
+
+    @Query("DELETE FROM sync_state WHERE list_id = :listId")
+    suspend fun cursor(listId: String)
+
+    /** Frees the colour too, so the next new list can have it (#57). */
+    @Query("DELETE FROM list_accent WHERE list_id = :listId")
+    suspend fun accent(listId: String)
+
+    @Query("DELETE FROM lists WHERE id = :listId")
+    suspend fun list(listId: String)
+}
+
 /** How many live lists wear one palette index. See [ListAccentDao.usage]. */
 data class AccentUsage(
     val accent: Int,
@@ -232,6 +264,16 @@ interface OutboxDao {
         entityId: String,
         exceptKey: String,
     ): Int
+
+    /**
+     * Everything still queued for a list, dead rows included. What stops
+     * `SyncEngine.discoverLists` forgetting a list whose claim has not reached
+     * the server yet — and a list whose claim was *refused* keeps its dead row,
+     * so it stays on screen where the stuck-edit count can point at it rather
+     * than being quietly deleted along with whatever was typed into it.
+     */
+    @Query("SELECT COUNT(*) FROM outbox WHERE list_id = :listId")
+    suspend fun countForList(listId: String): Int
 
     @Query("UPDATE outbox SET attempts = attempts + 1, last_error = :error WHERE id = :id")
     suspend fun recordFailure(
