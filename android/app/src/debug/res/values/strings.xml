@@ -1,0 +1,5 @@
+<resources>
+    <!-- Overrides the release name (values/strings.xml) so a debug install
+         reads as a different app next to it on the home screen. -->
+    <string name="app_name">Die Lys DEV</string>
+</resources>

@@ -1,0 +1,5 @@
+<resources>
+    <!-- Overrides the release colour (values/colors.xml, dark navy) so the
+         debug launcher icon reads as a different app next to it. -->
+    <color name="ic_launcher_background">#1B4A2A</color>
+</resources>

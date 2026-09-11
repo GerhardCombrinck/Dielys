@@ -29,7 +29,7 @@ android {
         minSdk = 26
         targetSdk = 37
         versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 1
-        versionName = "0.1.0"
+        versionName = "0.2.0"
     }
 
     buildFeatures {
@@ -84,6 +84,12 @@ android {
 
     buildTypes {
         debug {
+            // A distinct package id and version suffix so a debug build installs
+            // alongside a release one instead of refusing to (they're signed with
+            // different keys) — see res/src/debug for the name and icon colour
+            // that tell the two apart once both are on the phone.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-dev"
             buildConfigField(
                 "String",
                 "SYNC_BASE_URL",
