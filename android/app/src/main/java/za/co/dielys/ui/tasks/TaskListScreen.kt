@@ -623,21 +623,32 @@ private fun TaskRow(
             // task keeps only the option to remove it.
             if (!task.done) {
                 IconButton(onClick = onStar) {
-                    Icon(
-                        imageVector = if (task.starred) Icons.Filled.Star else Icons.Outlined.Star,
-                        contentDescription = if (task.starred) "Unstar" else "Star",
-                        // A solid star at full alpha read as nearly as bright as
-                        // a starred row's fill, so every row looked starred at a
-                        // glance. The outlined glyph's own empty centre now does
-                        // that work instead of a dimmed fill — full alpha, so it
-                        // still reads clearly as a star, just not filled.
-                        tint =
-                            if (task.starred) {
-                                Color.White
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                    )
+                    if (task.starred) {
+                        Icon(
+                            imageVector = Icons.Filled.Star,
+                            contentDescription = "Unstar",
+                            tint = Color.White,
+                        )
+                    } else {
+                        // The outlined glyph's points converge enough at icon
+                        // size that its "hollow" centre still read as a solid
+                        // white star. Painting the filled star in the row's own
+                        // background colour first blots that out, so only the
+                        // dimmed outline drawn on top is visible — genuinely
+                        // hollow rather than just less bright.
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Filled.Star,
+                                contentDescription = null,
+                                tint = background,
+                            )
+                            Icon(
+                                imageVector = Icons.Outlined.Star,
+                                contentDescription = "Star",
+                                tint = Color.White.copy(alpha = STAR_OUTLINE_ALPHA),
+                            )
+                        }
+                    }
                 }
             }
 
@@ -806,6 +817,9 @@ private val CARD_GAP = 8.dp
 private const val STAR_GLOW_MILLIS = 700
 private const val STAR_GLOW_ALPHA = 0.38f
 private const val STAR_GLOW_ELEVATION = 8f
+
+/** An unstarred star's outline — dim enough not to read as starred. */
+private const val STAR_OUTLINE_ALPHA = 0.5f
 
 /** Two seconds for something just typed: long enough to look up from the
  * keyboard and find it, and it fades instead of ending. */
