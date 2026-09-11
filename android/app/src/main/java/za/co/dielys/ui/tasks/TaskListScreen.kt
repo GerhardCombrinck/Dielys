@@ -16,6 +16,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -313,8 +314,10 @@ private fun Tasks(
         state = listState,
         // A gap between cards, not a line inside one: CARD_GAP is what keeps
         // consecutive rows from reading as a single block now that each one
-        // stands on its own surface.
+        // stands on its own surface. The same gap trails the last card, so it
+        // does not read as attached to the add-item bar below it.
         verticalArrangement = Arrangement.spacedBy(CARD_GAP),
+        contentPadding = PaddingValues(bottom = CARD_GAP),
         modifier =
             Modifier.fillMaxSize().padding(horizontal = 16.dp).pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(
