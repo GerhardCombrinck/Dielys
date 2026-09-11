@@ -616,17 +616,16 @@ private fun TaskRow(
                     Icon(
                         imageVector = if (task.starred) Icons.Filled.Star else Icons.Outlined.Star,
                         contentDescription = if (task.starred) "Unstar" else "Star",
-                        // onSurfaceVariant read as nearly as bright as a starred
-                        // row's fill, so every row looked starred at a glance.
-                        // Unstarred now barely shows at all; starred is the one
-                        // state meant to draw the eye.
+                        // A solid star at full alpha read as nearly as bright as
+                        // a starred row's fill, so every row looked starred at a
+                        // glance. The outlined glyph's own empty centre now does
+                        // that work instead of a dimmed fill — full alpha, so it
+                        // still reads clearly as a star, just not filled.
                         tint =
                             if (task.starred) {
                                 Color.White
                             } else {
-                                MaterialTheme.colorScheme.onSurface.copy(
-                                    alpha = STAR_UNSTARRED_ALPHA,
-                                )
+                                MaterialTheme.colorScheme.onSurfaceVariant
                             },
                     )
                 }
@@ -807,9 +806,6 @@ private const val ADDED_GLOW_HOLD_MILLIS = 700
 private val CHECKBOX_TOUCH_TARGET = 48.dp
 private const val DRAG_SCALE = 0.02f
 private const val DONE_ALPHA = 0.6f
-
-/** Faint enough that an unstarred row does not compete with a starred one. */
-private const val STAR_UNSTARRED_ALPHA = 0.35f
 
 /** Faint enough to read as not-yet-real without the row's text going hard to read. */
 private const val GHOST_SURFACE_ALPHA = 0.5f
