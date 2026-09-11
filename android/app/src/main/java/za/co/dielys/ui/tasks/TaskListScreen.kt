@@ -6,6 +6,7 @@ import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -41,7 +42,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -68,10 +68,15 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -87,6 +92,9 @@ import za.co.dielys.ui.reorder.draftStillWanted
 import za.co.dielys.ui.reorder.moved
 import za.co.dielys.ui.theme.PillShape
 import za.co.dielys.ui.theme.listAccent
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * One list. Everything on it comes from Room and every action writes to Room —
@@ -630,24 +638,12 @@ private fun TaskRow(
                             tint = Color.White,
                         )
                     } else {
-                        // The outlined glyph's points converge enough at icon
-                        // size that its "hollow" centre still read as a solid
-                        // white star. Painting the filled star in the row's own
-                        // background colour first blots that out, so only the
-                        // dimmed outline drawn on top is visible — genuinely
-                        // hollow rather than just less bright.
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Filled.Star,
-                                contentDescription = null,
-                                tint = background,
-                            )
-                            Icon(
-                                imageVector = Icons.Outlined.Star,
-                                contentDescription = "Star",
-                                tint = Color.White.copy(alpha = STAR_OUTLINE_ALPHA),
-                            )
-                        }
+                        // [Icons.Outlined.Star] turned out to draw the same solid
+                        // silhouette as the filled star, just dimmer — tinting or
+                        // layering it never made the centre see-through. Only
+                        // drawing the five points ourselves, stroke-only, gives an
+                        // unstarred row a genuinely hollow star.
+                        HollowStar(tint = Color.White.copy(alpha = STAR_OUTLINE_ALPHA))
                     }
                 }
             }
@@ -678,6 +674,48 @@ private fun TaskRow(
         }
     }
 }
+
+/**
+ * Just the five points of a star, stroked rather than filled — see the call
+ * site in [TaskRow] for why [Icons.Outlined.Star] could not do this.
+ */
+@Composable
+private fun HollowStar(
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(
+        modifier =
+            modifier
+                .size(24.dp)
+                .semantics { contentDescription = "Star" },
+    ) {
+        val center = Offset(size.width / 2f, size.height / 2f)
+        val outerRadius = size.minDimension / 2f * STAR_OUTER_RADIUS_FRACTION
+        val innerRadius = outerRadius * STAR_INNER_RADIUS_FRACTION
+        drawPath(
+            path = starPath(center, outerRadius, innerRadius),
+            color = tint,
+            style = Stroke(width = STAR_OUTLINE_STROKE_WIDTH.toPx()),
+        )
+    }
+}
+
+private fun starPath(
+    center: Offset,
+    outerRadius: Float,
+    innerRadius: Float,
+): Path =
+    Path().apply {
+        repeat(STAR_POINTS * 2) { i ->
+            val radius = if (i % 2 == 0) outerRadius else innerRadius
+            val angle = -PI / 2 + i * PI / STAR_POINTS
+            val x = center.x + radius * cos(angle).toFloat()
+            val y = center.y + radius * sin(angle).toFloat()
+            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
 
 /**
  * A 20dp square rather than Material's default checkbox — the redesign calls
@@ -820,6 +858,12 @@ private const val STAR_GLOW_ELEVATION = 8f
 
 /** An unstarred star's outline — dim enough not to read as starred. */
 private const val STAR_OUTLINE_ALPHA = 0.5f
+private val STAR_OUTLINE_STROKE_WIDTH = 1.5.dp
+private const val STAR_POINTS = 5
+
+/** A regular pentagram's ratio of inner vertices to outer points. */
+private const val STAR_INNER_RADIUS_FRACTION = 0.382f
+private const val STAR_OUTER_RADIUS_FRACTION = 0.9f
 
 /** Two seconds for something just typed: long enough to look up from the
  * keyboard and find it, and it fades instead of ending. */
