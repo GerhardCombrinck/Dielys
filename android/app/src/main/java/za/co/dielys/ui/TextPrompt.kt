@@ -49,7 +49,11 @@ fun TextPrompt(
                 value = value,
                 onValueChange = { value = it },
                 label = { Text(label) },
-                singleLine = true,
+                // The value itself stays one line (Done submits rather than
+                // inserting a newline) — only the field is allowed to wrap, so a
+                // long title is all on screen at once instead of scrolling
+                // sideways past the edge of a fixed line.
+                maxLines = MAX_VISIBLE_LINES,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { submit() }),
                 modifier = Modifier.focusRequester(focus),
@@ -61,3 +65,6 @@ fun TextPrompt(
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
+
+/** Enough for a long title to unfold without the dialog growing unbounded. */
+private const val MAX_VISIBLE_LINES = 5
