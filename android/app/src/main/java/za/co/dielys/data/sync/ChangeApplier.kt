@@ -93,8 +93,27 @@ class ChangeApplier
          * The envelope carries the whole entity as the server resolved it, so there
          * is no per-field merge to do here — F5.4 happens server-side, and applying
          * in seq order (F5.6) is what makes the last write the right one.
+         *
+         * One exception: if this device still has a *later* mutation for the same
+         * entity sitting in the outbox, this change is an echo of a tap the user
+         * has already moved past. Writing it anyway is not wrong by F5.6 — the
+         * cursor still advances below, in order — but it flashes a value on screen
+         * the user already changed their mind about, and does it again for every
+         * queued tap until the last one lands. Skipping the write (not the cursor
+         * advance) is what stops that ripple without slowing anything down: the
+         * outbox still drains oldest-first at full speed, and the last echo for
+         * this entity always has nothing left to be shadowed by, so it writes
+         * through and leaves the authoritative, server-timestamped value behind.
          */
         private suspend fun write(change: ChangeEnvelope) {
+            val entityId =
+                when (change) {
+                    is TaskChange -> change.entity.id
+                    is ListChange -> change.entity.id
+                }
+            val shadowed = db.outbox().pendingCountForEntity(entityId, change.idempotencyKey) > 0
+            if (shadowed) return
+
             when (change) {
                 is TaskChange -> db.tasks().upsert(change.entity.toEntity())
                 is ListChange -> {

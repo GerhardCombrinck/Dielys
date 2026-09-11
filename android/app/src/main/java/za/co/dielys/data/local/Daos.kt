@@ -159,6 +159,23 @@ interface OutboxDao {
     @Query("DELETE FROM outbox WHERE id = :id")
     suspend fun delete(id: Long)
 
+    /**
+     * Whether some *other* not-yet-landed mutation for this entity is still
+     * queued. Used to tell a stale echo of one's own earlier tap from the one
+     * that actually matches what the screen shows right now — see
+     * [za.co.dielys.data.sync.ChangeApplier].
+     */
+    @Query(
+        """
+        SELECT COUNT(*) FROM outbox
+        WHERE entity_id = :entityId AND idempotency_key != :exceptKey AND dead = 0
+        """,
+    )
+    suspend fun pendingCountForEntity(
+        entityId: String,
+        exceptKey: String,
+    ): Int
+
     @Query("UPDATE outbox SET attempts = attempts + 1, last_error = :error WHERE id = :id")
     suspend fun recordFailure(
         id: Long,

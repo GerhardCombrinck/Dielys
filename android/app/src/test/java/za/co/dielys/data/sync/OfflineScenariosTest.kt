@@ -131,6 +131,67 @@ class OfflineScenariosTest {
             assertEquals(2L, phone.db.syncState().cursor(listId))
         }
 
+    /**
+     * H3.5's "no flicker" half, for a single device: tapping star three times
+     * before the network answers even once must never let an echo of the first
+     * or second tap flash back onto the screen once the third has already
+     * landed locally. The row must read the same way it does on screen at every
+     * point along the drain, not just once the queue is empty.
+     */
+    @Test
+    fun `rapid taps on the same field do not echo a stale value back onto the screen`() =
+        runTest {
+            val phone = device("device-a")
+            val listId = phone.repo.createList("Groceries")
+            val taskId = phone.repo.addTask(listId, "Milk")
+            assertEquals(SyncOutcome.Success, phone.engine.sync())
+
+            // Three taps, no network in between — a thumb faster than a round trip.
+            phone.repo.setStarred(taskId, true)
+            phone.repo.setStarred(taskId, false)
+            phone.repo.setStarred(taskId, true)
+            assertEquals(
+                true,
+                phone.db
+                    .tasks()
+                    .find(taskId)
+                    ?.starred,
+            )
+
+            val rows = phone.db.outbox().pending(LIMIT)
+            assertEquals(3, rows.size)
+
+            // Drives the same sequence SyncEngine.send does — mutate, apply the
+            // ack, delete the row — one row at a time, oldest first, so the
+            // second and third rows are still queued while the first's ack is
+            // being applied, exactly as they would be against a real network.
+            for (row in rows) {
+                val ack = api.mutate(row.listId, row.body)
+                phone.applier.apply(ack.change)
+                phone.db.outbox().delete(row.id)
+
+                // The middle ack resolves to starred = false — this device's
+                // first tap, already superseded by its third. Applying it
+                // regardless (the bug) flips the screen back to false until the
+                // last ack lands; shadowing it while a newer row is still
+                // pending is what keeps the screen honest throughout the drain.
+                assertEquals(
+                    true,
+                    phone.db
+                        .tasks()
+                        .find(taskId)
+                        ?.starred,
+                )
+            }
+
+            assertTrue(
+                phone.db
+                    .outbox()
+                    .all()
+                    .isEmpty(),
+            )
+        }
+
     /** H3.9 — both devices drag something into the same gap while offline. */
     @Test
     fun `two devices reordering the same list offline converge`() =
