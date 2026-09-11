@@ -7,6 +7,10 @@ jobs:
   build-signed-apk:
     runs-on: ubuntu-latest
     environment: prod
+    # The repo default token is read-only; creating the Release and uploading
+    # the APK needs write access to contents.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
