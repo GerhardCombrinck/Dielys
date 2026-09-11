@@ -41,7 +41,6 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -631,20 +630,20 @@ private fun TaskRow(
             // task keeps only the option to remove it.
             if (!task.done) {
                 IconButton(onClick = onStar) {
-                    if (task.starred) {
-                        Icon(
-                            imageVector = Icons.Filled.Star,
-                            contentDescription = "Unstar",
-                            tint = Color.White,
-                        )
-                    } else {
-                        // [Icons.Outlined.Star] turned out to draw the same solid
-                        // silhouette as the filled star, just dimmer — tinting or
-                        // layering it never made the centre see-through. Only
-                        // drawing the five points ourselves, stroke-only, gives an
-                        // unstarred row a genuinely hollow star.
-                        HollowStar(tint = Color.White.copy(alpha = STAR_OUTLINE_ALPHA))
-                    }
+                    // Both states draw the same path at the same stroke width, so
+                    // the star is the same size whichever way it is toggled — the
+                    // filled one just also fills that path, rather than switching
+                    // to a stock star icon's own, differently-sized geometry.
+                    StarGlyph(
+                        filled = task.starred,
+                        tint =
+                            if (task.starred) {
+                                Color.White
+                            } else {
+                                Color.White.copy(alpha = STAR_OUTLINE_ALPHA)
+                            },
+                        contentDescription = if (task.starred) "Unstar" else "Star",
+                    )
                 }
             }
 
@@ -676,25 +675,32 @@ private fun TaskRow(
 }
 
 /**
- * Just the five points of a star, stroked rather than filled — see the call
- * site in [TaskRow] for why [Icons.Outlined.Star] could not do this.
+ * A five-pointed star drawn directly rather than via the stock Material star
+ * icons — see the call site in [TaskRow] for why. Both states stroke the same
+ * path at the same width, and only [filled] adds a fill inside it, so
+ * toggling a star never changes its size — just whether its centre is solid
+ * or see-through.
  */
 @Composable
-private fun HollowStar(
+private fun StarGlyph(
+    filled: Boolean,
     tint: Color,
+    contentDescription: String,
     modifier: Modifier = Modifier,
 ) {
     Canvas(
         modifier =
             modifier
                 .size(24.dp)
-                .semantics { contentDescription = "Star" },
+                .semantics { this.contentDescription = contentDescription },
     ) {
         val center = Offset(size.width / 2f, size.height / 2f)
         val outerRadius = size.minDimension / 2f * STAR_OUTER_RADIUS_FRACTION
         val innerRadius = outerRadius * STAR_INNER_RADIUS_FRACTION
+        val path = starPath(center, outerRadius, innerRadius)
+        if (filled) drawPath(path = path, color = tint)
         drawPath(
-            path = starPath(center, outerRadius, innerRadius),
+            path = path,
             color = tint,
             style = Stroke(width = STAR_OUTLINE_STROKE_WIDTH.toPx()),
         )
