@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -121,12 +122,12 @@ fun AuthScreen(
             }
 
             Text(
-                "Die Lys",
+                stringResource(R.string.app_name),
                 style = MaterialTheme.typography.displaySmall,
                 modifier = Modifier.padding(top = 20.dp),
             )
             Text(
-                "SIT DIT OP DIE LYS",
+                stringResource(R.string.brand_tagline),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.secondary,
                 fontWeight = FontWeight.Bold,
@@ -136,16 +137,15 @@ fun AuthScreen(
 
             if (state.linkSent) {
                 Text(
-                    "Check your email",
+                    stringResource(R.string.auth_check_email_title),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
                 Text(
                     if (state.delivered) {
-                        "Delivered to ${state.email}. Open it on this device to continue."
+                        stringResource(R.string.auth_delivered_message, state.email)
                     } else {
-                        "We sent a sign-in link to ${state.email}. It can take a few minutes " +
-                            "to arrive — open it on this device to continue."
+                        stringResource(R.string.auth_sent_message, state.email)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
@@ -173,20 +173,19 @@ fun AuthScreen(
                     ) {
                         Text(
                             if (cooldownRemaining > 0) {
-                                "Resend in ${cooldownRemaining}s"
+                                stringResource(R.string.auth_resend_cooldown, cooldownRemaining)
                             } else {
-                                "Resend link"
+                                stringResource(R.string.auth_resend_link)
                             },
                         )
                     }
                 }
                 TextButton(onClick = { onEmail("") }) {
-                    Text("Use a different email")
+                    Text(stringResource(R.string.auth_use_different_email))
                 }
             } else {
                 Text(
-                    "Sign in with your email — we'll mail you a link, no password to " +
-                        "remember.",
+                    stringResource(R.string.auth_intro),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(bottom = 16.dp),
@@ -195,7 +194,7 @@ fun AuthScreen(
                 OutlinedTextField(
                     value = state.email,
                     onValueChange = onEmail,
-                    label = { Text("Email") },
+                    label = { Text(stringResource(R.string.label_email)) },
                     singleLine = true,
                     enabled = !state.busy,
                     keyboardOptions =
@@ -227,7 +226,13 @@ fun AuthScreen(
                             color = Color.White,
                         )
                     }
-                    Text(if (state.busy) "Sending…" else "Email me a link")
+                    Text(
+                        if (state.busy) {
+                            stringResource(R.string.auth_sending)
+                        } else {
+                            stringResource(R.string.auth_email_me_a_link)
+                        },
+                    )
                 }
             }
 

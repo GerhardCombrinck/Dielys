@@ -1,0 +1,92 @@
+<resources>
+    <!-- DRAFT (#42). Machine-assisted isiNdebele, not yet reviewed by a first-language
+         speaker. Of the eleven this is the one with the least training material
+         behind it — assume it needs the most correction. -->
+
+    <string name="action_save">Bulunga</string>
+    <string name="action_cancel">Khansela</string>
+    <string name="action_close">Vala</string>
+    <string name="action_done">Kwenziwe</string>
+    <string name="action_create">Yenza</string>
+    <string name="action_join">Joyina</string>
+    <string name="action_edit">Hlela</string>
+    <string name="action_delete">Susa</string>
+    <string name="action_rename">Tjhugulula ibizo</string>
+    <string name="action_share">Yabelana</string>
+    <string name="label_email">I-imeyili</string>
+    <string name="label_name">Ibizo</string>
+
+    <string name="cd_back">Emuva</string>
+    <string name="cd_add">Ngeza</string>
+    <string name="cd_task_options">Ukhetho lomsebenzi</string>
+    <string name="cd_list_options">Ukhetho lwerhelo</string>
+    <string name="cd_star">Inkwenkwezi</string>
+    <string name="cd_unstar">Susa inkwenkwezi</string>
+    <string name="cd_collapse_done">Goqa okwenziwe</string>
+    <string name="cd_expand_done">Vula okwenziwe</string>
+
+    <string name="auth_check_email_title">Qala i-imeyili yakho</string>
+    <string name="auth_delivered_message">Ilethwe ku-%1$s. Yivule kithi idivayisi bona uragele phambili.</string>
+    <string name="auth_sent_message">Sithumele isixhumanisi sokungena ku-%1$s. Kungathatha imizuzu embalwa bona ifike — yivule kithi idivayisi bona uragele phambili.</string>
+    <string name="auth_resend_cooldown">Thumela godu ngemva kwe-%1$ds</string>
+    <string name="auth_resend_link">Thumela isixhumanisi godu</string>
+    <string name="auth_use_different_email">Sebenzisa enye i-imeyili</string>
+    <string name="auth_intro">Ngena nge-imeyili yakho — sizokuthumela isixhumanisi, ayikho iphasiwedi okufuze uyikhumbule.</string>
+    <string name="auth_sending">Iyathumela…</string>
+    <string name="auth_email_me_a_link">Ngithumele isixhumanisi</string>
+
+    <string name="error_magic_link_invalid">Leso sixhumanisi asisasebenzi. Bawa esitjha.</string>
+    <string name="error_offline">Akunakuxhumana. Linga godu nawunesignali.</string>
+    <string name="error_sign_in_failed">Ayikghonanga ukungena: %1$s</string>
+    <string name="error_too_many_attempts">Iinlingo ezinengi khulu. Linga godu ngemva kwesikhathi.</string>
+    <string name="error_send_failed">Ayikghonanga ukuthumela isixhumanisi: %1$s</string>
+
+    <plurals name="sync_stuck_detail">
+        <item quantity="one">%d itjhuguluko iseva eyilalileko. Lisesekhona lapha.</item>
+        <item quantity="other">%d iintjhuguluko iseva ezilalileko. Zisesekhona lapha.</item>
+    </plurals>
+    <plurals name="sync_pending_detail">
+        <item quantity="one">%d itjhuguluko elilindele ukuvumelanisa.</item>
+        <item quantity="other">%d iintjhuguluko ezilindele ukuvumelanisa.</item>
+    </plurals>
+    <string name="sync_up_to_date">Koke kusesikhathini.</string>
+
+    <string name="task_label">Umsebenzi</string>
+    <string name="done_count">KWENZIWE (%1$d)</string>
+    <string name="add_item_placeholder">Ngeza into</string>
+    <string name="empty_list_title">Akunalitho kirheli irhelo</string>
+    <string name="empty_list_subtitle">Thayipha ngaphasi bona ungeze into yokuthoma.</string>
+
+    <string name="lists_title">Amarhelo</string>
+    <string name="new_list_label">Irhelo elitjha</string>
+    <string name="rename_list_title">Tjhugulula ibizo lerhelo</string>
+    <string name="not_synced_yet">Akukavumelaniswa</string>
+    <string name="untitled_list">Irhelo elinganabizo</string>
+    <string name="empty_lists_title">Akunamarhelo okwanje</string>
+    <string name="empty_lists_subtitle">Yenza elinye lokudla, imisebenzi yekhaya, namkha nanyana yini oyabelana ngayo.</string>
+    <string name="create_first_list">Yenza irhelo lakho lokuthoma</string>
+
+    <string name="share_failed_title">Ayikghonanga ukwabelana</string>
+    <string name="share_list_title">Yabelana ngeli irhelo</string>
+    <string name="send_invite">Thumela isimemo</string>
+    <string name="share_who_for">Ngubani %1$s alenzelwe yena?</string>
+    <string name="share_note">Ngileyo ikheli le-imeyili kwaphela engakghona ukujoyina. Lisebenza amalanga alikhomba.</string>
+    <string name="share_sending">Ithumela isimemo se-%1$s…</string>
+    <string name="share_sent">Isimemo sithunyelwe ku-%1$s. Sisebenza amalanga alikhomba, begodu ngilelo ikheli kwaphela elingajoyina u-%2$s.</string>
+    <string name="join_list_title">Joyina irhelo</string>
+    <string name="join_paste_prompt">Namathisela isimemo osithunyelwe mumuntu.</string>
+    <string name="join_invite_label">Isimemo</string>
+    <string name="invited_title">Umenyelwe erhelweni</string>
+    <string name="invited_body">Uyajoyina? Loyo owabelane ngalo uzokubona lokho okungezako.</string>
+    <string name="invited_not_now">Ingasi nje</string>
+
+    <string name="settings_title">Iimlungiselelo</string>
+    <string name="settings_account">I-akhawunti</string>
+    <string name="settings_email_unknown">Akwaziwa</string>
+    <string name="settings_new_items_go_to">Izinto ezitjha ziya</string>
+    <string name="settings_top">Phezulu</string>
+    <string name="settings_bottom">Phasi</string>
+    <string name="settings_sign_out">Phuma</string>
+    <string name="settings_language">Ilimi</string>
+    <string name="settings_language_system_default">Okuzenzakalelako kwesistimu</string>
+</resources>

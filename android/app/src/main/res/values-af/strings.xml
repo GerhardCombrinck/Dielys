@@ -1,0 +1,97 @@
+<resources>
+    <!-- Shared actions and labels, reused across several dialogs. -->
+    <string name="action_save">Stoor</string>
+    <string name="action_cancel">Kanselleer</string>
+    <string name="action_close">Maak toe</string>
+    <string name="action_done">Klaar</string>
+    <string name="action_create">Skep</string>
+    <string name="action_join">Sluit aan</string>
+    <string name="action_edit">Wysig</string>
+    <string name="action_delete">Vee uit</string>
+    <string name="action_rename">Hernoem</string>
+    <string name="action_share">Deel</string>
+    <string name="label_email">E-pos</string>
+    <string name="label_name">Naam</string>
+
+    <!-- Accessibility labels (TalkBack), not shown as text on screen. -->
+    <string name="cd_back">Terug</string>
+    <string name="cd_add">Voeg by</string>
+    <string name="cd_task_options">Taakopsies</string>
+    <string name="cd_list_options">Lysopsies</string>
+    <string name="cd_star">Ster</string>
+    <string name="cd_unstar">Verwyder ster</string>
+    <string name="cd_collapse_done">Vou klaar toe</string>
+    <string name="cd_expand_done">Vou klaar oop</string>
+
+    <!-- Sign-in (ADR 0005: magic link, no password). -->
+    <string name="auth_check_email_title">Kyk in jou e-pos</string>
+    <string name="auth_delivered_message">Afgelewer aan %1$s. Maak dit op hierdie toestel oop om voort te gaan.</string>
+    <string name="auth_sent_message">Ons het \'n aanmeldskakel na %1$s gestuur. Dit kan \'n paar minute neem om aan te kom — maak dit op hierdie toestel oop om voort te gaan.</string>
+    <string name="auth_resend_cooldown">Stuur weer oor %1$ds</string>
+    <string name="auth_resend_link">Stuur skakel weer</string>
+    <string name="auth_use_different_email">Gebruik \'n ander e-posadres</string>
+    <string name="auth_intro">Meld aan met jou e-pos — ons pos jou \'n skakel, geen wagwoord om te onthou nie.</string>
+    <string name="auth_sending">Stuur tans…</string>
+    <string name="auth_email_me_a_link">Pos my \'n skakel</string>
+
+    <!-- Sign-in failures (SessionViewModel). -->
+    <string name="error_magic_link_invalid">Daardie skakel is nie meer geldig nie. Vra \'n nuwe een aan.</string>
+    <string name="error_offline">Geen verbinding nie. Probeer weer wanneer jy sein het.</string>
+    <string name="error_sign_in_failed">Kon nie aanmeld nie: %1$s</string>
+    <string name="error_too_many_attempts">Te veel pogings. Probeer later weer.</string>
+    <string name="error_send_failed">Kon nie die skakel stuur nie: %1$s</string>
+
+    <!-- Sync status. -->
+    <plurals name="sync_stuck_detail">
+        <item quantity="one">%d wysiging wat die bediener geweier het. Dit is steeds hier.</item>
+        <item quantity="other">%d wysigings wat die bediener geweier het. Hulle is steeds hier.</item>
+    </plurals>
+    <plurals name="sync_pending_detail">
+        <item quantity="one">%d verandering wag om te sinkroniseer.</item>
+        <item quantity="other">%d veranderinge wag om te sinkroniseer.</item>
+    </plurals>
+    <string name="sync_up_to_date">Alles is op datum.</string>
+
+    <!-- Task list. -->
+    <string name="task_label">Taak</string>
+    <string name="done_count">KLAAR (%1$d)</string>
+    <string name="add_item_placeholder">Voeg \'n item by</string>
+    <string name="empty_list_title">Niks op hierdie lys nie</string>
+    <string name="empty_list_subtitle">Tik hieronder om die eerste ding by te voeg.</string>
+
+    <!-- Lists screen. -->
+    <string name="lists_title">Lyste</string>
+    <string name="new_list_label">Nuwe lys</string>
+    <string name="rename_list_title">Hernoem lys</string>
+    <string name="not_synced_yet">Nog nie gesinkroniseer nie</string>
+    <string name="untitled_list">Naamlose lys</string>
+    <string name="empty_lists_title">Nog geen lyste nie</string>
+    <string name="empty_lists_subtitle">Maak een vir kruideniersware, takies, of enigiets wat jy deel.</string>
+    <string name="create_first_list">Skep jou eerste lys</string>
+
+    <!-- Sharing a list. -->
+    <string name="share_failed_title">Kon nie deel nie</string>
+    <string name="share_list_title">Deel hierdie lys</string>
+    <string name="send_invite">Stuur uitnodiging</string>
+    <string name="share_who_for">Vir wie is %1$s?</string>
+    <string name="share_note">Net daardie e-posadres sal kan aansluit. Dit werk vir sewe dae.</string>
+    <string name="share_sending">Stuur \'n uitnodiging vir %1$s…</string>
+    <string name="share_sent">Uitnodiging gestuur aan %1$s. Dit werk vir sewe dae, en net daardie adres kan by %2$s aansluit.</string>
+    <string name="join_list_title">Sluit by \'n lys aan</string>
+    <string name="join_paste_prompt">Plak die uitnodiging wat iemand vir jou gestuur het.</string>
+    <string name="join_invite_label">Uitnodiging</string>
+    <string name="invited_title">Jy is na \'n lys uitgenooi</string>
+    <string name="invited_body">Sluit aan? Wie ook al dit gedeel het, sal sien wat jy byvoeg.</string>
+    <string name="invited_not_now">Nie nou nie</string>
+
+    <!-- Settings. -->
+    <string name="settings_title">Instellings</string>
+    <string name="settings_account">Rekening</string>
+    <string name="settings_email_unknown">Onbekend</string>
+    <string name="settings_new_items_go_to">Nuwe items gaan na</string>
+    <string name="settings_top">Bo</string>
+    <string name="settings_bottom">Onder</string>
+    <string name="settings_sign_out">Meld af</string>
+    <string name="settings_language">Taal</string>
+    <string name="settings_language_system_default">Stelselverstek</string>
+</resources>

@@ -1,0 +1,91 @@
+<resources>
+    <!-- DRAFT (#42). Machine-assisted Xitsonga, not yet reviewed by a first-language
+         speaker. Treat every string here as a suggestion until it has been. -->
+
+    <string name="action_save">Hlayisa</string>
+    <string name="action_cancel">Khansela</string>
+    <string name="action_close">Pfala</string>
+    <string name="action_done">Swi endliwile</string>
+    <string name="action_create">Tumbuluxa</string>
+    <string name="action_join">Joyina</string>
+    <string name="action_edit">Cinca</string>
+    <string name="action_delete">Susa</string>
+    <string name="action_rename">Cinca vito</string>
+    <string name="action_share">Avelana</string>
+    <string name="label_email">Imeyili</string>
+    <string name="label_name">Vito</string>
+
+    <string name="cd_back">Endzhaku</string>
+    <string name="cd_add">Engetela</string>
+    <string name="cd_task_options">Swihlawulekisi swa ntirho</string>
+    <string name="cd_list_options">Swihlawulekisi swa nxaxamelo</string>
+    <string name="cd_star">Nyeleti</string>
+    <string name="cd_unstar">Susa nyeleti</string>
+    <string name="cd_collapse_done">Pfala leswi endliweke</string>
+    <string name="cd_expand_done">Pfula leswi endliweke</string>
+
+    <string name="auth_check_email_title">Languta imeyili ya wena</string>
+    <string name="auth_delivered_message">Yi rhumeriwe eka %1$s. Yi pfule eka xitirhisiwa lexi leswaku u ya emahlweni.</string>
+    <string name="auth_sent_message">Hi rhumele xihlanganisi xo nghena eka %1$s. Swi nga teka timinete ti nga ri tingani leswaku yi fika — yi pfule eka xitirhisiwa lexi leswaku u ya emahlweni.</string>
+    <string name="auth_resend_cooldown">Rhumela nakambe hi %1$ds</string>
+    <string name="auth_resend_link">Rhumela xihlanganisi nakambe</string>
+    <string name="auth_use_different_email">Tirhisa imeyili yin\'wana</string>
+    <string name="auth_intro">Nghena hi imeyili ya wena — hi ta ku rhumela xihlanganisi, a ku na phasiwedi leyi u faneleke u yi tsundzuka.</string>
+    <string name="auth_sending">Ya rhumela…</string>
+    <string name="auth_email_me_a_link">Ndzi rhumele xihlanganisi</string>
+
+    <string name="error_magic_link_invalid">Xihlanganisi xexo a xa ha tirhi. Kombela lexintshwa.</string>
+    <string name="error_offline">A ku na vuhlanganisi. Ringeta nakambe loko u ri ni xikombiso.</string>
+    <string name="error_sign_in_failed">Swi tsandzekile ku nghena: %1$s</string>
+    <string name="error_too_many_attempts">Ku ringeta ko tala ngopfu. Ringeta nakambe endzhaku.</string>
+    <string name="error_send_failed">Swi tsandzekile ku rhumela xihlanganisi: %1$s</string>
+
+    <plurals name="sync_stuck_detail">
+        <item quantity="one">%d ku cinca loku seva yi ku aleke. Swa ha ri kona laha.</item>
+        <item quantity="other">%d ku cinca loku seva yi ku aleke. Swa ha ri kona laha.</item>
+    </plurals>
+    <plurals name="sync_pending_detail">
+        <item quantity="one">%d ku cinca loku rindzeleke ku hlanganisiwa.</item>
+        <item quantity="other">%d ku cinca loku rindzeleke ku hlanganisiwa.</item>
+    </plurals>
+    <string name="sync_up_to_date">Hinkwaswo swa fambisana.</string>
+
+    <string name="task_label">Ntirho</string>
+    <string name="done_count">SWI ENDLIWILE (%1$d)</string>
+    <string name="add_item_placeholder">Engetela nchumu</string>
+    <string name="empty_list_title">A ku na nchumu eka nxaxamelo lowu</string>
+    <string name="empty_list_subtitle">Tsala ehansi leswaku u engetela nchumu wo sungula.</string>
+
+    <string name="lists_title">Minxaxamelo</string>
+    <string name="new_list_label">Nxaxamelo lowuntshwa</string>
+    <string name="rename_list_title">Cinca vito ra nxaxamelo</string>
+    <string name="not_synced_yet">A wu si hlanganisiwa</string>
+    <string name="untitled_list">Nxaxamelo lowu nga riki na nhlokomhaka</string>
+    <string name="empty_lists_title">A ku na minxaxamelo sweswi</string>
+    <string name="empty_lists_subtitle">Endla wun\'wana wa swakudya, mintirho ya le kaya, kumbe nchumu wihi na wihi lowu u wu avelanaka.</string>
+    <string name="create_first_list">Tumbuluxa nxaxamelo wa wena wo sungula</string>
+
+    <string name="share_failed_title">Swi tsandzekile ku avelana</string>
+    <string name="share_list_title">Avelana nxaxamelo lowu</string>
+    <string name="send_invite">Rhumela xirhambo</string>
+    <string name="share_who_for">%1$s i wa mani?</string>
+    <string name="share_note">I adirese yoleyo ntsena ya imeyili leyi nga ta kota ku joyina. Yi tirha masiku ya nkombo.</string>
+    <string name="share_sending">Yi rhumela xirhambo xa %1$s…</string>
+    <string name="share_sent">Xirhambo xi rhumeriwe eka %1$s. Xi tirha masiku ya nkombo, naswona i adirese yoleyo ntsena leyi nga joyinaka %2$s.</string>
+    <string name="join_list_title">Joyina nxaxamelo</string>
+    <string name="join_paste_prompt">Namarhela xirhambo lexi munhu a ku rhumeleke xona.</string>
+    <string name="join_invite_label">Xirhambo</string>
+    <string name="invited_title">U rhambiwile eka nxaxamelo</string>
+    <string name="invited_body">Wa joyina? Loyi a avelaneke ha wona u ta vona leswi u swi engetelaka.</string>
+    <string name="invited_not_now">Ku nga ri sweswi</string>
+
+    <string name="settings_title">Vulunghiwa</string>
+    <string name="settings_account">Akhawunti</string>
+    <string name="settings_email_unknown">A swi tiveki</string>
+    <string name="settings_new_items_go_to">Swilo leswintshwa swi ya</string>
+    <string name="settings_top">Ehenhla</string>
+    <string name="settings_bottom">Ehansi</string>
+    <string name="settings_sign_out">Huma</string>
+    <string name="settings_language">Ririmi</string>
+    <string name="settings_language_system_default">Swa sisiteme</string>
+</resources>

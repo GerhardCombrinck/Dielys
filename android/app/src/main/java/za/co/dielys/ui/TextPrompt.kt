@@ -15,7 +15,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import za.co.dielys.R
 
 /**
  * Naming a list, renaming a task — the same three-part question every time. One
@@ -26,7 +28,7 @@ fun TextPrompt(
     title: String,
     label: String,
     initial: String = "",
-    confirm: String = "Save",
+    confirm: String = stringResource(R.string.action_save),
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
 ) {
@@ -62,7 +64,9 @@ fun TextPrompt(
         confirmButton = {
             TextButton(onClick = submit, enabled = value.isNotBlank()) { Text(confirm) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
     )
 }
 

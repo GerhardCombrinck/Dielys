@@ -77,8 +77,10 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -196,7 +198,7 @@ fun TaskListScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(modifier = Modifier.size(12.dp).background(accent, CircleShape))
                         Text(
-                            currentList?.displayTitle ?: "",
+                            currentList?.displayTitle(LocalContext.current) ?: "",
                             modifier = Modifier.padding(start = 14.dp),
                         )
                     }
@@ -207,7 +209,10 @@ fun TaskListScreen(
                     ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.cd_back),
+                        )
                     }
                 },
                 actions = {
@@ -273,8 +278,8 @@ fun TaskListScreen(
 
     renaming?.let { task ->
         TextPrompt(
-            title = "Edit",
-            label = "Task",
+            title = stringResource(R.string.action_edit),
+            label = stringResource(R.string.task_label),
             initial = task.title,
             onDismiss = { renaming = null },
             onConfirm = { viewModel.rename(task.id, it) },
@@ -528,13 +533,18 @@ private fun DoneHeading(
                 .padding(start = 16.dp, end = 8.dp, top = 20.dp, bottom = 4.dp),
     ) {
         Text(
-            "DONE ($count)",
+            stringResource(R.string.done_count, count),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = DONE_ALPHA),
         )
         Icon(
             Icons.Filled.KeyboardArrowDown,
-            contentDescription = if (expanded) "Collapse done" else "Expand done",
+            contentDescription =
+                if (expanded) {
+                    stringResource(R.string.cd_collapse_done)
+                } else {
+                    stringResource(R.string.cd_expand_done)
+                },
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = DONE_ALPHA),
             modifier = Modifier.padding(start = 4.dp).rotate(rotation),
         )
@@ -715,19 +725,27 @@ private fun TaskRow(
                             } else {
                                 Color.White.copy(alpha = STAR_OUTLINE_ALPHA)
                             },
-                        contentDescription = if (task.starred) "Unstar" else "Star",
+                        contentDescription =
+                            if (task.starred) {
+                                stringResource(R.string.cd_unstar)
+                            } else {
+                                stringResource(R.string.cd_star)
+                            },
                     )
                 }
             }
 
             Box {
                 IconButton(onClick = { menuOpen = true }) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = "Task options")
+                    Icon(
+                        Icons.Filled.MoreVert,
+                        contentDescription = stringResource(R.string.cd_task_options),
+                    )
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     if (!task.done) {
                         DropdownMenuItem(
-                            text = { Text("Edit") },
+                            text = { Text(stringResource(R.string.action_edit)) },
                             onClick = {
                                 menuOpen = false
                                 onRename()
@@ -735,7 +753,7 @@ private fun TaskRow(
                         )
                     }
                     DropdownMenuItem(
-                        text = { Text("Delete") },
+                        text = { Text(stringResource(R.string.action_delete)) },
                         onClick = {
                             menuOpen = false
                             onDelete()
@@ -874,7 +892,7 @@ private fun AddTaskBar(
             OutlinedTextField(
                 value = value,
                 onValueChange = onValueChange,
-                placeholder = { Text("Add an item") },
+                placeholder = { Text(stringResource(R.string.add_item_placeholder)) },
                 singleLine = true,
                 shape = PillShape,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -906,7 +924,7 @@ private fun AddTaskBar(
                 // reproduces the tightly-cropped mark instead of the padded one.
                 Icon(
                     painter = painterResource(R.drawable.ic_launcher_foreground),
-                    contentDescription = "Add",
+                    contentDescription = stringResource(R.string.cd_add),
                     tint = Color.White,
                     modifier = Modifier.requiredSize(ADD_BUTTON_SIZE * ADD_BUTTON_LOGO_SCALE),
                 )
@@ -922,9 +940,12 @@ private fun Empty() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("Nothing on this list", style = MaterialTheme.typography.titleMedium)
         Text(
-            "Type below to add the first thing.",
+            stringResource(R.string.empty_list_title),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            stringResource(R.string.empty_list_subtitle),
             style = MaterialTheme.typography.bodyMedium,
         )
     }

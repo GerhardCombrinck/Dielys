@@ -11,10 +11,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import za.co.dielys.R
 import za.co.dielys.data.MagicLinkRequestResult
 import za.co.dielys.data.MagicLinkVerifyResult
 import za.co.dielys.data.PendingMagicLink
 import za.co.dielys.data.SessionRepository
+import za.co.dielys.data.local.StringProvider
 import javax.inject.Inject
 
 data class AuthUiState(
@@ -54,6 +56,7 @@ class SessionViewModel
     constructor(
         private val sessions: SessionRepository,
         private val magicLinks: PendingMagicLink,
+        private val strings: StringProvider,
     ) : ViewModel() {
         private val _signedIn = MutableStateFlow(sessions.isSignedIn())
         val signedIn: StateFlow<Boolean> = _signedIn.asStateFlow()
@@ -113,7 +116,13 @@ class SessionViewModel
                         }
                         pollForDelivery(result.requestId)
                     }
-                    else -> _form.update { it.copy(busy = false, problem = result.explain()) }
+                    else ->
+                        _form.update {
+                            it.copy(
+                                busy = false,
+                                problem = result.explain(strings),
+                            )
+                        }
                 }
             }
         }
@@ -146,7 +155,7 @@ class SessionViewModel
                     _form.value = AuthUiState()
                     _signedIn.value = true
                 }
-                else -> _form.update { it.copy(problem = result.explain()) }
+                else -> _form.update { it.copy(problem = result.explain(strings)) }
             }
         }
 
@@ -171,12 +180,12 @@ private const val MAX_POLL_ATTEMPTS = 18
 
 /** One message for "wrong", "already spent" and "expired" alike, the same
  * enumeration reasoning [MagicLinkRequestResult.explain] uses below. */
-private fun MagicLinkVerifyResult.explain(): String =
+private fun MagicLinkVerifyResult.explain(strings: StringProvider): String =
     when (this) {
         MagicLinkVerifyResult.Success -> ""
-        MagicLinkVerifyResult.InvalidOrExpired -> "That link is no longer valid. Request a new one."
-        MagicLinkVerifyResult.Offline -> "No connection. Try again when you have signal."
-        is MagicLinkVerifyResult.ServerProblem -> "Could not sign in: $detail"
+        MagicLinkVerifyResult.InvalidOrExpired -> strings.get(R.string.error_magic_link_invalid)
+        MagicLinkVerifyResult.Offline -> strings.get(R.string.error_offline)
+        is MagicLinkVerifyResult.ServerProblem -> strings.get(R.string.error_sign_in_failed, detail)
     }
 
 /**
@@ -185,10 +194,10 @@ private fun MagicLinkVerifyResult.explain(): String =
  * creates it on first use (ADR 0005) — there is nothing here for the screen to
  * leak either.
  */
-private fun MagicLinkRequestResult.explain(): String =
+private fun MagicLinkRequestResult.explain(strings: StringProvider): String =
     when (this) {
         is MagicLinkRequestResult.Success -> ""
-        MagicLinkRequestResult.TooManyAttempts -> "Too many attempts. Try again later."
-        MagicLinkRequestResult.Offline -> "No connection. Try again when you have signal."
-        is MagicLinkRequestResult.ServerProblem -> "Could not send the link: $detail"
+        MagicLinkRequestResult.TooManyAttempts -> strings.get(R.string.error_too_many_attempts)
+        MagicLinkRequestResult.Offline -> strings.get(R.string.error_offline)
+        is MagicLinkRequestResult.ServerProblem -> strings.get(R.string.error_send_failed, detail)
     }

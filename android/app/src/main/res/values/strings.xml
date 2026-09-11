@@ -1,3 +1,104 @@
 <resources>
-    <string name="app_name">Die Lys</string>
+    <!-- Brand — the same in every language (#42): a wordmark and taglines are
+         identity, not instructions, so they are never translated. -->
+    <string name="app_name" translatable="false">Die Lys</string>
+    <string name="brand_tagline" translatable="false">SIT DIT OP DIE LYS</string>
+    <string name="lists_tagline" translatable="false">Twee mense, één lys.</string>
+
+    <!-- Shared actions and labels, reused across several dialogs. -->
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_close">Close</string>
+    <string name="action_done">Done</string>
+    <string name="action_create">Create</string>
+    <string name="action_join">Join</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_rename">Rename</string>
+    <string name="action_share">Share</string>
+    <string name="label_email">Email</string>
+    <string name="label_name">Name</string>
+
+    <!-- Accessibility labels (TalkBack), not shown as text on screen. -->
+    <string name="cd_back">Back</string>
+    <string name="cd_add">Add</string>
+    <string name="cd_task_options">Task options</string>
+    <string name="cd_list_options">List options</string>
+    <string name="cd_star">Star</string>
+    <string name="cd_unstar">Unstar</string>
+    <string name="cd_collapse_done">Collapse done</string>
+    <string name="cd_expand_done">Expand done</string>
+
+    <!-- Sign-in (ADR 0005: magic link, no password). -->
+    <string name="auth_check_email_title">Check your email</string>
+    <string name="auth_delivered_message">Delivered to %1$s. Open it on this device to continue.</string>
+    <string name="auth_sent_message">We sent a sign-in link to %1$s. It can take a few minutes to arrive — open it on this device to continue.</string>
+    <string name="auth_resend_cooldown">Resend in %1$ds</string>
+    <string name="auth_resend_link">Resend link</string>
+    <string name="auth_use_different_email">Use a different email</string>
+    <string name="auth_intro">Sign in with your email — we\'ll mail you a link, no password to remember.</string>
+    <string name="auth_sending">Sending…</string>
+    <string name="auth_email_me_a_link">Email me a link</string>
+
+    <!-- Sign-in failures (SessionViewModel). One message covers wrong, spent
+         and expired alike (see the code comment there on why). -->
+    <string name="error_magic_link_invalid">That link is no longer valid. Request a new one.</string>
+    <string name="error_offline">No connection. Try again when you have signal.</string>
+    <string name="error_sign_in_failed">Could not sign in: %1$s</string>
+    <string name="error_too_many_attempts">Too many attempts. Try again later.</string>
+    <string name="error_send_failed">Could not send the link: %1$s</string>
+
+    <!-- Sync status (tapped for detail; also the icon's TalkBack label). -->
+    <plurals name="sync_stuck_detail">
+        <item quantity="one">%d edit the server refused. They are still here.</item>
+        <item quantity="other">%d edits the server refused. They are still here.</item>
+    </plurals>
+    <plurals name="sync_pending_detail">
+        <item quantity="one">%d change waiting to sync.</item>
+        <item quantity="other">%d changes waiting to sync.</item>
+    </plurals>
+    <string name="sync_up_to_date">Everything is up to date.</string>
+
+    <!-- Task list. -->
+    <string name="task_label">Task</string>
+    <string name="done_count">DONE (%1$d)</string>
+    <string name="add_item_placeholder">Add an item</string>
+    <string name="empty_list_title">Nothing on this list</string>
+    <string name="empty_list_subtitle">Type below to add the first thing.</string>
+
+    <!-- Lists screen. -->
+    <string name="lists_title">Lists</string>
+    <string name="new_list_label">New list</string>
+    <string name="rename_list_title">Rename list</string>
+    <string name="not_synced_yet">Not synced yet</string>
+    <string name="untitled_list">Untitled list</string>
+    <string name="empty_lists_title">No lists yet</string>
+    <string name="empty_lists_subtitle">Make one for groceries, chores, or anything you\'re sharing.</string>
+    <string name="create_first_list">Create your first list</string>
+
+    <!-- Sharing a list (four dialogs — see ShareDialogs.kt). -->
+    <string name="share_failed_title">Could not share</string>
+    <string name="share_list_title">Share this list</string>
+    <string name="send_invite">Send invite</string>
+    <string name="share_who_for">Who is %1$s for?</string>
+    <string name="share_note">Only that email address will be able to join. It works for seven days.</string>
+    <string name="share_sending">Sending an invite for %1$s…</string>
+    <string name="share_sent">Invite sent to %1$s. It works for seven days, and only that address can join %2$s.</string>
+    <string name="join_list_title">Join a list</string>
+    <string name="join_paste_prompt">Paste the invite somebody sent you.</string>
+    <string name="join_invite_label">Invite</string>
+    <string name="invited_title">You were invited to a list</string>
+    <string name="invited_body">Join it? Whoever shared it will see what you add.</string>
+    <string name="invited_not_now">Not now</string>
+
+    <!-- Settings. -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_account">Account</string>
+    <string name="settings_email_unknown">Unknown</string>
+    <string name="settings_new_items_go_to">New items go to</string>
+    <string name="settings_top">Top</string>
+    <string name="settings_bottom">Bottom</string>
+    <string name="settings_sign_out">Sign out</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_system_default">System default</string>
 </resources>

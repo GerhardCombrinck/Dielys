@@ -1,5 +1,6 @@
 package za.co.dielys.ui.lists
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,12 +13,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import za.co.dielys.R
 import za.co.dielys.data.DielysRepository
 import za.co.dielys.data.InviteResult
 import za.co.dielys.data.JoinResult
 import za.co.dielys.data.PendingInvite
 import za.co.dielys.data.SharingRepository
 import za.co.dielys.data.local.ListEntity
+import za.co.dielys.data.local.StringProvider
 import za.co.dielys.domain.InviteLink
 import javax.inject.Inject
 
@@ -65,6 +68,7 @@ class ListsViewModel
         private val repo: DielysRepository,
         private val sharing: SharingRepository,
         private val invites: PendingInvite,
+        private val strings: StringProvider,
     ) : ViewModel() {
         val lists: StateFlow<List<ListRow>> =
             combine(repo.observeLists(), repo.observeItemCounts()) { lists, counts ->
@@ -142,7 +146,7 @@ class ListsViewModel
          * Opens the dialog asking who it's for; nothing is sent until [sendInvite].
          */
         fun invite(list: ListEntity) {
-            _invite.value = InviteState.EnteringEmail(list.id, list.displayTitle)
+            _invite.value = InviteState.EnteringEmail(list.id, list.displayTitle(strings))
         }
 
         fun sendInvite(
@@ -229,7 +233,16 @@ class ListsViewModel
         }
     }
 
-/** A list discovered through `/auth/memberships` has no title until its
- * changelog arrives. Say so rather than inventing one. */
-val ListEntity.displayTitle: String
-    get() = title.ifBlank { "Untitled list" }
+/**
+ * A list discovered through `/auth/memberships` has no title until its
+ * changelog arrives. Say so rather than inventing one.
+ *
+ * Two overloads, not a plain property: a composable reaches the same
+ * localized resource through `LocalContext.current`, but a `ViewModel` may
+ * not hold a `Context` (E1) — it goes through [StringProvider] instead.
+ */
+fun ListEntity.displayTitle(context: Context): String =
+    title.ifBlank { context.getString(R.string.untitled_list) }
+
+fun ListEntity.displayTitle(strings: StringProvider): String =
+    title.ifBlank { strings.get(R.string.untitled_list) }

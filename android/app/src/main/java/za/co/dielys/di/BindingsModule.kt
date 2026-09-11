@@ -5,12 +5,15 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import za.co.dielys.data.SessionRepository
+import za.co.dielys.data.local.AndroidStringProvider
 import za.co.dielys.data.local.DeviceIdentity
 import za.co.dielys.data.local.DoneSectionPrefs
+import za.co.dielys.data.local.LocalePrefs
 import za.co.dielys.data.local.NewTaskPlacement
 import za.co.dielys.data.local.PushTokenStore
 import za.co.dielys.data.local.SessionSignal
 import za.co.dielys.data.local.SessionStore
+import za.co.dielys.data.local.StringProvider
 import za.co.dielys.data.local.UiPrefs
 import za.co.dielys.data.remote.AccessTokens
 import za.co.dielys.data.remote.AuthApi
@@ -80,4 +83,15 @@ abstract class BindingsModule {
     @Binds
     @Singleton
     abstract fun doneSectionPrefs(impl: UiPrefs): DoneSectionPrefs
+
+    /** Same reason as [newTaskPlacement] — one seam, three faces of [UiPrefs]. */
+    @Binds
+    @Singleton
+    abstract fun localePrefs(impl: UiPrefs): LocalePrefs
+
+    /** Tested on the JVM the same way as the rest of this module — and a
+     *  ViewModel may not hold the `Context` this needs directly (E1). */
+    @Binds
+    @Singleton
+    abstract fun stringProvider(impl: AndroidStringProvider): StringProvider
 }

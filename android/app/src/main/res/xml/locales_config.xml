@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  South Africa's eleven official languages (#42), in AppLanguage.kt's own
+  order. Required for AppCompatDelegate.setApplicationLocales to actually take
+  effect on API 33+: without this, the platform LocaleManager has no declared
+  list of supported locales to switch between, and the call is a silent no-op.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="af" />
+    <locale android:name="en" />
+    <locale android:name="nr" />
+    <locale android:name="xh" />
+    <locale android:name="zu" />
+    <locale android:name="nso" />
+    <locale android:name="st" />
+    <locale android:name="ss" />
+    <locale android:name="tn" />
+    <locale android:name="ve" />
+    <locale android:name="ts" />
+</locale-config>

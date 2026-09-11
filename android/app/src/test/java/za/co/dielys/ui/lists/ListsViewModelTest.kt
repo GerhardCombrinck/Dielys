@@ -1,5 +1,6 @@
 package za.co.dielys.ui.lists
 
+import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -15,6 +16,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import za.co.dielys.data.DeviceStack
+import za.co.dielys.data.local.AndroidStringProvider
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.sync.FakeSyncApi
 import za.co.dielys.domain.InviteLink
@@ -36,7 +38,13 @@ class ListsViewModelTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         phone = DeviceStack(api, "device-a")
-        viewModel = ListsViewModel(phone.repo, phone.sharing, phone.invites)
+        viewModel =
+            ListsViewModel(
+                phone.repo,
+                phone.sharing,
+                phone.invites,
+                AndroidStringProvider(ApplicationProvider.getApplicationContext()),
+            )
     }
 
     @After

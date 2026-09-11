@@ -1,0 +1,91 @@
+<resources>
+    <!-- DRAFT (#42). Machine-assisted Setswana, not yet reviewed by a first-language
+         speaker. Treat every string here as a suggestion until it has been. -->
+
+    <string name="action_save">Boloka</string>
+    <string name="action_cancel">Khansela</string>
+    <string name="action_close">Tswala</string>
+    <string name="action_done">Go dirilwe</string>
+    <string name="action_create">Tlhama</string>
+    <string name="action_join">Tsenela</string>
+    <string name="action_edit">Fetola</string>
+    <string name="action_delete">Phimola</string>
+    <string name="action_rename">Fetola leina</string>
+    <string name="action_share">Abelana</string>
+    <string name="label_email">Imeile</string>
+    <string name="label_name">Leina</string>
+
+    <string name="cd_back">Morago</string>
+    <string name="cd_add">Oketsa</string>
+    <string name="cd_task_options">Dikgetho tsa tiro</string>
+    <string name="cd_list_options">Dikgetho tsa lenaane</string>
+    <string name="cd_star">Naledi</string>
+    <string name="cd_unstar">Tlosa naledi</string>
+    <string name="cd_collapse_done">Tswala tse di dirilweng</string>
+    <string name="cd_expand_done">Bula tse di dirilweng</string>
+
+    <string name="auth_check_email_title">Leba imeile ya gago</string>
+    <string name="auth_delivered_message">E rometswe go %1$s. E bule mo sedirisiweng se go tswelela.</string>
+    <string name="auth_sent_message">Re romile kgolagano ya go tsena go %1$s. E ka tsaya metsotso e se mekae go goroga — e bule mo sedirisiweng se go tswelela.</string>
+    <string name="auth_resend_cooldown">Romela gape ka %1$ds</string>
+    <string name="auth_resend_link">Romela kgolagano gape</string>
+    <string name="auth_use_different_email">Dirisa imeile e nngwe</string>
+    <string name="auth_intro">Tsena ka imeile ya gago — re tla go romela kgolagano, ga go na phasewete e o tshwanetseng go e gakologelwa.</string>
+    <string name="auth_sending">E a romela…</string>
+    <string name="auth_email_me_a_link">Nthomele kgolagano</string>
+
+    <string name="error_magic_link_invalid">Kgolagano eo ga e sa dira. Kopa e ntšha.</string>
+    <string name="error_offline">Ga go na kgolagano. Leka gape fa o na le letshwao.</string>
+    <string name="error_sign_in_failed">Go paletswe go tsena: %1$s</string>
+    <string name="error_too_many_attempts">Maiteko a mantsi thata. Leka gape moragonyana.</string>
+    <string name="error_send_failed">Go paletswe go romela kgolagano: %1$s</string>
+
+    <plurals name="sync_stuck_detail">
+        <item quantity="one">%d phetogo e seva e e ganneng. E sa ntse e le fa.</item>
+        <item quantity="other">%d diphetogo tse seva e di ganneng. Di sa ntse di le fa.</item>
+    </plurals>
+    <plurals name="sync_pending_detail">
+        <item quantity="one">%d phetogo e e letileng go kopanngwa.</item>
+        <item quantity="other">%d diphetogo tse di letileng go kopanngwa.</item>
+    </plurals>
+    <string name="sync_up_to_date">Tsotlhe di a tsamaisana.</string>
+
+    <string name="task_label">Tiro</string>
+    <string name="done_count">GO DIRILWE (%1$d)</string>
+    <string name="add_item_placeholder">Oketsa selo</string>
+    <string name="empty_list_title">Ga go na sepe mo lenaaneng le</string>
+    <string name="empty_list_subtitle">Kwala fa tlase go oketsa selo sa ntlha.</string>
+
+    <string name="lists_title">Manaane</string>
+    <string name="new_list_label">Lenaane le lešwa</string>
+    <string name="rename_list_title">Fetola leina la lenaane</string>
+    <string name="not_synced_yet">Ga e ise e kopanngwe</string>
+    <string name="untitled_list">Lenaane le le se nang setlhogo</string>
+    <string name="empty_lists_title">Ga go na manaane gonne jaana</string>
+    <string name="empty_lists_subtitle">Dira le lengwe la dijo, ditiro tsa legae, kgotsa sengwe le sengwe se o se abelanang.</string>
+    <string name="create_first_list">Tlhama lenaane la gago la ntlha</string>
+
+    <string name="share_failed_title">Go paletswe go abelana</string>
+    <string name="share_list_title">Abelana lenaane le</string>
+    <string name="send_invite">Romela taletso</string>
+    <string name="share_who_for">%1$s ke ya ga mang?</string>
+    <string name="share_note">Ke aterese eo fela ya imeile e e tla kgonang go tsenela. E dira malatsi a le supa.</string>
+    <string name="share_sending">E romela taletso ya %1$s…</string>
+    <string name="share_sent">Taletso e rometswe go %1$s. E dira malatsi a le supa, mme ke aterese eo fela e e ka tsenelang %2$s.</string>
+    <string name="join_list_title">Tsenela lenaane</string>
+    <string name="join_paste_prompt">Kgomaretsa taletso e mongwe a e go rometseng.</string>
+    <string name="join_invite_label">Taletso</string>
+    <string name="invited_title">O laleditswe mo lenaaneng</string>
+    <string name="invited_body">A o a tsenela? Yo o le abelaneng o tla bona se o se oketsang.</string>
+    <string name="invited_not_now">E seng jaanong</string>
+
+    <string name="settings_title">Dipeakanyo</string>
+    <string name="settings_account">Akhaonto</string>
+    <string name="settings_email_unknown">Ga e itsiwe</string>
+    <string name="settings_new_items_go_to">Dilo tse dišwa di ya</string>
+    <string name="settings_top">Godimo</string>
+    <string name="settings_bottom">Tlase</string>
+    <string name="settings_sign_out">Tswa</string>
+    <string name="settings_language">Puo</string>
+    <string name="settings_language_system_default">Tlwaelo ya thulaganyo</string>
+</resources>

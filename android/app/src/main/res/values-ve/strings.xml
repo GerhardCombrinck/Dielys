@@ -1,0 +1,91 @@
+<resources>
+    <!-- DRAFT (#42). Machine-assisted Tshivenda, not yet reviewed by a first-language
+         speaker. Treat every string here as a suggestion until it has been. -->
+
+    <string name="action_save">Vhulunga</string>
+    <string name="action_cancel">Khanselani</string>
+    <string name="action_close">Vala</string>
+    <string name="action_done">Zwo itwa</string>
+    <string name="action_create">Sika</string>
+    <string name="action_join">Dzhena</string>
+    <string name="action_edit">Shandukisa</string>
+    <string name="action_delete">Thutha</string>
+    <string name="action_rename">Shandukisa dzina</string>
+    <string name="action_share">Kovhekana</string>
+    <string name="label_email">Imeili</string>
+    <string name="label_name">Dzina</string>
+
+    <string name="cd_back">Murahu</string>
+    <string name="cd_add">Engedza</string>
+    <string name="cd_task_options">Khetho dza mushumo</string>
+    <string name="cd_list_options">Khetho dza mutevhe</string>
+    <string name="cd_star">Naledzi</string>
+    <string name="cd_unstar">Bvisa naledzi</string>
+    <string name="cd_collapse_done">Vala zwo itwaho</string>
+    <string name="cd_expand_done">Vula zwo itwaho</string>
+
+    <string name="auth_check_email_title">Sedzani imeili yanu</string>
+    <string name="auth_delivered_message">Yo rumelwa kha %1$s. I vulani kha ino tshishumiswa uri ni bvele phanda.</string>
+    <string name="auth_sent_message">Ro rumela vhukwamani ha u dzhena kha %1$s. I nga dzhia mimunithi mituku uri i swike — i vulani kha ino tshishumiswa uri ni bvele phanda.</string>
+    <string name="auth_resend_cooldown">Rumelani hafhu nga %1$ds</string>
+    <string name="auth_resend_link">Rumelani vhukwamani hafhu</string>
+    <string name="auth_use_different_email">Shumisani inwe imeili</string>
+    <string name="auth_intro">Dzhenani nga imeili yanu — ri do ni rumela vhukwamani, a hu na phasiwete ine na fanela u i humbula.</string>
+    <string name="auth_sending">I khou rumela…</string>
+    <string name="auth_email_me_a_link">Nthumeleni vhukwamani</string>
+
+    <string name="error_magic_link_invalid">Honoho vhukwamani a vhu tsha shuma. Humbelani vhuswa.</string>
+    <string name="error_offline">A hu na vhukwamani. Lingedzani hafhu musi ni na tshiga.</string>
+    <string name="error_sign_in_failed">Zwo kundelwa u dzhena: %1$s</string>
+    <string name="error_too_many_attempts">Milingo minzhi lwa u fhira. Lingedzani hafhu nga murahu.</string>
+    <string name="error_send_failed">Zwo kundelwa u rumela vhukwamani: %1$s</string>
+
+    <plurals name="sync_stuck_detail">
+        <item quantity="one">%d tshanduko ye seva ya i hana. Tshi kha di vha hafha.</item>
+        <item quantity="other">%d dzitshanduko dze seva ya dzi hana. Dzi kha di vha hafha.</item>
+    </plurals>
+    <plurals name="sync_pending_detail">
+        <item quantity="one">%d tshanduko tshi lindelaho u tanganyiswa.</item>
+        <item quantity="other">%d dzitshanduko dzi lindelaho u tanganyiswa.</item>
+    </plurals>
+    <string name="sync_up_to_date">Zwothe zwo tanganyiswa.</string>
+
+    <string name="task_label">Mushumo</string>
+    <string name="done_count">ZWO ITWA (%1$d)</string>
+    <string name="add_item_placeholder">Engedzani tshithu</string>
+    <string name="empty_list_title">A hu na tshithu kha ino mutevhe</string>
+    <string name="empty_list_subtitle">Nwalani fhasi uri ni engedze tshithu tsha u thoma.</string>
+
+    <string name="lists_title">Mitevhe</string>
+    <string name="new_list_label">Mutevhe muswa</string>
+    <string name="rename_list_title">Shandukisa dzina la mutevhe</string>
+    <string name="not_synced_yet">A tho ngo tanganyiswa</string>
+    <string name="untitled_list">Mutevhe u si na thoho</string>
+    <string name="empty_lists_title">A hu na mitevhe zwino</string>
+    <string name="empty_lists_subtitle">Itani muthihi wa zwiliwa, mishumo ya hayani, kana tshinwe na tshinwe tshine na tshi kovhekana.</string>
+    <string name="create_first_list">Sikani mutevhe wanu wa u thoma</string>
+
+    <string name="share_failed_title">Zwo kundelwa u kovhekana</string>
+    <string name="share_list_title">Kovhekanani ino mutevhe</string>
+    <string name="send_invite">Rumelani tshiitisi</string>
+    <string name="share_who_for">%1$s ndi wa nnyi?</string>
+    <string name="share_note">Ndi yeneyo adresi ya imeili fhedzi ine ya do kona u dzhena. I shuma maduvha a sumbe.</string>
+    <string name="share_sending">I khou rumela tshiitisi tsha %1$s…</string>
+    <string name="share_sent">Tshiitisi tsho rumelwa kha %1$s. Tshi shuma maduvha a sumbe, nahone ndi yeneyo adresi fhedzi ine ya nga dzhena kha %2$s.</string>
+    <string name="join_list_title">Dzhenani kha mutevhe</string>
+    <string name="join_paste_prompt">Nambatedzani tshiitisi tshe muthu a ni rumela.</string>
+    <string name="join_invite_label">Tshiitisi</string>
+    <string name="invited_title">No rambiwa kha mutevhe</string>
+    <string name="invited_body">Ni a dzhena? We a u kovhekana u do vhona zwine na engedza.</string>
+    <string name="invited_not_now">Hu si zwino</string>
+
+    <string name="settings_title">Zwiimiswa</string>
+    <string name="settings_account">Akhaunthu</string>
+    <string name="settings_email_unknown">A zwi divhei</string>
+    <string name="settings_new_items_go_to">Zwithu zwiswa zwi ya</string>
+    <string name="settings_top">Ntha</string>
+    <string name="settings_bottom">Fhasi</string>
+    <string name="settings_sign_out">Bvani</string>
+    <string name="settings_language">Luambo</string>
+    <string name="settings_language_system_default">Zwa sisiteme</string>
+</resources>

@@ -1,5 +1,6 @@
 package za.co.dielys
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -11,6 +12,7 @@ import androidx.compose.ui.Modifier
 import dagger.hilt.android.AndroidEntryPoint
 import za.co.dielys.data.PendingInvite
 import za.co.dielys.data.PendingMagicLink
+import za.co.dielys.data.local.withChosenLocale
 import za.co.dielys.ui.DielysApp
 import za.co.dielys.ui.theme.DielysTheme
 import javax.inject.Inject
@@ -35,6 +37,13 @@ class MainActivity : ComponentActivity() {
      * as a rule, not as an edge case. */
     @Inject
     lateinit var magicLinks: PendingMagicLink
+
+    /** The chosen language (#42), on the API levels where applying it is ours
+     *  to do. Every resource this Activity reads resolves against this context,
+     *  so it has to be in place before anything is inflated or composed. */
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(newBase.withChosenLocale())
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()

@@ -1,0 +1,91 @@
+<resources>
+    <!-- DRAFT (#42). Machine-assisted siSwati, not yet reviewed by a first-language
+         speaker. Treat every string here as a suggestion until it has been. -->
+
+    <string name="action_save">Gcina</string>
+    <string name="action_cancel">Khansela</string>
+    <string name="action_close">Vala</string>
+    <string name="action_done">Kwentiwe</string>
+    <string name="action_create">Yenta</string>
+    <string name="action_join">Joyina</string>
+    <string name="action_edit">Hlela</string>
+    <string name="action_delete">Susa</string>
+    <string name="action_rename">Shintja ligama</string>
+    <string name="action_share">Yabelana</string>
+    <string name="label_email">I-imeyili</string>
+    <string name="label_name">Ligama</string>
+
+    <string name="cd_back">Emuva</string>
+    <string name="cd_add">Ngeta</string>
+    <string name="cd_task_options">Tinketho temsebenti</string>
+    <string name="cd_list_options">Tinketho teluhlu</string>
+    <string name="cd_star">Inkhanyeti</string>
+    <string name="cd_unstar">Susa inkhanyeti</string>
+    <string name="cd_collapse_done">Goca lokwentiwe</string>
+    <string name="cd_expand_done">Vula lokwentiwe</string>
+
+    <string name="auth_check_email_title">Buka i-imeyili yakho</string>
+    <string name="auth_delivered_message">Iletfwe ku-%1$s. Yivule kulesi sisetjentiswa kute uchubeke.</string>
+    <string name="auth_sent_message">Sitfumele luchumano lwekungena ku-%1$s. Kungatsatsa imizuzu lemcane kute ifike — yivule kulesi sisetjentiswa kute uchubeke.</string>
+    <string name="auth_resend_cooldown">Tfumela futsi nge-%1$ds</string>
+    <string name="auth_resend_link">Tfumela luchumano futsi</string>
+    <string name="auth_use_different_email">Sebentisa lenye i-imeyili</string>
+    <string name="auth_intro">Ngena nge-imeyili yakho — sitakutfumelela luchumano, kute liphasiwedi lokufanele ulikhumbule.</string>
+    <string name="auth_sending">Iyatfumela…</string>
+    <string name="auth_email_me_a_link">Ngitfumele luchumano</string>
+
+    <string name="error_magic_link_invalid">Lolo luchumano alusasebenti. Cela lolusha.</string>
+    <string name="error_offline">Kute kuchumana. Zama futsi nangabe unesignali.</string>
+    <string name="error_sign_in_failed">Ayikhonanga kungena: %1$s</string>
+    <string name="error_too_many_attempts">Imizamo leminyenti kakhulu. Zama futsi ngemuva kwesikhatsi.</string>
+    <string name="error_send_failed">Ayikhonanga kutfumela luchumano: %1$s</string>
+
+    <plurals name="sync_stuck_detail">
+        <item quantity="one">%d lushintjo iseva leyilalile. Lusekhona lapha.</item>
+        <item quantity="other">%d tinshintjo iseva letitalile. Tisekhona lapha.</item>
+    </plurals>
+    <plurals name="sync_pending_detail">
+        <item quantity="one">%d lushintjo lolulindzele kuvumelanisa.</item>
+        <item quantity="other">%d tinshintjo letilindzele kuvumelanisa.</item>
+    </plurals>
+    <string name="sync_up_to_date">Konkhe kusesikhatsini.</string>
+
+    <string name="task_label">Umsebenti</string>
+    <string name="done_count">KWENTIWE (%1$d)</string>
+    <string name="add_item_placeholder">Ngeta intfo</string>
+    <string name="empty_list_title">Kute lutfo kulolu luhlu</string>
+    <string name="empty_list_subtitle">Thayipha ngentasi kute ungete intfo yekucala.</string>
+
+    <string name="lists_title">Tinhlu</string>
+    <string name="new_list_label">Luhlu lolusha</string>
+    <string name="rename_list_title">Shintja ligama leluhlu</string>
+    <string name="not_synced_yet">Akukavumelaniswa</string>
+    <string name="untitled_list">Luhlu lolungenasihloko</string>
+    <string name="empty_lists_title">Kute tinhlu njengamanje</string>
+    <string name="empty_lists_subtitle">Yenta lolunye lwekudla, imisebenti yasekhaya, nobe nanoma yini loyabelana ngayo.</string>
+    <string name="create_first_list">Yenta luhlu lwakho lwekucala</string>
+
+    <string name="share_failed_title">Ayikhonanga kwabelana</string>
+    <string name="share_list_title">Yabelana ngalolu luhlu</string>
+    <string name="send_invite">Tfumela simemo</string>
+    <string name="share_who_for">Ngubani %1$s lolwentelwe yena?</string>
+    <string name="share_note">Ngulelo likheli le-imeyili kuphela lelingakhona kujoyina. Lisebenta emalanga lasikhombisa.</string>
+    <string name="share_sending">Itfumela simemo se-%1$s…</string>
+    <string name="share_sent">Simemo sitfunyelwe ku-%1$s. Sisebenta emalanga lasikhombisa, futsi ngulelo likheli kuphela lelingajoyina u-%2$s.</string>
+    <string name="join_list_title">Joyina luhlu</string>
+    <string name="join_paste_prompt">Namatsisela simemo lositfunyelwe ngumuntfu.</string>
+    <string name="join_invite_label">Simemo</string>
+    <string name="invited_title">Umenyelwe eluhlwini</string>
+    <string name="invited_body">Uyajoyina? Lowo labelane ngalo utawubona loko lokungetako.</string>
+    <string name="invited_not_now">Cha nyalo</string>
+
+    <string name="settings_title">Tilungiselelo</string>
+    <string name="settings_account">I-akhawunti</string>
+    <string name="settings_email_unknown">Akwatiwa</string>
+    <string name="settings_new_items_go_to">Tintfo letinsha tiya</string>
+    <string name="settings_top">Etulu</string>
+    <string name="settings_bottom">Ngentasi</string>
+    <string name="settings_sign_out">Phuma</string>
+    <string name="settings_language">Lulwimi</string>
+    <string name="settings_language_system_default">Lokutentekelako kwesistimu</string>
+</resources>

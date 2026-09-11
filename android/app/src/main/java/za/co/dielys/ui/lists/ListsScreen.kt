@@ -48,11 +48,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import za.co.dielys.R
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.ui.SyncStatus
 import za.co.dielys.ui.TextPrompt
@@ -98,12 +101,12 @@ fun ListsScreen(
                 title = {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            "Lists",
+                            stringResource(R.string.lists_title),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            "Twee mense, één lys.",
+                            stringResource(R.string.lists_tagline),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = ALPHA_MUTED),
                         )
@@ -171,9 +174,9 @@ fun ListsScreen(
 
     if (creating) {
         TextPrompt(
-            title = "New list",
-            label = "Name",
-            confirm = "Create",
+            title = stringResource(R.string.new_list_label),
+            label = stringResource(R.string.label_name),
+            confirm = stringResource(R.string.action_create),
             onDismiss = { creating = false },
             onConfirm = viewModel::create,
         )
@@ -181,8 +184,8 @@ fun ListsScreen(
 
     renaming?.let { list ->
         TextPrompt(
-            title = "Rename list",
-            label = "Name",
+            title = stringResource(R.string.rename_list_title),
+            label = stringResource(R.string.label_name),
             initial = list.title,
             onDismiss = { renaming = null },
             onConfirm = { viewModel.rename(list.id, it) },
@@ -349,12 +352,15 @@ private fun ListRow(
         Box(modifier = Modifier.size(12.dp).background(dotColor, CircleShape))
 
         Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
-            Text(list.displayTitle, style = MaterialTheme.typography.titleMedium)
+            Text(
+                list.displayTitle(LocalContext.current),
+                style = MaterialTheme.typography.titleMedium,
+            )
             // Until the first sync lands there is no server timestamp, which is
             // exactly the "made offline, not sent yet" state worth showing.
             if (list.updatedAt == null) {
                 Text(
-                    "Not synced yet",
+                    stringResource(R.string.not_synced_yet),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.secondary,
                 )
@@ -371,11 +377,14 @@ private fun ListRow(
 
         Box {
             IconButton(onClick = { menuOpen = true }) {
-                Icon(Icons.Filled.MoreVert, contentDescription = "List options")
+                Icon(
+                    Icons.Filled.MoreVert,
+                    contentDescription = stringResource(R.string.cd_list_options),
+                )
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 DropdownMenuItem(
-                    text = { Text("Rename") },
+                    text = { Text(stringResource(R.string.action_rename)) },
                     onClick = {
                         menuOpen = false
                         onRename()
@@ -385,7 +394,7 @@ private fun ListRow(
                 // does not offer it rather than offering it and being refused.
                 if (list.ownedByMe) {
                     DropdownMenuItem(
-                        text = { Text("Share") },
+                        text = { Text(stringResource(R.string.action_share)) },
                         onClick = {
                             menuOpen = false
                             onShare()
@@ -393,7 +402,7 @@ private fun ListRow(
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text("Delete") },
+                    text = { Text(stringResource(R.string.action_delete)) },
                     onClick = {
                         menuOpen = false
                         onDelete()
@@ -429,7 +438,7 @@ private fun NewListRow(
             Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp))
         }
         Text(
-            "New list",
+            stringResource(R.string.new_list_label),
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(start = 12.dp),
         )
@@ -443,14 +452,17 @@ private fun Empty(onCreate: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("No lists yet", style = MaterialTheme.typography.titleMedium)
         Text(
-            "Make one for groceries, chores, or anything you're sharing.",
+            stringResource(R.string.empty_lists_title),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            stringResource(R.string.empty_lists_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(top = 4.dp, bottom = 20.dp),
         )
         Button(onClick = onCreate, shape = PillShape, modifier = Modifier.height(48.dp)) {
-            Text("Create your first list")
+            Text(stringResource(R.string.create_first_list))
         }
     }
 }

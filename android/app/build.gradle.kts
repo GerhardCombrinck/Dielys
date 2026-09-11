@@ -131,6 +131,7 @@ dependencies {
     // on the password field). R8 strips the ones the app doesn't reference.
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.activity:activity-compose:1.9.2")
+    // Not for AppCompatActivity — MainActivity stays a plain ComponentActivity.
     // Both are already on the runtime classpath transitively, but the UI calls
     // them directly — `viewModel()` and `collectAsStateWithLifecycle()` — and a
     // direct call on a transitive dependency breaks the day something upstream

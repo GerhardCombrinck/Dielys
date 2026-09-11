@@ -15,7 +15,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import za.co.dielys.R
 
 /**
  * The four dialogs sharing needs: asking who to invite, showing progress and
@@ -40,7 +42,15 @@ fun InviteDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (state is InviteState.Failed) "Could not share" else "Share this list") },
+        title = {
+            Text(
+                if (state is InviteState.Failed) {
+                    stringResource(R.string.share_failed_title)
+                } else {
+                    stringResource(R.string.share_list_title)
+                },
+            )
+        },
         text = {
             when (state) {
                 is InviteState.EnteringEmail ->
@@ -56,17 +66,23 @@ fun InviteDialog(
                     enabled = email.isNotBlank(),
                     onClick = { onSend(state.listId, state.listTitle, email) },
                 ) {
-                    Text("Send invite")
+                    Text(stringResource(R.string.send_invite))
                 }
             } else {
-                TextButton(
-                    onClick = onDismiss,
-                ) { Text(if (state is InviteState.Sent) "Done" else "Close") }
+                TextButton(onClick = onDismiss) {
+                    Text(
+                        if (state is InviteState.Sent) {
+                            stringResource(R.string.action_done)
+                        } else {
+                            stringResource(R.string.action_close)
+                        },
+                    )
+                }
             }
         },
         dismissButton = {
             if (state is InviteState.EnteringEmail) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
             }
         },
     )
@@ -79,9 +95,9 @@ private fun EmailEntry(
     onEmailChange: (String) -> Unit,
 ) {
     Column {
-        Text("Who is $listTitle for?")
+        Text(stringResource(R.string.share_who_for, listTitle))
         Text(
-            "Only that email address will be able to join. It works for seven days.",
+            stringResource(R.string.share_note),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.secondary,
             modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
@@ -89,7 +105,7 @@ private fun EmailEntry(
         OutlinedTextField(
             value = email,
             onValueChange = onEmailChange,
-            label = { Text("Email") },
+            label = { Text(stringResource(R.string.label_email)) },
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -98,7 +114,7 @@ private fun EmailEntry(
 @Composable
 private fun Working(listTitle: String) {
     Column {
-        Text("Sending an invite for $listTitle…")
+        Text(stringResource(R.string.share_sending, listTitle))
         CircularProgressIndicator(
             strokeWidth = 2.dp,
             modifier = Modifier.padding(top = 12.dp),
@@ -111,9 +127,7 @@ private fun Sent(
     listTitle: String,
     email: String,
 ) {
-    Text(
-        "Invite sent to $email. It works for seven days, and only that address can join $listTitle.",
-    )
+    Text(stringResource(R.string.share_sent, email, listTitle))
 }
 
 @Composable
@@ -125,14 +139,14 @@ fun JoinDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Join a list") },
+        title = { Text(stringResource(R.string.join_list_title)) },
         text = {
             Column {
-                Text("Paste the invite somebody sent you.")
+                Text(stringResource(R.string.join_paste_prompt))
                 OutlinedTextField(
                     value = pasted,
                     onValueChange = { pasted = it },
-                    label = { Text("Invite") },
+                    label = { Text(stringResource(R.string.join_invite_label)) },
                     // The message around the link is fine — the token is found
                     // inside whatever is pasted.
                     minLines = 2,
@@ -148,10 +162,12 @@ fun JoinDialog(
                     onDismiss()
                 },
             ) {
-                Text("Join")
+                Text(stringResource(R.string.action_join))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
     )
 }
 
@@ -166,13 +182,19 @@ fun InvitationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDecline,
-        title = { Text("You were invited to a list") },
+        title = { Text(stringResource(R.string.invited_title)) },
         // Not "you can leave later": deleting a list is a tombstone that syncs
         // to everyone on it (F5.3), so it is not a way out of somebody else's
         // list. There is no leave yet, and saying otherwise would be worse than
         // saying nothing.
-        text = { Text("Join it? Whoever shared it will see what you add.") },
-        confirmButton = { TextButton(onClick = onAccept) { Text("Join") } },
-        dismissButton = { TextButton(onClick = onDecline) { Text("Not now") } },
+        text = { Text(stringResource(R.string.invited_body)) },
+        confirmButton = {
+            TextButton(
+                onClick = onAccept,
+            ) { Text(stringResource(R.string.action_join)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDecline) { Text(stringResource(R.string.invited_not_now)) }
+        },
     )
 }

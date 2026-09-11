@@ -11,7 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import za.co.dielys.R
 
 /**
  * A group icon that changes colour, in place of the dot-plus-word banner this
@@ -36,13 +39,13 @@ fun SyncStatus(
         when {
             stuck > 0 ->
                 MaterialTheme.colorScheme.error to
-                    "$stuck ${plural(stuck, "edit")} the server refused. They are still here."
+                    pluralStringResource(R.plurals.sync_stuck_detail, stuck, stuck)
 
             pending > 0 ->
                 MaterialTheme.colorScheme.secondary to
-                    "$pending ${plural(pending, "change")} waiting to sync."
+                    pluralStringResource(R.plurals.sync_pending_detail, pending, pending)
 
-            else -> SyncedGreen to "Everything is up to date."
+            else -> SyncedGreen to stringResource(R.string.sync_up_to_date)
         }
 
     Icon(
@@ -57,8 +60,3 @@ fun SyncStatus(
 }
 
 private val SyncedGreen = Color(0xFF4CAF50)
-
-private fun plural(
-    count: Int,
-    noun: String,
-): String = if (count == 1) noun else "${noun}s"

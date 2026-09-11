@@ -1,5 +1,6 @@
 package za.co.dielys.ui.auth
 
+import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -19,6 +20,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import za.co.dielys.data.SessionStack
+import za.co.dielys.data.local.AndroidStringProvider
 
 /**
  * The one screen that causes a network call. There is no password and no
@@ -35,8 +37,10 @@ class SessionViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
-        phone = SessionStack(ApplicationProvider.getApplicationContext())
-        viewModel = SessionViewModel(phone.sessions, phone.magicLinks)
+        val context: Context = ApplicationProvider.getApplicationContext()
+        phone = SessionStack(context)
+        viewModel =
+            SessionViewModel(phone.sessions, phone.magicLinks, AndroidStringProvider(context))
     }
 
     @After
