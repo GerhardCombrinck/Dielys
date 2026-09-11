@@ -606,12 +606,16 @@ private fun TaskRow(
     highlighted: Boolean = false,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    // Done gives up its card entirely and sits straight on the page, so the
+    // Done section reads as a list of what is no longer in the way rather than
+    // more of the same stack. Animated, so ticking something off fades its card
+    // out under the tick instead of cutting.
     val background by animateColorAsState(
         targetValue =
-            if (dragging) {
-                MaterialTheme.colorScheme.surfaceVariant
-            } else {
-                MaterialTheme.colorScheme.surface
+            when {
+                dragging -> MaterialTheme.colorScheme.surfaceVariant
+                task.done -> Color.Transparent
+                else -> MaterialTheme.colorScheme.surface
             },
         label = "drag-background",
     )
@@ -710,8 +714,9 @@ private fun TaskRow(
                         .alpha(if (task.done) DONE_ALPHA else 1f),
             )
 
-            // Starring and renaming are both about what is still to do; a done
-            // task keeps only the option to remove it.
+            // A done row is meant to recede: it keeps the tick and the title and
+            // gives up every control on the right, so the eye passes over it on
+            // the way to what is still to do. Un-tick it to get them back.
             if (!task.done) {
                 IconButton(onClick = onStar) {
                     // Both states draw the same path at the same stroke width, so
@@ -734,17 +739,15 @@ private fun TaskRow(
                             },
                     )
                 }
-            }
 
-            Box {
-                IconButton(onClick = { menuOpen = true }) {
-                    Icon(
-                        Icons.Filled.MoreVert,
-                        contentDescription = stringResource(R.string.cd_task_options),
-                    )
-                }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    if (!task.done) {
+                Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(
+                            Icons.Filled.MoreVert,
+                            contentDescription = stringResource(R.string.cd_task_options),
+                        )
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.action_edit)) },
                             onClick = {
@@ -752,14 +755,14 @@ private fun TaskRow(
                                 onRename()
                             },
                         )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.action_delete)) },
+                            onClick = {
+                                menuOpen = false
+                                onDelete()
+                            },
+                        )
                     }
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.action_delete)) },
-                        onClick = {
-                            menuOpen = false
-                            onDelete()
-                        },
-                    )
                 }
             }
         }
@@ -817,9 +820,12 @@ private fun starPath(
 
 /**
  * A 20dp square rather than Material's default checkbox — the redesign calls
- * for it, and it doubles as the one place `done` gets its dark-mode amber
- * instead of navy, which the stock [androidx.compose.material3.Checkbox]'s
- * color slots do not cleanly express.
+ * for it, and the stock [androidx.compose.material3.Checkbox]'s color slots do
+ * not cleanly express a checked state that is quieter than an unchecked one.
+ *
+ * Checked is drawn like the unstarred star: outline only, white, half alpha. A
+ * filled box would be the loudest thing in the Done section, which is the
+ * opposite of what being done should look like.
  */
 @Composable
 private fun TaskCheckbox(
@@ -827,10 +833,8 @@ private fun TaskCheckbox(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val dark = isSystemInDarkTheme()
-    val fillColor =
-        if (dark) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
     val borderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    val doneColor = Color.White.copy(alpha = STAR_OUTLINE_ALPHA)
 
     // The tap target is the 48dp box Material asks for; the 20dp square inside is
     // only what it looks like. Ticking things off is done one-handed in a shop,
@@ -848,12 +852,10 @@ private fun TaskCheckbox(
                 Modifier
                     .size(20.dp)
                     .clip(RoundedCornerShape(5.dp))
-                    .then(
-                        if (checked) {
-                            Modifier.background(fillColor)
-                        } else {
-                            Modifier.border(2.dp, borderColor, RoundedCornerShape(5.dp))
-                        },
+                    .border(
+                        2.dp,
+                        if (checked) doneColor else borderColor,
+                        RoundedCornerShape(5.dp),
                     ),
             contentAlignment = Alignment.Center,
         ) {
@@ -861,7 +863,7 @@ private fun TaskCheckbox(
                 Icon(
                     Icons.Filled.Check,
                     contentDescription = null,
-                    tint = if (dark) CheckGlyphOnAmber else Color.White,
+                    tint = doneColor,
                     modifier = Modifier.size(14.dp),
                 )
             }
@@ -1006,6 +1008,3 @@ private const val GHOST_TEXT_ALPHA = 0.55f
 
 /** Stands in for the ghost row's key before there is a real task id to use. */
 private const val GHOST_TYPING_KEY = "ghost-typing"
-
-/** NavyDeep — the check glyph reads dark against the dark-mode done checkbox's amber fill. */
-private val CheckGlyphOnAmber = Color(0xFF0E1728)
