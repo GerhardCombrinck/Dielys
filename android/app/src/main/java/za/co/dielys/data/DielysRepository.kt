@@ -140,12 +140,41 @@ class DielysRepository
             return id
         }
 
+        /**
+         * Marking a task done also promotes it to the top of the Done section —
+         * the same fractional-index trick [setStarred] uses for "this one first"
+         * (position is a shared axis across the whole list, `addTask`), applied
+         * within the done subset instead of the whole list. Each completion lands
+         * above every earlier one, so the section stays sorted most-recently-done
+         * first with no separate ordering field to keep in sync.
+         *
+         * Un-completing leaves the position alone — same reasoning as unstarring:
+         * the honest answer to "where does it go back to" is "wherever it was".
+         */
         suspend fun setDone(
             taskId: String,
             done: Boolean,
         ) {
             val task = db.tasks().find(taskId) ?: return
-            commitTask(task.copy(done = done), TaskPatch(done = done))
+            if (!done) {
+                commitTask(task.copy(done = false), TaskPatch(done = false))
+                return
+            }
+
+            val firstDone = db.tasks().inList(task.listId).firstOrNull { it.done }
+            // Already the most recently completed, or the only done row: must not
+            // mint a key below its own.
+            val position =
+                if (firstDone == null || firstDone.id == task.id) {
+                    task.position
+                } else {
+                    Position.between(null, firstDone.position)
+                }
+
+            commitTask(
+                task.copy(done = true, position = position),
+                TaskPatch(done = true, position = position),
+            )
         }
 
         /**

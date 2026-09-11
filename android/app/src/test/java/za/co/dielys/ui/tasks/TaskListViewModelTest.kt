@@ -134,6 +134,70 @@ class TaskListViewModelTest {
             }
         }
 
+    /**
+     * #38: the Done section is permanently reverse-chronological. Each
+     * completion promotes the row above every earlier one, the same
+     * fractional-index trick [setStarred] uses, scoped to the done rows.
+     */
+    @Test
+    fun `completing tasks stacks the done section most-recent first`() =
+        runTest(dispatcher) {
+            open()
+            val milk = phone.repo.addTask(listId, "Milk")
+            val bread = phone.repo.addTask(listId, "Bread")
+            val jam = phone.repo.addTask(listId, "Jam")
+
+            viewModel.board.test {
+                assertTrue(awaitItem().isEmpty)
+                awaitItem()
+
+                viewModel.setDone(milk, true)
+                assertEquals(listOf("Milk"), awaitItem().done.map { it.title })
+
+                viewModel.setDone(bread, true)
+                assertEquals(listOf("Bread", "Milk"), awaitItem().done.map { it.title })
+
+                viewModel.setDone(jam, true)
+                assertEquals(listOf("Jam", "Bread", "Milk"), awaitItem().done.map { it.title })
+            }
+        }
+
+    /**
+     * Un-completing leaves the row's position exactly where completing it put
+     * it — same reasoning as unstarring: no attempt to recall where it was
+     * before.
+     */
+    @Test
+    fun `un-completing a task leaves its position untouched`() =
+        runTest(dispatcher) {
+            open()
+            val milk = phone.repo.addTask(listId, "Milk")
+            val bread = phone.repo.addTask(listId, "Bread")
+            phone.repo.setDone(milk, true)
+            phone.repo.setDone(bread, true)
+            val breadPosition =
+                phone.db
+                    .tasks()
+                    .find(bread)
+                    ?.position
+
+            viewModel.board.test {
+                assertTrue(awaitItem().isEmpty)
+                assertEquals(listOf("Bread", "Milk"), awaitItem().done.map { it.title })
+
+                viewModel.setDone(bread, false)
+                assertEquals(listOf("Milk"), awaitItem().done.map { it.title })
+            }
+
+            assertEquals(
+                breadPosition,
+                phone.db
+                    .tasks()
+                    .find(bread)
+                    ?.position,
+            )
+        }
+
     @Test
     fun `adding before a list is open does nothing`() =
         runTest(dispatcher) {
