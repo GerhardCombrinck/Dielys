@@ -40,6 +40,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -47,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -216,7 +218,17 @@ private fun Lists(
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
-    val reorder = remember(listState) { ReorderState(listState) }
+    val scope = rememberCoroutineScope()
+    val density = LocalDensity.current
+    val reorder =
+        remember(listState) {
+            ReorderState(
+                listState,
+                scope,
+                edgePx = with(density) { EDGE_SCROLL_ZONE.toPx() },
+                maxScrollPxPerTick = with(density) { EDGE_SCROLL_SPEED.toPx() },
+            )
+        }
     val count = rememberUpdatedState(rows.size)
     val start = rememberUpdatedState(onDragStart)
     val move = rememberUpdatedState(onDragMove)
@@ -233,11 +245,13 @@ private fun Lists(
             modifier.padding(horizontal = 16.dp).pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = { offset ->
-                        reorder.start(offset.y, count.value)?.let { start.value(it) }
+                        reorder
+                            .start(offset.y, count.value) { from, to -> move.value(from, to) }
+                            ?.let { start.value(it) }
                     },
                     onDrag = { change, amount ->
                         change.consume()
-                        reorder.drag(amount.y) { from, to -> move.value(from, to) }
+                        reorder.drag(amount.y)
                     },
                     onDragEnd = {
                         reorder.stop()
@@ -449,3 +463,7 @@ private val CARD_GAP = 8.dp
 /** Matches the task list's lift, so a dragged row looks the same on both screens. */
 private const val DRAG_ELEVATION = 12f
 private const val DRAG_SCALE = 0.02f
+
+/** #45: same auto-scroll edge and speed as the task list, for the same feel. */
+private val EDGE_SCROLL_ZONE = 64.dp
+private val EDGE_SCROLL_SPEED = 12.dp

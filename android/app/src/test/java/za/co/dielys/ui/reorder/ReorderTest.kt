@@ -3,6 +3,7 @@ package za.co.dielys.ui.reorder
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
 /**
@@ -71,5 +72,70 @@ class ReorderTest {
     @Test
     fun `the dragged order is dropped when the rows themselves changed`() {
         assertFalse(draftStillWanted(listOf("b", "a"), listOf("a", "b", "c")))
+    }
+
+    /** #45: the arithmetic behind auto-scroll — same "no Compose tests" reasoning
+     *  as the rest of this file, so only what it computes is pinned down here. */
+    @Nested
+    inner class EdgeScrollDeltaTest {
+        private val viewport = 0..1000
+
+        @Test
+        fun `a row well clear of both edges does not scroll`() {
+            assertEquals(
+                0f,
+                edgeScrollDelta(item = 200f..250f, viewport = viewport, edge = 64f, maxSpeed = 12f),
+            )
+        }
+
+        @Test
+        fun `a row pinned right at the top edge scrolls up at full speed`() {
+            assertEquals(
+                -12f,
+                edgeScrollDelta(item = 0f..50f, viewport = viewport, edge = 64f, maxSpeed = 12f),
+            )
+        }
+
+        @Test
+        fun `a row halfway into the top zone scrolls up at half speed`() {
+            assertEquals(
+                -6f,
+                edgeScrollDelta(item = 32f..82f, viewport = viewport, edge = 64f, maxSpeed = 12f),
+            )
+        }
+
+        @Test
+        fun `a row pinned right at the bottom edge scrolls down at full speed`() {
+            assertEquals(
+                12f,
+                edgeScrollDelta(
+                    item = 950f..1000f,
+                    viewport = viewport,
+                    edge = 64f,
+                    maxSpeed = 12f,
+                ),
+            )
+        }
+
+        @Test
+        fun `a row just touching the edge, not past it, does not scroll`() {
+            assertEquals(
+                0f,
+                edgeScrollDelta(item = 64f..114f, viewport = viewport, edge = 64f, maxSpeed = 12f),
+            )
+        }
+
+        @Test
+        fun `a row taller than the viewport still resolves one direction, not both`() {
+            assertEquals(
+                -12f,
+                edgeScrollDelta(
+                    item = -100f..1100f,
+                    viewport = viewport,
+                    edge = 64f,
+                    maxSpeed = 12f,
+                ),
+            )
+        }
     }
 }

@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -56,9 +57,11 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -74,6 +77,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -294,6 +298,88 @@ private fun commitMove(
     move(movedId, order.getOrNull(index - 1)?.id, order.getOrNull(index + 1)?.id)
 }
 
+/** The four callers of [taskDragGestures] out of [Tasks], bundled so the
+ *  gesture wiring stays under the parameter-count threshold. */
+private class DragCallbacks(
+    val onStart: State<(Int) -> Unit>,
+    val onMove: State<(Int, Int) -> Unit>,
+    val onEnd: State<() -> Unit>,
+    val onCancel: State<() -> Unit>,
+)
+
+/**
+ * The long-press-drag gesture, pulled out of [Tasks] so that function's own
+ * branching stays under the complexity threshold — this is wiring, not logic;
+ * [ReorderState] and [edgeScrollDelta] are where the actual decisions live.
+ */
+private fun Modifier.taskDragGestures(
+    reorder: ReorderState,
+    count: State<Int>,
+    callbacks: DragCallbacks,
+): Modifier =
+    pointerInput(Unit) {
+        detectDragGesturesAfterLongPress(
+            onDragStart = { offset ->
+                reorder
+                    .start(offset.y, count.value) { from, to -> callbacks.onMove.value(from, to) }
+                    ?.let { callbacks.onStart.value(it) }
+            },
+            onDrag = { change, amount ->
+                change.consume()
+                reorder.drag(amount.y)
+            },
+            onDragEnd = {
+                reorder.stop()
+                callbacks.onEnd.value()
+            },
+            onDragCancel = {
+                reorder.stop()
+                callbacks.onCancel.value()
+            },
+        )
+    }
+
+private data class GhostRowState(
+    val key: Any,
+    val visible: Boolean,
+)
+
+/**
+ * The typed-but-not-yet-saved row: which `LazyColumn` key it renders under,
+ * and whether it should show at all — plus the one-time scroll that brings it
+ * into view when it first appears. Pulled out of [Tasks] to keep that
+ * function's own branching under the complexity threshold.
+ *
+ * Keyed on `ghostId` once there is one, so the placeholder and the real row
+ * Room eventually produces are the same `LazyColumn` item — the id carries
+ * across the swap, so there is never a moment with both on screen at once.
+ * Before a submit there is no id yet; a constant stands in for it, which
+ * costs nothing since a ghost never collides with a real task's key.
+ */
+@Composable
+private fun rememberGhostRowState(
+    ghostText: String?,
+    ghostId: String?,
+    ghostAtTop: Boolean,
+    active: List<TaskEntity>,
+    listState: LazyListState,
+): GhostRowState {
+    val key = ghostId ?: GHOST_TYPING_KEY
+    val visible = ghostText != null && (ghostId == null || active.none { it.id == ghostId })
+
+    // A new item lands wherever the setting says, so that is where the screen
+    // goes — as soon as there is something to show there, not once the write
+    // comes back. Keyed on whether there is a ghost at all, not the text
+    // itself, so typing further characters does not re-trigger the scroll.
+    LaunchedEffect(ghostText != null) {
+        if (ghostText == null) return@LaunchedEffect
+        val target = if (ghostAtTop) 0 else active.size
+        listState.animateScrollToItem(target)
+    }
+
+    return GhostRowState(key, visible)
+}
+
 @Composable
 private fun Tasks(
     active: List<TaskEntity>,
@@ -315,30 +401,27 @@ private fun Tasks(
     onDelete: (String) -> Unit,
 ) {
     val listState = rememberLazyListState()
-    val reorder = remember(listState) { ReorderState(listState) }
+    val scope = rememberCoroutineScope()
+    val density = LocalDensity.current
+    val reorder =
+        remember(listState) {
+            ReorderState(
+                listState,
+                scope,
+                edgePx = with(density) { EDGE_SCROLL_ZONE.toPx() },
+                maxScrollPxPerTick = with(density) { EDGE_SCROLL_SPEED.toPx() },
+            )
+        }
     val count = rememberUpdatedState(active.size)
-    val start = rememberUpdatedState(onDragStart)
-    val moveRow = rememberUpdatedState(onDragMove)
-    val end = rememberUpdatedState(onDragEnd)
-    val cancel = rememberUpdatedState(onDragCancel)
+    val callbacks =
+        DragCallbacks(
+            onStart = rememberUpdatedState(onDragStart),
+            onMove = rememberUpdatedState(onDragMove),
+            onEnd = rememberUpdatedState(onDragEnd),
+            onCancel = rememberUpdatedState(onDragCancel),
+        )
 
-    // Keyed on ghostId once there is one, so the placeholder and the real row
-    // Room eventually produces are the same LazyColumn item — the id carries
-    // across the swap, so there is never a moment with both on screen at once.
-    // Before a submit there is no id yet; a constant stands in for it, which
-    // costs nothing since a ghost never collides with a real task's key.
-    val ghostKey = ghostId ?: GHOST_TYPING_KEY
-    val ghostVisible = ghostText != null && (ghostId == null || active.none { it.id == ghostId })
-
-    // A new item lands wherever the setting says, so that is where the screen
-    // goes — as soon as there is something to show there, not once the write
-    // comes back. Keyed on whether there is a ghost at all, not the text
-    // itself, so typing further characters does not re-trigger the scroll.
-    LaunchedEffect(ghostText != null) {
-        if (ghostText == null) return@LaunchedEffect
-        val target = if (ghostAtTop) 0 else active.size
-        listState.animateScrollToItem(target)
-    }
+    val ghost = rememberGhostRowState(ghostText, ghostId, ghostAtTop, active, listState)
 
     LazyColumn(
         state = listState,
@@ -349,28 +432,13 @@ private fun Tasks(
         verticalArrangement = Arrangement.spacedBy(CARD_GAP),
         contentPadding = PaddingValues(bottom = CARD_GAP),
         modifier =
-            Modifier.fillMaxSize().padding(horizontal = 16.dp).pointerInput(Unit) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { offset ->
-                        reorder.start(offset.y, count.value)?.let { start.value(it) }
-                    },
-                    onDrag = { change, amount ->
-                        change.consume()
-                        reorder.drag(amount.y) { from, to -> moveRow.value(from, to) }
-                    },
-                    onDragEnd = {
-                        reorder.stop()
-                        end.value()
-                    },
-                    onDragCancel = {
-                        reorder.stop()
-                        cancel.value()
-                    },
-                )
-            },
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+                .taskDragGestures(reorder, count, callbacks),
     ) {
-        if (ghostAtTop && ghostVisible) {
-            item(key = ghostKey) {
+        if (ghostAtTop && ghost.visible) {
+            item(key = ghost.key) {
                 GhostRow(text = ghostText ?: "", modifier = Modifier.animateItem())
             }
         }
@@ -410,8 +478,8 @@ private fun Tasks(
             )
         }
 
-        if (!ghostAtTop && ghostVisible) {
-            item(key = ghostKey) {
+        if (!ghostAtTop && ghost.visible) {
+            item(key = ghost.key) {
                 GhostRow(text = ghostText ?: "", modifier = Modifier.animateItem())
             }
         }
@@ -863,6 +931,12 @@ private fun Empty() {
 }
 
 private const val DRAG_ELEVATION = 12f
+
+/** #45: how close to the top/bottom of the screen a dragged row has to get
+ *  before the list starts auto-scrolling to meet it, and how fast it scrolls
+ *  once it is pinned right at the edge. */
+private val EDGE_SCROLL_ZONE = 64.dp
+private val EDGE_SCROLL_SPEED = 12.dp
 
 /** Breathing room between cards, so neighbours read as separate surfaces. */
 private val CARD_GAP = 8.dp

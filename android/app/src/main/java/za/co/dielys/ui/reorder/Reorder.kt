@@ -1,5 +1,6 @@
 package za.co.dielys.ui.reorder
 
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.getValue
@@ -7,6 +8,10 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * Takes the item at [from] and puts it at [to], everything else closing up behind
@@ -41,13 +46,38 @@ fun draftStillWanted(
 ): Boolean = draft != stored && draft.toSet() == stored.toSet()
 
 /**
+ * How far to auto-scroll this frame so a row dragged past the visible area can
+ * still reach the rest of the list (#45). Zero outside [edge] of either end of
+ * the viewport; scales linearly with how far past the edge the row has gone,
+ * capped at [maxSpeed] — a hair's-width crossing crawls, a finger pinned at
+ * the very edge runs at full speed.
+ */
+fun edgeScrollDelta(
+    item: ClosedFloatingPointRange<Float>,
+    viewport: IntRange,
+    edge: Float,
+    maxSpeed: Float,
+): Float {
+    val intoTop = (viewport.first + edge) - item.start
+    if (intoTop > 0f) return -maxSpeed * (intoTop / edge).coerceIn(0f, 1f)
+    val intoBottom = item.endInclusive - (viewport.last - edge)
+    if (intoBottom > 0f) return maxSpeed * (intoBottom / edge).coerceIn(0f, 1f)
+    return 0f
+}
+
+/**
  * Long-press drag for a `LazyColumn`, in the only two hundred lines it takes.
  *
- * There is no auto-scroll at the edges yet: a shopping list that runs past one
- * screen is worth handling, but not before the thing works at all.
+ * Auto-scrolls near the top/bottom edges of the viewport (#45) via a loop that
+ * runs for as long as a drag is live, independent of `onDrag` — a finger held
+ * still right at the edge must keep scrolling, not wait for the next pixel of
+ * movement to notice it is there.
  */
 class ReorderState(
     private val listState: LazyListState,
+    private val scope: CoroutineScope,
+    private val edgePx: Float,
+    private val maxScrollPxPerTick: Float,
 ) {
     /**
      * Key (`items(..., key = ...)`) of the row under the finger, or null when
@@ -83,14 +113,20 @@ class ReorderState(
     private val draggingItem: LazyListItemInfo?
         get() = draggingKey?.let { key -> itemAt(key) }
 
+    private var onMove: ((Int, Int) -> Unit)? = null
+    private var scrollJob: Job? = null
+
     /**
      * @param y where the long press landed, in pixels from the top of the list.
      * @param count how many rows from the top are reorderable.
+     * @param onMove called with (from, to) whenever the drag — by finger or by
+     *   auto-scroll — carries the dragged row's middle into a neighbour.
      * @return the index picked up, or null if the press was not on a draggable row.
      */
     fun start(
         y: Float,
         count: Int,
+        onMove: (Int, Int) -> Unit,
     ): Int? {
         val picked =
             listState.layoutInfo.visibleItemsInfo.firstOrNull { item ->
@@ -101,20 +137,66 @@ class ReorderState(
         initialOffset = picked.offset
         accumulated = 0f
         limit = count
+        this.onMove = onMove
+        scrollJob = scope.launch { autoScroll() }
         return picked.index
     }
 
     /**
      * Moves by [dy] and, when the dragged row's middle has crossed into a
-     * neighbour, reports the swap through [onMove]. Middle rather than edge: the
-     * row only takes a place once it is more than half into it, which is what
-     * stops a slow drag from oscillating between two positions.
+     * neighbour, reports the swap. Middle rather than edge: the row only takes
+     * a place once it is more than half into it, which is what stops a slow
+     * drag from oscillating between two positions.
      */
-    fun drag(
-        dy: Float,
-        onMove: (Int, Int) -> Unit,
-    ) {
+    fun drag(dy: Float) {
         accumulated += dy
+        checkForSwap()
+    }
+
+    fun stop() {
+        scrollJob?.cancel()
+        scrollJob = null
+        onMove = null
+        draggingKey = null
+        accumulated = 0f
+        initialOffset = 0
+    }
+
+    /**
+     * Runs for the whole drag, not just while [drag] is called — a finger
+     * parked at the edge with no further movement still has to keep the list
+     * coming (#45), which nothing driven off pointer events would do on its
+     * own. `delay` rather than a frame clock: this scope has no composition
+     * attached to guarantee one is in its context, and a fixed tick is close
+     * enough for a scroll a finger is watching, not timing.
+     */
+    private suspend fun autoScroll() {
+        while (true) {
+            delay(SCROLL_TICK_MILLIS)
+            scrollTick()
+        }
+    }
+
+    /** One frame of [autoScroll] — its own function so the loop above has a
+     *  single exit path rather than a `continue` per early-out. */
+    private suspend fun scrollTick() {
+        val current = draggingItem ?: return
+        val top = current.offset + draggingOffset
+        val layout = listState.layoutInfo
+        val delta =
+            edgeScrollDelta(
+                item = top..(top + current.size),
+                viewport = layout.viewportStartOffset..layout.viewportEndOffset,
+                edge = edgePx,
+                maxSpeed = maxScrollPxPerTick,
+            )
+        if (delta == 0f) return
+        listState.scrollBy(delta)
+        checkForSwap()
+    }
+
+    private fun checkForSwap() {
+        val onMove = onMove ?: return
         val current = draggingItem ?: return
         val top = current.offset + draggingOffset
         val middle = top + current.size / 2f
@@ -132,12 +214,10 @@ class ReorderState(
         // changed, only its index has, and the next read resolves that fresh.
     }
 
-    fun stop() {
-        draggingKey = null
-        accumulated = 0f
-        initialOffset = 0
-    }
-
     private fun itemAt(key: Any): LazyListItemInfo? =
         listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == key }
+
+    private companion object {
+        const val SCROLL_TICK_MILLIS = 16L
+    }
 }
