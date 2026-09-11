@@ -32,7 +32,7 @@ export default defineConfig({
           // real sends are stubbed at `fetch` (see magic-link.test.ts).
           BREVO_API_KEY: "test-brevo-key-not-used-anywhere-real",
           EMAIL_FROM: "dielys@dielys.test",
-          EMAIL_FROM_NAME: "Dielys",
+          EMAIL_FROM_NAME: "Die Lys",
           ANDROID_CERT_SHA256_FINGERPRINTS: "",
         },
       },

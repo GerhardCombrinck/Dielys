@@ -377,7 +377,7 @@ function androidAssetLinks(env: Env): unknown[] {
  * string is only useful to the app's own `/auth/magic/verify` call.
  */
 function magicLinkFallbackPage(): Response {
-  return htmlPage("<p>Open this link on your phone with Dielys installed.</p>");
+  return htmlPage("<p>Open this link on your phone with Die Lys installed.</p>");
 }
 
 /**
@@ -388,12 +388,12 @@ function magicLinkFallbackPage(): Response {
  * page to do with it — only the app's own `JoinDialog`/accept flow redeems it.
  */
 function inviteLinkFallbackPage(): Response {
-  return htmlPage("<p>Open this link on your phone with Dielys installed to join the list.</p>");
+  return htmlPage("<p>Open this link on your phone with Die Lys installed to join the list.</p>");
 }
 
 function htmlPage(body: string): Response {
   return new Response(
-    `<!doctype html><html><head><meta charset="utf-8"><title>Dielys</title></head>` +
+    `<!doctype html><html><head><meta charset="utf-8"><title>Die Lys</title></head>` +
       `<body>${body}</body></html>`,
     { status: 200, headers: { "content-type": "text/html; charset=utf-8" } },
   );

@@ -3,7 +3,7 @@ ADMIN_TOKEN=replace-with-a-long-random-value
 FCM_SERVICE_ACCOUNT_JSON={"type":"service_account","...":"paste the full FCM service account JSON here, single line"}
 BREVO_API_KEY=replace-with-your-brevo-transactional-api-key
 EMAIL_FROM=dielys@example.com
-EMAIL_FROM_NAME=Dielys
+EMAIL_FROM_NAME=Die Lys
 # SHA-256 fingerprint(s) of the Android signing cert, comma-separated. Get one with:
 #   keytool -list -v -keystore your.keystore | grep SHA256
 ANDROID_CERT_SHA256_FINGERPRINTS=AA:BB:...

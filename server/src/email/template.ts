@@ -48,7 +48,7 @@ export function renderEmailHtml(content: EmailContent): string {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dielys</title>
+    <title>Die Lys</title>
   </head>
   <body style="margin:0;padding:0;background:${BACKGROUND};font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BACKGROUND};padding:32px 16px;">
@@ -57,7 +57,7 @@ export function renderEmailHtml(content: EmailContent): string {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border:1px solid ${BORDER};border-radius:12px;overflow:hidden;">
             <tr>
               <td style="padding:28px 32px 4px;">
-                <span style="font-size:15px;font-weight:700;color:${ACCENT};letter-spacing:0.02em;">Dielys</span>
+                <span style="font-size:15px;font-weight:700;color:${ACCENT};letter-spacing:0.02em;">Die Lys</span>
               </td>
             </tr>
             <tr>

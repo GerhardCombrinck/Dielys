@@ -32,7 +32,8 @@ export function parseEmailSender(
   rawName: string | undefined,
 ): EmailSender | null {
   if (typeof rawFrom !== "string" || rawFrom.trim().length === 0) return null;
-  const name = typeof rawName === "string" && rawName.trim().length > 0 ? rawName.trim() : "Dielys";
+  const name =
+    typeof rawName === "string" && rawName.trim().length > 0 ? rawName.trim() : "Die Lys";
   return { email: rawFrom.trim(), name };
 }
 
@@ -66,10 +67,10 @@ export async function sendMagicLinkEmail(
       body: JSON.stringify({
         sender: { email: sender.email, name: sender.name },
         to: [{ email: to }],
-        subject: "Sign in to Dielys",
-        textContent: `Tap this link on your phone to sign in to Dielys:\n\n${link}\n\nIt expires in ${ttlMinutes} minutes and works once. If you did not request this, ignore this email.`,
+        subject: "Sign in to Die Lys",
+        textContent: `Tap this link on your phone to sign in to Die Lys:\n\n${link}\n\nIt expires in ${ttlMinutes} minutes and works once. If you did not request this, ignore this email.`,
         htmlContent: renderEmailHtml({
-          heading: "Sign in to Dielys",
+          heading: "Sign in to Die Lys",
           bodyHtml: `<p style="margin:0 0 8px;">Tap the button below on your phone to sign in.</p>`,
           buttonText: "Sign in",
           buttonUrl: link,
@@ -122,11 +123,11 @@ export async function sendInviteEmail(
       body: JSON.stringify({
         sender: { email: sender.email, name: sender.name },
         to: [{ email: to }],
-        subject: `You've been invited to "${listTitle}" on Dielys`,
-        textContent: `You've been invited to join "${listTitle}" on Dielys:\n\n${link}\n\nIt expires in ${ttlDays} days and only ${to} can accept it. If you did not expect this, ignore this email.`,
+        subject: `You've been invited to "${listTitle}" on Die Lys`,
+        textContent: `You've been invited to join "${listTitle}" on Die Lys:\n\n${link}\n\nIt expires in ${ttlDays} days and only ${to} can accept it. If you did not expect this, ignore this email.`,
         htmlContent: renderEmailHtml({
           heading: "You've been invited to a list",
-          bodyHtml: `<p style="margin:0 0 8px;">You've been invited to join <strong>${safeTitle}</strong> on Dielys.</p>`,
+          bodyHtml: `<p style="margin:0 0 8px;">You've been invited to join <strong>${safeTitle}</strong> on Die Lys.</p>`,
           buttonText: "Join the list",
           buttonUrl: link,
           footerNote: `This invite expires in ${ttlDays} days and only ${escapeHtml(to)} can accept it. If you did not expect this, you can ignore this email.`,
