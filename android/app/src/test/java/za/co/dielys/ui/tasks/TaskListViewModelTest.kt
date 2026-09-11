@@ -53,7 +53,8 @@ class TaskListViewModelTest {
                     expanded: Boolean,
                 ) = Unit
             }
-        viewModel = TaskListViewModel(phone.repo, phone.clock, doneSection, placement)
+        viewModel =
+            TaskListViewModel(phone.repo, phone.accents, phone.clock, doneSection, placement)
     }
 
     @After

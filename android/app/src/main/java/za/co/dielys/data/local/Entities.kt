@@ -51,6 +51,26 @@ data class ListEntity(
     val isShared: Boolean get() = memberCount > 1
 }
 
+/**
+ * What colour a list's dot is, on this phone only (#57).
+ *
+ * Its own table rather than a column on [ListEntity], for two reasons. The
+ * `lists` row is a replica the server owns and `ListDao.upsert` replaces it
+ * whole, so a colour held there would be wiped by the next change that arrived
+ * for that list. And the colour is deliberately **not** shared: the other
+ * person on a shared list picks their own, so it is not in `protocol/` and
+ * never reaches the outbox. A separate table says both of those out loud.
+ *
+ * [accent] is an index into the palette (`ui/theme/ListAccent.kt`), not an ARGB
+ * value — the palette can be retuned for legibility without rewriting every
+ * row, and the picker can still tell which swatch is the current one.
+ */
+@Entity(tableName = "list_accent")
+data class ListAccentEntity(
+    @PrimaryKey @ColumnInfo(name = "list_id") val listId: String,
+    @ColumnInfo(name = "accent") val accent: Int,
+)
+
 @Entity(
     tableName = "tasks",
     indices = [Index(value = ["list_id", "position", "id"])],

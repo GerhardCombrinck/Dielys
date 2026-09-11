@@ -60,6 +60,9 @@
     <string name="lists_tagline">Yi veke enxaxamelweni</string>
     <string name="new_list_label">Nxaxamelo lowuntshwa</string>
     <string name="rename_list_title">Cinca vito ra nxaxamelo</string>
+    <string name="action_colour">Muhlovo</string>
+    <string name="colour_list_title">Muhlovo wa nxaxamelo</string>
+    <string name="colour_option">Muhlovo %1$d</string>
     <string name="not_synced_yet">A wu si hlanganisiwa</string>
     <string name="untitled_list">Nxaxamelo lowu nga riki na nhlokomhaka</string>
     <string name="empty_lists_title">A ku na minxaxamelo sweswi</string>

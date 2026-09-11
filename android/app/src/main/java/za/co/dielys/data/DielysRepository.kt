@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import za.co.dielys.data.local.DeviceIdentity
 import za.co.dielys.data.local.DielysDatabase
+import za.co.dielys.data.local.ListAccentEntity
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.local.ListItemCount
 import za.co.dielys.data.local.OutboxEntity
@@ -38,6 +39,7 @@ class DielysRepository
     @Inject
     constructor(
         private val db: DielysDatabase,
+        private val accents: ListAccents,
         private val outbox: OutboxFactory,
         private val session: DeviceIdentity,
         private val scheduler: SyncScheduler,
@@ -66,9 +68,17 @@ class DielysRepository
             val id = Uuid7.generate(clock.nowMillis())
             val deviceId = session.deviceId
             val patch = ListPatch(title = title)
+            // Coloured in the same transaction as the row itself, so the list is
+            // already wearing its own colour the first time it is drawn. The
+            // collector in [ListAccents] would get to it a frame or two later,
+            // which is a visible change of colour on the screen you just used.
+            val accent = accents.next()
 
             commit(
-                entity = { db.lists().upsert(ListEntity(id = id, title = title)) },
+                entity = {
+                    db.lists().upsert(ListEntity(id = id, title = title))
+                    db.listAccents().assignIfUnset(ListAccentEntity(id, accent))
+                },
                 rows =
                     listOf(
                         outbox.claim(id),

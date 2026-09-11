@@ -64,6 +64,9 @@
     <string name="lists_tagline">Sit dit op die lys</string>
     <string name="new_list_label">Nuwe lys</string>
     <string name="rename_list_title">Hernoem lys</string>
+    <string name="action_colour">Kleur</string>
+    <string name="colour_list_title">Lyskleur</string>
+    <string name="colour_option">Kleur %1$d</string>
     <string name="not_synced_yet">Nog nie gesinkroniseer nie</string>
     <string name="untitled_list">Naamlose lys</string>
     <string name="empty_lists_title">Nog geen lyste nie</string>

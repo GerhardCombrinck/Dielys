@@ -20,6 +20,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 @Database(
     entities = [
         ListEntity::class,
+        ListAccentEntity::class,
         TaskEntity::class,
         OutboxEntity::class,
         SyncStateEntity::class,
@@ -30,6 +31,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 abstract class DielysDatabase : RoomDatabase() {
     abstract fun lists(): ListDao
 
+    abstract fun listAccents(): ListAccentDao
+
     abstract fun tasks(): TaskDao
 
     abstract fun outbox(): OutboxDao
@@ -37,7 +40,7 @@ abstract class DielysDatabase : RoomDatabase() {
     abstract fun syncState(): SyncStateDao
 
     companion object {
-        const val VERSION = 3
+        const val VERSION = 4
         const val NAME = "dielys.db"
 
         /**
@@ -66,6 +69,27 @@ abstract class DielysDatabase : RoomDatabase() {
                 }
             }
 
-        val MIGRATIONS = arrayOf<Migration>(MIGRATION_1_2, MIGRATION_2_3)
+        /**
+         * 3 → 4: a colour per list (#57), in its own table because it is local to
+         * this phone and the `lists` row is a server replica that gets replaced
+         * whole — see [ListAccentEntity].
+         *
+         * Nothing is backfilled here. Every existing list simply has no colour
+         * yet, which the UI renders exactly as it did before (the hashed
+         * fallback in `ui/theme/ListAccent.kt`), and `ListAccents` gives them
+         * real, non-clashing ones the first time the app runs.
+         */
+        private val MIGRATION_3_4 =
+            object : Migration(3, 4) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `list_accent` " +
+                            "(`list_id` TEXT NOT NULL, `accent` INTEGER NOT NULL, " +
+                            "PRIMARY KEY(`list_id`))",
+                    )
+                }
+            }
+
+        val MIGRATIONS = arrayOf<Migration>(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
     }
 }

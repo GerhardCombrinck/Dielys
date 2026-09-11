@@ -99,6 +99,7 @@ import za.co.dielys.ui.reorder.ReorderState
 import za.co.dielys.ui.reorder.draftStillWanted
 import za.co.dielys.ui.reorder.moved
 import za.co.dielys.ui.theme.PillShape
+import za.co.dielys.ui.theme.accentColor
 import za.co.dielys.ui.theme.listAccent
 import kotlin.math.PI
 import kotlin.math.cos
@@ -187,8 +188,20 @@ fun TaskListScreen(
     }
 
     // The header wears the same colour as this list's dot on the Lists screen,
-    // so opening a list is visibly the same list you tapped.
-    val accent = listAccent(listId)
+    // so opening a list is visibly the same list you tapped — and so do the
+    // stars and tick boxes below it, which is what makes a glance at the screen
+    // say *which* list without reading the title (#57).
+    //
+    // The stored colour once it is this list's; the hashed fallback while the
+    // answer on hand is still the previous list's, or while a list that just
+    // arrived has not been given one.
+    val storedAccent by viewModel.accent.collectAsStateWithLifecycle()
+    val accent =
+        storedAccent
+            ?.takeIf { it.listId == listId }
+            ?.index
+            ?.let(::accentColor)
+            ?: listAccent(listId)
 
     Scaffold(
         modifier = modifier,
@@ -248,6 +261,7 @@ fun TaskListScreen(
                 Tasks(
                     active = active,
                     done = board.done,
+                    accent = accent,
                     draggingId = draggingId,
                     highlightedId = highlighted,
                     ghostText = ghostText,
@@ -390,6 +404,7 @@ private fun rememberGhostRowState(
 private fun Tasks(
     active: List<TaskEntity>,
     done: List<TaskEntity>,
+    accent: Color,
     draggingId: String?,
     highlightedId: String?,
     ghostText: String?,
@@ -474,6 +489,7 @@ private fun Tasks(
             val lift by animateFloatAsState(if (dragging) 1f else 0f, label = "drag-lift")
             TaskRow(
                 task = task,
+                accent = accent,
                 dragging = dragging,
                 highlighted = task.id == highlightedId,
                 onToggle = { toggleHoldingScroll(task.id, it) },
@@ -520,6 +536,7 @@ private fun Tasks(
                 items(done, key = { it.id }) { task ->
                     TaskRow(
                         task = task,
+                        accent = accent,
                         modifier = Modifier.animateItem(),
                         onToggle = { toggleHoldingScroll(task.id, it) },
                         onStar = { onStar(task.id, !task.starred) },
@@ -615,6 +632,7 @@ private fun GhostRow(
 @Composable
 private fun TaskRow(
     task: TaskEntity,
+    accent: Color,
     onToggle: (Boolean) -> Unit,
     onStar: () -> Unit,
     onRename: () -> Unit,
@@ -646,7 +664,9 @@ private fun TaskRow(
     // this is the same composition travelling, not a new row appearing.
     val glow = remember { Animatable(0f) }
     var wasStarred by remember { mutableStateOf(task.starred) }
-    val glowColor = MaterialTheme.colorScheme.secondary
+    // The list's colour rather than the app's amber, so the light that follows
+    // the row up is the same colour as the star that sent it there (#57).
+    val glowColor = accent
     LaunchedEffect(task.starred) {
         if (task.starred && !wasStarred) {
             glow.snapTo(1f)
@@ -713,6 +733,7 @@ private fun TaskRow(
         ) {
             TaskCheckbox(
                 checked = task.done,
+                accent = accent,
                 onCheckedChange = onToggle,
                 modifier = Modifier.padding(start = 2.dp),
             )
@@ -741,13 +762,15 @@ private fun TaskRow(
                     // the star is the same size whichever way it is toggled — the
                     // filled one just also fills that path, rather than switching
                     // to a stock star icon's own, differently-sized geometry.
+                    // In the list's own colour (#57), which also fixes a star
+                    // that was white on a white card in the light theme.
                     StarGlyph(
                         filled = task.starred,
                         tint =
                             if (task.starred) {
-                                Color.White
+                                accent
                             } else {
-                                Color.White.copy(alpha = STAR_OUTLINE_ALPHA)
+                                accent.copy(alpha = STAR_OUTLINE_ALPHA)
                             },
                         contentDescription =
                             if (task.starred) {
@@ -841,18 +864,21 @@ private fun starPath(
  * for it, and the stock [androidx.compose.material3.Checkbox]'s color slots do
  * not cleanly express a checked state that is quieter than an unchecked one.
  *
- * Checked is drawn like the unstarred star: outline only, white, half alpha. A
- * filled box would be the loudest thing in the Done section, which is the
- * opposite of what being done should look like.
+ * Checked is drawn like the unstarred star: outline only, in the list's own
+ * colour at half alpha (#57). A filled box would be the loudest thing in the
+ * Done section, which is the opposite of what being done should look like.
  */
 @Composable
 private fun TaskCheckbox(
     checked: Boolean,
+    accent: Color,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val borderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-    val doneColor = Color.White.copy(alpha = STAR_OUTLINE_ALPHA)
+    // Both states in the list's colour, and the ticked one quieter — the same
+    // hierarchy as before, now saying which list it belongs to as well.
+    val borderColor = accent
+    val doneColor = accent.copy(alpha = STAR_OUTLINE_ALPHA)
 
     // The tap target is the 48dp box Material asks for; the 20dp square inside is
     // only what it looks like. Ticking things off is done one-handed in a shop,

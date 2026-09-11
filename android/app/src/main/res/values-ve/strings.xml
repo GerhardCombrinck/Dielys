@@ -60,6 +60,9 @@
     <string name="lists_tagline">I vhee kha mutevhe</string>
     <string name="new_list_label">Mutevhe muswa</string>
     <string name="rename_list_title">Shandukisa dzina la mutevhe</string>
+    <string name="action_colour">Muvhala</string>
+    <string name="colour_list_title">Muvhala wa mutevhe</string>
+    <string name="colour_option">Muvhala %1$d</string>
     <string name="not_synced_yet">A tho ngo tanganyiswa</string>
     <string name="untitled_list">Mutevhe u si na thoho</string>
     <string name="empty_lists_title">A hu na mitevhe zwino</string>

@@ -2,6 +2,7 @@ package za.co.dielys.data.local
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -109,6 +110,45 @@ class MigrationTest {
             // Nobody has told this row otherwise yet, so it reads as solo — the
             // next membership sync corrects it if that turns out to be wrong.
             assertEquals(1, list?.memberCount)
+            db.close()
+        }
+
+    @Test
+    fun `3 to 4 keeps every list, and leaves them with no colour to be assigned`() =
+        runTest {
+            val file = File(context.cacheDir, "migration-test-3-4.db")
+            file.delete()
+
+            createSchema(file, version = 3)
+
+            openAtVersion1(file).use { old ->
+                old.execSQL(
+                    """
+                    INSERT INTO lists
+                      (id, title, background_photo_url, deleted_at, updated_at, role,
+                       position, member_count)
+                    VALUES ('list-1', 'Inkopies', NULL, NULL, '2026-09-01T06:00:00.000Z',
+                            'owner', 'a0', 2)
+                    """.trimIndent(),
+                )
+            }
+
+            val db =
+                Room
+                    .databaseBuilder(context, DielysDatabase::class.java, file.absolutePath)
+                    .addMigrations(*DielysDatabase.MIGRATIONS)
+                    .build()
+
+            val list = db.lists().find("list-1")
+            assertEquals("Inkopies", list?.title)
+            assertEquals("a0", list?.position)
+            assertEquals(2, list?.memberCount)
+
+            // Nothing is backfilled by the migration itself: the list comes out
+            // the other side uncoloured, which is what puts it in front of
+            // ListAccents on the next launch. Until then the screen draws the
+            // hashed fallback, so it looks exactly as it did before the upgrade.
+            assertEquals(listOf("list-1"), db.listAccents().observeUnassigned().first())
             db.close()
         }
 

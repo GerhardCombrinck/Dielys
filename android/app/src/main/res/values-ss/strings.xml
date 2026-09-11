@@ -60,6 +60,9 @@
     <string name="lists_tagline">Kufake eluhlwini</string>
     <string name="new_list_label">Luhlu lolusha</string>
     <string name="rename_list_title">Shintja ligama leluhlu</string>
+    <string name="action_colour">Umbala</string>
+    <string name="colour_list_title">Umbala weluhlu</string>
+    <string name="colour_option">Umbala %1$d</string>
     <string name="not_synced_yet">Akukavumelaniswa</string>
     <string name="untitled_list">Luhlu lolungenasihloko</string>
     <string name="empty_lists_title">Kute tinhlu njengamanje</string>

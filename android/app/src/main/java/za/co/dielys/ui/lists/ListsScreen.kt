@@ -63,6 +63,7 @@ import za.co.dielys.ui.reorder.ReorderState
 import za.co.dielys.ui.reorder.draftStillWanted
 import za.co.dielys.ui.reorder.moved
 import za.co.dielys.ui.theme.PillShape
+import za.co.dielys.ui.theme.accentColor
 import za.co.dielys.ui.theme.listAccent
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,6 +82,7 @@ fun ListsScreen(
     val invite by viewModel.invite.collectAsStateWithLifecycle()
     var creating by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<ListEntity?>(null) }
+    var colouring by remember { mutableStateOf<String?>(null) }
 
     // The order a drag is producing, held here until Room agrees with it — the
     // same two-answers-for-a-moment problem the task list has, solved the same way.
@@ -158,6 +160,7 @@ fun ListsScreen(
                     },
                     onOpen = onOpen,
                     onRename = { renaming = it },
+                    onColour = { colouring = it.id },
                     onShare = viewModel::invite,
                     onDelete = viewModel::delete,
                     modifier = Modifier.weight(1f),
@@ -192,6 +195,16 @@ fun ListsScreen(
         )
     }
 
+    // Read back out of [rows] rather than captured when the menu was tapped, so
+    // the ring follows each pick while the dialog is still open.
+    colouring?.let { listId ->
+        AccentPicker(
+            selected = rows.firstOrNull { it.list.id == listId }?.accent,
+            onPick = { viewModel.setAccent(listId, it) },
+            onDismiss = { colouring = null },
+        )
+    }
+
     invite?.let { state ->
         InviteDialog(
             state = state,
@@ -216,6 +229,7 @@ private fun Lists(
     onDragCancel: () -> Unit,
     onOpen: (String) -> Unit,
     onRename: (ListEntity) -> Unit,
+    onColour: (ListEntity) -> Unit,
     onShare: (ListEntity) -> Unit,
     onDelete: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -272,9 +286,14 @@ private fun Lists(
             val lift by animateFloatAsState(if (dragging) 1f else 0f, label = "list-drag-lift")
             ListRow(
                 row = row,
-                dotColor = listAccent(row.list.id),
+                // The stored colour when there is one; a list that arrived
+                // moments ago and has not been given one yet wears the hashed
+                // fallback rather than nothing (#57).
+                dotColor =
+                    row.accent?.let(::accentColor) ?: listAccent(row.list.id),
                 onOpen = { onOpen(row.list.id) },
                 onRename = { onRename(row.list) },
+                onColour = { onColour(row.list) },
                 onShare = { onShare(row.list) },
                 onDelete = { onDelete(row.list.id) },
                 dragging = dragging,
@@ -320,6 +339,7 @@ private fun ListRow(
     dotColor: Color,
     onOpen: () -> Unit,
     onRename: () -> Unit,
+    onColour: () -> Unit,
     onShare: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -388,6 +408,16 @@ private fun ListRow(
                     onClick = {
                         menuOpen = false
                         onRename()
+                    },
+                )
+                // Offered on every list, owned or not: the colour is this
+                // phone's own way of telling its lists apart (#57), so it is
+                // not a thing the owner of a shared list gets to decide.
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.action_colour)) },
+                    onClick = {
+                        menuOpen = false
+                        onColour()
                     },
                 )
                 // L3: only the owner may invite, so a list somebody else shared

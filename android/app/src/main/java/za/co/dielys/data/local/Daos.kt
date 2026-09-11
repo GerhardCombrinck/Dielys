@@ -85,6 +85,63 @@ interface ListDao {
     )
 }
 
+/** How many live lists wear one palette index. See [ListAccentDao.usage]. */
+data class AccentUsage(
+    val accent: Int,
+    val count: Int,
+)
+
+/**
+ * The per-list colour (#57). Local to this phone: nothing here ever produces an
+ * outbox row, and no query joins the changelog.
+ */
+@Dao
+interface ListAccentDao {
+    @Query("SELECT * FROM list_accent")
+    fun observeAll(): Flow<List<ListAccentEntity>>
+
+    @Query("SELECT accent FROM list_accent WHERE list_id = :listId")
+    fun observe(listId: String): Flow<Int?>
+
+    /**
+     * Live lists that have no colour yet — a list joined by invite, or one that
+     * predates the feature. Watched rather than read once, so whatever writes
+     * the `lists` row does not also have to remember to colour it.
+     */
+    @Query(
+        """
+        SELECT lists.id FROM lists
+        LEFT JOIN list_accent ON list_accent.list_id = lists.id
+        WHERE lists.deleted_at IS NULL AND list_accent.list_id IS NULL
+        ORDER BY lists.id
+        """,
+    )
+    fun observeUnassigned(): Flow<List<String>>
+
+    /**
+     * Deleted lists are excluded on purpose: a tombstone holding onto a colour
+     * would push the next new list towards one already on screen, which is the
+     * duplicate this whole table exists to avoid.
+     */
+    @Query(
+        """
+        SELECT list_accent.accent AS accent, COUNT(*) AS count FROM list_accent
+        JOIN lists ON lists.id = list_accent.list_id
+        WHERE lists.deleted_at IS NULL
+        GROUP BY list_accent.accent
+        """,
+    )
+    suspend fun usage(): List<AccentUsage>
+
+    /** First writer wins — a colour already chosen is never quietly re-picked. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun assignIfUnset(row: ListAccentEntity)
+
+    /** The picker, which is the one place a colour may be overwritten. */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun set(row: ListAccentEntity)
+}
+
 @Dao
 interface TaskDao {
     /**

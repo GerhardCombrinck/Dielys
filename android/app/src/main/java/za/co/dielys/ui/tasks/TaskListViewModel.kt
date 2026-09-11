@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import za.co.dielys.data.DielysRepository
+import za.co.dielys.data.ListAccents
 import za.co.dielys.data.local.DoneSectionPrefs
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.local.NewTaskPlacement
@@ -33,6 +34,7 @@ import javax.inject.Inject
  * is later dragged somewhere else stays where it was dragged. Sorting by the flag
  * would make dragging a starred row pointless.
  */
+
 data class TaskBoard(
     val active: List<TaskEntity> = emptyList(),
     val done: List<TaskEntity> = emptyList(),
@@ -40,12 +42,21 @@ data class TaskBoard(
     val isEmpty: Boolean get() = active.isEmpty() && done.isEmpty()
 }
 
+/** One list's palette index (#57), or null while it has none — the screen falls
+ *  back to the hashed colour for those. [listId] is what tells this list's
+ *  answer from the previous one's; see [TaskListViewModel.accent]. */
+data class ListAccent(
+    val listId: String,
+    val index: Int?,
+)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class TaskListViewModel
     @Inject
     constructor(
         private val repo: DielysRepository,
+        private val accents: ListAccents,
         private val clock: Clock,
         private val doneSection: DoneSectionPrefs,
         placement: NewTaskPlacement,
@@ -59,6 +70,21 @@ class TaskListViewModel
 
         val list: StateFlow<ListEntity?> =
             listId.filterNotNull().flatMapLatest { repo.observeList(it) }.asState(null)
+
+        /**
+         * This list's colour (#57), tagged with the list it belongs to.
+         *
+         * Tagged for the same reason [list] is compared against the screen's own
+         * id: one retained ViewModel serves every list, so for a frame after
+         * opening a different one this still holds the previous list's answer —
+         * and a header that briefly wears the colour of the list you just left
+         * is exactly the confusion the colour exists to prevent.
+         */
+        val accent: StateFlow<ListAccent?> =
+            listId
+                .filterNotNull()
+                .flatMapLatest { id -> accents.observe(id).map { ListAccent(id, it) } }
+                .asState(null)
 
         val board: StateFlow<TaskBoard> =
             listId

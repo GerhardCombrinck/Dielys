@@ -60,6 +60,9 @@
     <string name="lists_tagline">Yifake eluhlwini</string>
     <string name="new_list_label">Uluhlu olutsha</string>
     <string name="rename_list_title">Tshintsha igama loluhlu</string>
+    <string name="action_colour">Umbala</string>
+    <string name="colour_list_title">Umbala woluhlu</string>
+    <string name="colour_option">Umbala %1$d</string>
     <string name="not_synced_yet">Ayikalungelelaniswa</string>
     <string name="untitled_list">Uluhlu olungenasihloko</string>
     <string name="empty_lists_title">Akukho zintlu okwangoku</string>

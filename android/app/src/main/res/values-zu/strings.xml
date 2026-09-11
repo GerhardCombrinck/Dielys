@@ -60,6 +60,9 @@
     <string name="lists_tagline">Kufake ohlwini</string>
     <string name="new_list_label">Uhlu olusha</string>
     <string name="rename_list_title">Shintsha igama lohlu</string>
+    <string name="action_colour">Umbala</string>
+    <string name="colour_list_title">Umbala wohlu</string>
+    <string name="colour_option">Umbala %1$d</string>
     <string name="not_synced_yet">Akukavumelaniswa</string>
     <string name="untitled_list">Uhlu olungenasihloko</string>
     <string name="empty_lists_title">Azikho izinhlu okwamanje</string>

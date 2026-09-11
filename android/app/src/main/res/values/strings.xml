@@ -72,6 +72,12 @@
     <string name="lists_tagline">Put it on the list</string>
     <string name="new_list_label">New list</string>
     <string name="rename_list_title">Rename list</string>
+    <!-- The list's colour (#57), local to this phone. `colour_option` names each
+         swatch for a screen reader; there is no palette of colour *names* to
+         translate, so it counts them instead. -->
+    <string name="action_colour">Colour</string>
+    <string name="colour_list_title">List colour</string>
+    <string name="colour_option">Colour %1$d</string>
     <string name="not_synced_yet">Not synced yet</string>
     <string name="untitled_list">Untitled list</string>
     <string name="empty_lists_title">No lists yet</string>

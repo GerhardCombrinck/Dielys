@@ -17,6 +17,7 @@ import za.co.dielys.R
 import za.co.dielys.data.DielysRepository
 import za.co.dielys.data.InviteResult
 import za.co.dielys.data.JoinResult
+import za.co.dielys.data.ListAccents
 import za.co.dielys.data.PendingInvite
 import za.co.dielys.data.SharingRepository
 import za.co.dielys.data.local.ListEntity
@@ -25,10 +26,17 @@ import za.co.dielys.domain.InviteLink
 import javax.inject.Inject
 
 /** A list row, with the item count the screen shows — joined from the tasks table
- * rather than carried on [ListEntity] itself, since nothing else needs it. */
+ * rather than carried on [ListEntity] itself, since nothing else needs it.
+ *
+ * [accent] is the palette index this phone picked for the list (#57), or null
+ * for a list that has not been given one yet; the screen falls back to the
+ * hashed colour for those rather than showing a blank dot for a frame. Kept as
+ * an index and not a `Color`, so this stays a data type the UI happens to read
+ * rather than one that imports Compose. */
 data class ListRow(
     val list: ListEntity,
     val itemCount: Int,
+    val accent: Int? = null,
 )
 
 /** The invite dialog, from the moment it opens to the moment the mail is sent. */
@@ -66,14 +74,19 @@ class ListsViewModel
     @Inject
     constructor(
         private val repo: DielysRepository,
+        private val accents: ListAccents,
         private val sharing: SharingRepository,
         private val invites: PendingInvite,
         private val strings: StringProvider,
     ) : ViewModel() {
         val lists: StateFlow<List<ListRow>> =
-            combine(repo.observeLists(), repo.observeItemCounts()) { lists, counts ->
+            combine(
+                repo.observeLists(),
+                repo.observeItemCounts(),
+                accents.observeAll(),
+            ) { lists, counts, accents ->
                 val byListId = counts.associate { it.listId to it.count }
-                lists.map { ListRow(it, byListId[it.id] ?: 0) }
+                lists.map { ListRow(it, byListId[it.id] ?: 0, accents[it.id]) }
             }.asState(emptyList())
 
         /** Edits made on this device that the server has not acknowledged yet. */
@@ -138,6 +151,18 @@ class ListsViewModel
 
         fun delete(listId: String) {
             viewModelScope.launch { repo.deleteList(listId) }
+        }
+
+        /**
+         * The colour picked off the list's options menu (#57). Stays on this
+         * phone — it is not a list mutation, so it never reaches the outbox and
+         * the other person on a shared list keeps whatever they chose.
+         */
+        fun setAccent(
+            listId: String,
+            accent: Int,
+        ) {
+            viewModelScope.launch { accents.set(listId, accent) }
         }
 
         /**

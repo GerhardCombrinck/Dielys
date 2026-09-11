@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
+import za.co.dielys.data.ListAccents
 import za.co.dielys.data.push.PushTokens
 import za.co.dielys.data.sync.ForegroundWatch
 import za.co.dielys.data.sync.SyncScheduler
@@ -34,6 +35,9 @@ class DielysApplication :
     @Inject
     lateinit var foreground: ForegroundWatch
 
+    @Inject
+    lateinit var accents: ListAccents
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
@@ -55,5 +59,8 @@ class DielysApplication :
         // above still works with it never connecting at all.
         registerActivityLifecycleCallbacks(foreground)
         sockets.start()
+        // A colour for any list that has none — every list at all on the first
+        // launch after the upgrade, and any that later arrive by invite (#57).
+        accents.start()
     }
 }

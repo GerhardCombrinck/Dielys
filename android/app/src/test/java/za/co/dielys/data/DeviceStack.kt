@@ -1,5 +1,7 @@
 package za.co.dielys.data
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import za.co.dielys.data.local.DeviceIdentity
 import za.co.dielys.data.local.DielysDatabase
 import za.co.dielys.data.local.PushTokenStore
@@ -27,9 +29,15 @@ class DeviceStack(
     val engine = SyncEngine(db, api, applier, push)
     val sharing = SharingRepository(api, scheduler)
     val invites = PendingInvite()
+
+    // Not started: the colour a list wears is not part of any sync scenario, so
+    // nothing here needs the collector running. The repository still asks it
+    // which colour a new list gets, and that is a plain query.
+    val accents = ListAccents(db, CoroutineScope(Dispatchers.Unconfined))
     val repo =
         DielysRepository(
             db = db,
+            accents = accents,
             outbox = OutboxFactory(clock),
             session = FixedDevice(deviceId),
             scheduler = scheduler,

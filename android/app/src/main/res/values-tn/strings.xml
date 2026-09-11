@@ -60,6 +60,9 @@
     <string name="lists_tagline">E baye lenaaneng</string>
     <string name="new_list_label">Lenaane le lešwa</string>
     <string name="rename_list_title">Fetola leina la lenaane</string>
+    <string name="action_colour">Mmala</string>
+    <string name="colour_list_title">Mmala wa lenaane</string>
+    <string name="colour_option">Mmala %1$d</string>
     <string name="not_synced_yet">Ga e ise e kopanngwe</string>
     <string name="untitled_list">Lenaane le le se nang setlhogo</string>
     <string name="empty_lists_title">Ga go na manaane gonne jaana</string>

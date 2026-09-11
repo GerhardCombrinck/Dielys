@@ -41,6 +41,7 @@ class ListsViewModelTest {
         viewModel =
             ListsViewModel(
                 phone.repo,
+                phone.accents,
                 phone.sharing,
                 phone.invites,
                 AndroidStringProvider(ApplicationProvider.getApplicationContext()),

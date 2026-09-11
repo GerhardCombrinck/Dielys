@@ -65,6 +65,9 @@
     <string name="lists_tagline">E bee lenaneong</string>
     <string name="new_list_label">Lenaneo le lefsa</string>
     <string name="rename_list_title">Fetola leina la lenaneo</string>
+    <string name="action_colour">Mmala</string>
+    <string name="colour_list_title">Mmala wa lenaneo</string>
+    <string name="colour_option">Mmala %1$d</string>
     <string name="not_synced_yet">Ga se ya kopanywa</string>
     <string name="untitled_list">Lenaneo le le se nago sehlogo</string>
     <string name="empty_lists_title">Ga go mananeo gabjale</string>
