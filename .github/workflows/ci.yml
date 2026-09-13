@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: '22', cache: 'npm', cache-dependency-path: protocol/package-lock.json }
       - run: npm ci
         working-directory: protocol
@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: '22', cache: 'npm', cache-dependency-path: server/package-lock.json }
       # ubuntu-latest (24.04) restricts unprivileged user namespaces by default,
       # which is what workerd needs for its sandbox. Without this, `npm test`

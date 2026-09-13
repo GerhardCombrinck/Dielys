@@ -11,7 +11,7 @@ jobs:
     environment: dev
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: '22', cache: 'npm', cache-dependency-path: server/package-lock.json }
       # See ci.yml: ubuntu-latest (24.04) restricts unprivileged user namespaces,
       # which workerd needs — without this, `npm test` hangs instead of failing.
@@ -36,7 +36,7 @@ jobs:
     environment: prod
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: '22', cache: 'npm', cache-dependency-path: server/package-lock.json }
       # See ci.yml: ubuntu-latest (24.04) restricts unprivileged user namespaces,
       # which workerd needs — without this, `npm test` hangs instead of failing.
