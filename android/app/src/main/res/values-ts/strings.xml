@@ -50,9 +50,9 @@
     </plurals>
     <string name="sync_up_to_date">Hinkwaswo swa fambisana.</string>
 
-    <string name="task_label">Ntirho</string>
     <string name="done_count">SWI ENDLIWILE (%1$d)</string>
     <string name="add_item_placeholder">Engetela nchumu</string>
+    <string name="edit_item_placeholder">Cinca nchumu</string>
     <string name="empty_list_title">A ku na nchumu eka nxaxamelo lowu</string>
     <string name="empty_list_subtitle">Tsala ehansi leswaku u engetela nchumu wo sungula.</string>
 

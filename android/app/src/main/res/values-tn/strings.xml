@@ -50,9 +50,9 @@
     </plurals>
     <string name="sync_up_to_date">Tsotlhe di a tsamaisana.</string>
 
-    <string name="task_label">Tiro</string>
     <string name="done_count">GO DIRILWE (%1$d)</string>
     <string name="add_item_placeholder">Oketsa selo</string>
+    <string name="edit_item_placeholder">Fetola selo</string>
     <string name="empty_list_title">Ga go na sepe mo lenaaneng le</string>
     <string name="empty_list_subtitle">Kwala fa tlase go oketsa selo sa ntlha.</string>
 

@@ -55,9 +55,9 @@
     </plurals>
     <string name="sync_up_to_date">Tšohle di a sepelelana.</string>
 
-    <string name="task_label">Mošomo</string>
     <string name="done_count">E DIRILWE (%1$d)</string>
     <string name="add_item_placeholder">Oketša selo</string>
+    <string name="edit_item_placeholder">Fetola selo</string>
     <string name="empty_list_title">Ga go selo lenaneong le</string>
     <string name="empty_list_subtitle">Ngwala ka fase go oketša selo sa mathomo.</string>
 

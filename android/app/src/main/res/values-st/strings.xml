@@ -50,9 +50,9 @@
     </plurals>
     <string name="sync_up_to_date">Tsohle di tsamaisana.</string>
 
-    <string name="task_label">Mosebetsi</string>
     <string name="done_count">E ENTSWE (%1$d)</string>
     <string name="add_item_placeholder">Eketsa ntho</string>
+    <string name="edit_item_placeholder">Fetola ntho</string>
     <string name="empty_list_title">Ha ho letho lenaneng lena</string>
     <string name="empty_list_subtitle">Ngola ka tlase ho eketsa ntho ya pele.</string>
 

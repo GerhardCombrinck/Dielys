@@ -50,9 +50,9 @@
     </plurals>
     <string name="sync_up_to_date">Yonke into ihlaziyiwe.</string>
 
-    <string name="task_label">Umsebenzi</string>
     <string name="done_count">KUGQIBILE (%1$d)</string>
     <string name="add_item_placeholder">Yongeza into</string>
+    <string name="edit_item_placeholder">Hlela into</string>
     <string name="empty_list_title">Akukho nto kolu luhlu</string>
     <string name="empty_list_subtitle">Chwetheza ngezantsi ukongeza into yokuqala.</string>
 

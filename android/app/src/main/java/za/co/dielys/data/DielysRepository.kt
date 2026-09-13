@@ -18,6 +18,7 @@ import za.co.dielys.domain.Position
 import za.co.dielys.domain.Timestamps
 import za.co.dielys.domain.Uuid7
 import za.co.dielys.domain.seedPositions
+import za.co.dielys.domain.spotUnderStarred
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -107,17 +108,23 @@ class DielysRepository
         }
 
         /**
-         * Prepends or appends among the *active* tasks, per [atTop] — a device
-         * setting (UiPrefs), not list data, so two phones on the same list can
-         * choose differently and this takes it as a plain argument rather than
-         * reading it itself.
+         * Puts the task at the top of the *active* tasks or the bottom, per
+         * [atTop] — a device setting (UiPrefs), not list data, so two phones on
+         * the same list can choose differently and this takes it as a plain
+         * argument rather than reading it itself.
+         *
+         * "The top" means under the starred rows, not above them (#62): a star
+         * says "this one first", and an item typed a moment later is not a
+         * reason to demote it. [spotUnderStarred] is where that is decided, and
+         * the screen asks it the same question so its placeholder row appears
+         * where the real one lands.
          *
          * Done tasks are ignored when finding the edge: they share the position
          * order but not the section, so a done task sitting at either end must
          * not become the new task's neighbour.
          *
-         * Prepending lengthens the key, unlike appending, which is the price:
-         * `between(null, first)` has to find room below an existing key rather
+         * Going in at the top lengthens the key, unlike appending, which is the
+         * price: `between` has to find room between two existing keys rather
          * than incrementing past the last one (F5.5).
          */
         suspend fun addTask(
@@ -129,7 +136,11 @@ class DielysRepository
             val active = db.tasks().inList(listId).filterNot { it.done }
             val position =
                 if (atTop) {
-                    Position.between(null, active.firstOrNull()?.position)
+                    val spot = spotUnderStarred(active) { it.starred }
+                    Position.between(
+                        active.getOrNull(spot - 1)?.position,
+                        active.getOrNull(spot)?.position,
+                    )
                 } else {
                     Position.between(active.lastOrNull()?.position, null)
                 }

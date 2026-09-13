@@ -50,9 +50,9 @@
     </plurals>
     <string name="sync_up_to_date">Konkhe kusesikhatsini.</string>
 
-    <string name="task_label">Umsebenti</string>
     <string name="done_count">KWENTIWE (%1$d)</string>
     <string name="add_item_placeholder">Ngeta intfo</string>
+    <string name="edit_item_placeholder">Hlela intfo</string>
     <string name="empty_list_title">Kute lutfo kulolu luhlu</string>
     <string name="empty_list_subtitle">Thayipha ngentasi kute ungete intfo yekucala.</string>
 

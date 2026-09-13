@@ -279,6 +279,126 @@ class TaskListViewModelTest {
             )
         }
 
+    /**
+     * Renaming is no longer a dialog but the add bar with a row loaded into it
+     * (#63), which makes this the path every edit now takes.
+     */
+    @Test
+    fun `renaming a task writes the new title and nothing else`() =
+        runTest(dispatcher) {
+            open()
+            val milk = phone.repo.addTask(listId, "Mlik")
+            val before = phone.db.tasks().find(milk)
+
+            viewModel.board.test {
+                assertTrue(awaitItem().isEmpty)
+                assertEquals(listOf("Mlik"), awaitItem().active.map { it.title })
+
+                viewModel.rename(milk, "  Milk  ")
+
+                assertEquals(listOf("Milk"), awaitItem().active.map { it.title })
+            }
+
+            val after = phone.db.tasks().find(milk)
+            assertEquals(before?.position, after?.position)
+            assertEquals(before?.starred, after?.starred)
+        }
+
+    /**
+     * What the bar leans on when the field is cleared and saved: an empty title
+     * is not a request for a nameless row (#63).
+     */
+    @Test
+    fun `renaming to nothing leaves the title alone`() =
+        runTest(dispatcher) {
+            open()
+            val milk = phone.repo.addTask(listId, "Milk")
+
+            viewModel.board.test {
+                assertTrue(awaitItem().isEmpty)
+                assertEquals(listOf("Milk"), awaitItem().active.map { it.title })
+
+                viewModel.rename(milk, "   ")
+
+                expectNoEvents()
+            }
+
+            assertEquals(
+                "Milk",
+                phone.db
+                    .tasks()
+                    .find(milk)
+                    ?.title,
+            )
+        }
+
+    /**
+     * #62. A star is the household saying "this one first"; the next thing
+     * typed is not a reason to demote it.
+     */
+    @Test
+    fun `a new item goes in under the starred ones, not above them`() =
+        runTest(dispatcher) {
+            open()
+            phone.repo.addTask(listId, "Milk")
+            val bread = phone.repo.addTask(listId, "Bread")
+            phone.repo.setStarred(bread, true)
+
+            phone.repo.addTask(listId, "Jam")
+
+            assertEquals(
+                listOf("Bread", "Jam", "Milk"),
+                phone.db
+                    .tasks()
+                    .inList(listId)
+                    .map { it.title },
+            )
+        }
+
+    /**
+     * Only the run of stars at the top counts. A starred row dragged down is
+     * somebody overruling the star, and the rows they put above it there must
+     * not be leapfrogged by the next thing typed (#62).
+     */
+    @Test
+    fun `a starred row dragged down does not drag new items past it`() =
+        runTest(dispatcher) {
+            open()
+            val milk = phone.repo.addTask(listId, "Milk")
+            val bread = phone.repo.addTask(listId, "Bread")
+            phone.repo.setStarred(bread, true)
+            // Bread is at the top; put it back under Milk by hand.
+            phone.repo.moveTask(bread, milk, null)
+
+            phone.repo.addTask(listId, "Jam")
+
+            assertEquals(
+                listOf("Jam", "Milk", "Bread"),
+                phone.db
+                    .tasks()
+                    .inList(listId)
+                    .map { it.title },
+            )
+        }
+
+    /** Nothing starred is the plain case this grew out of: straight to the top. */
+    @Test
+    fun `with nothing starred a new item is still first`() =
+        runTest(dispatcher) {
+            open()
+            phone.repo.addTask(listId, "Milk")
+
+            phone.repo.addTask(listId, "Bread")
+
+            assertEquals(
+                listOf("Bread", "Milk"),
+                phone.db
+                    .tasks()
+                    .inList(listId)
+                    .map { it.title },
+            )
+        }
+
     private suspend fun open() {
         listId = phone.repo.createList("Groceries")
         viewModel.open(listId)

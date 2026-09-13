@@ -50,9 +50,9 @@
     </plurals>
     <string name="sync_up_to_date">Zwothe zwo tanganyiswa.</string>
 
-    <string name="task_label">Mushumo</string>
     <string name="done_count">ZWO ITWA (%1$d)</string>
     <string name="add_item_placeholder">Engedzani tshithu</string>
+    <string name="edit_item_placeholder">Shandukisa tshithu</string>
     <string name="empty_list_title">A hu na tshithu kha ino mutevhe</string>
     <string name="empty_list_subtitle">Nwalani fhasi uri ni engedze tshithu tsha u thoma.</string>
 

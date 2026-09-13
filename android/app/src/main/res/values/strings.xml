@@ -59,9 +59,9 @@
     <string name="sync_up_to_date">Everything is up to date.</string>
 
     <!-- Task list. -->
-    <string name="task_label">Task</string>
     <string name="done_count">DONE (%1$d)</string>
     <string name="add_item_placeholder">Add an item</string>
+    <string name="edit_item_placeholder">Edit the item</string>
     <string name="empty_list_title">Nothing on this list</string>
     <string name="empty_list_subtitle">Type below to add the first thing.</string>
 

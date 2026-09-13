@@ -53,9 +53,9 @@
     <string name="sync_up_to_date">Alles is op datum.</string>
 
     <!-- Task list. -->
-    <string name="task_label">Taak</string>
     <string name="done_count">KLAAR (%1$d)</string>
     <string name="add_item_placeholder">Voeg \'n item by</string>
+    <string name="edit_item_placeholder">Wysig die item</string>
     <string name="empty_list_title">Niks op hierdie lys nie</string>
     <string name="empty_list_subtitle">Tik hieronder om die eerste ding by te voeg.</string>
 

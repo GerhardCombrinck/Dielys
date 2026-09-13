@@ -51,9 +51,9 @@
     </plurals>
     <string name="sync_up_to_date">Koke kusesikhathini.</string>
 
-    <string name="task_label">Umsebenzi</string>
     <string name="done_count">KWENZIWE (%1$d)</string>
     <string name="add_item_placeholder">Ngeza into</string>
+    <string name="edit_item_placeholder">Hlela into</string>
     <string name="empty_list_title">Akunalitho kirheli irhelo</string>
     <string name="empty_list_subtitle">Thayipha ngaphasi bona ungeze into yokuthoma.</string>
 

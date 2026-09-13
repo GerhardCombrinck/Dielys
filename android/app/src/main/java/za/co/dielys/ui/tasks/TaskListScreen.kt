@@ -1,5 +1,6 @@
 package za.co.dielys.ui.tasks
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -30,6 +31,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -40,6 +42,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
@@ -64,12 +67,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -83,8 +89,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -92,9 +100,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import za.co.dielys.R
 import za.co.dielys.data.local.TaskEntity
+import za.co.dielys.domain.spotUnderStarred
 import za.co.dielys.ui.SettingsButton
 import za.co.dielys.ui.SyncStatus
-import za.co.dielys.ui.TextPrompt
 import za.co.dielys.ui.lists.displayTitle
 import za.co.dielys.ui.reorder.ReorderState
 import za.co.dielys.ui.reorder.draftStillWanted
@@ -141,11 +149,18 @@ fun TaskListScreen(
     val stuck by viewModel.stuck.collectAsStateWithLifecycle()
     val newItemsOnTop by viewModel.newItemsOnTop.collectAsStateWithLifecycle()
 
-    var renaming by remember { mutableStateOf<TaskEntity?>(null) }
+    // The row being edited, if any. Editing happens in the add bar rather than
+    // in a dialog over the list (#63): it is the same question the bar already
+    // asks, so it gets the same controls — and the row itself greys out to a
+    // placeholder while its words are down there being changed.
+    var editing by remember { mutableStateOf<TaskEntity?>(null) }
 
     // The field's own text, lifted up here so the list above it can preview
-    // what is being typed before it is saved.
-    var draftText by remember { mutableStateOf("") }
+    // what is being typed before it is saved. A TextFieldValue rather than a
+    // String because opening an edit has to put the cursor at the end of the
+    // title — a plain String keeps the old selection, which is the start.
+    var draftText by remember { mutableStateOf(TextFieldValue()) }
+    val field = remember { FocusRequester() }
 
     // The id and text of an add already sent to the view model — reserved at
     // submit time, before Room has a row for it. Separate from [draftText],
@@ -157,12 +172,35 @@ fun TaskListScreen(
     // appearing next to the first (see ghostAtTop's item(key = ...) below).
     var pendingId by remember { mutableStateOf<String?>(null) }
     var pendingText by remember { mutableStateOf<String?>(null) }
-    val ghostText = pendingText ?: draftText.ifBlank { null }
+    // Nothing is being added while something is being edited: the field holds
+    // an existing row's words, and a placeholder for a new item would be a
+    // second copy of them somewhere else on the screen (#63).
+    val ghostText = if (editing != null) null else pendingText ?: draftText.text.ifBlank { null }
 
     // The order a drag is producing, before the write has come back through Room.
     var draft by remember { mutableStateOf<List<TaskEntity>?>(null) }
     var draggingId by remember { mutableStateOf<String?>(null) }
     val active = draft ?: board.active
+
+    // Straight to the keyboard, so tapping Edit is one gesture rather than two.
+    LaunchedEffect(editing?.id) {
+        if (editing != null) field.requestFocus()
+    }
+
+    // The other phone ticked it off, or deleted it, while it was open for
+    // editing here. There is nothing left to rename, so the bar goes back to
+    // adding rather than saving into a row that is gone (#63).
+    LaunchedEffect(board.active, editing) {
+        val id = editing?.id ?: return@LaunchedEffect
+        if (board.active.none { it.id == id }) editing = null
+    }
+
+    // Back gets out of an edit before it gets out of the list — the same thing
+    // Cancel does, and what the gesture means while a keyboard is up.
+    BackHandler(enabled = editing != null) {
+        editing = null
+        draftText = TextFieldValue()
+    }
 
     // Local to this phone — read once per list rather than watched, since
     // nothing else changes it while this screen is open.
@@ -248,16 +286,21 @@ fun TaskListScreen(
         bottomBar = {
             AddTaskBar(
                 value = draftText,
+                editing = editing != null,
+                field = field,
                 onValueChange = { draftText = it },
+                onCancel = {
+                    editing = null
+                    draftText = TextFieldValue()
+                },
                 onSubmit = {
-                    val trimmed = draftText.trim()
-                    draftText = ""
-                    if (trimmed.isNotEmpty()) {
-                        val id = viewModel.add(trimmed)
-                        if (id != null) {
-                            pendingId = id
-                            pendingText = trimmed
-                        }
+                    val trimmed = draftText.text.trim()
+                    val added = submitDraft(trimmed, editing, viewModel::add, viewModel::rename)
+                    draftText = TextFieldValue()
+                    editing = null
+                    if (added != null) {
+                        pendingId = added
+                        pendingText = trimmed
                     }
                 },
             )
@@ -275,7 +318,9 @@ fun TaskListScreen(
                     highlightedId = highlighted,
                     ghostText = ghostText,
                     ghostId = pendingId,
-                    ghostAtTop = newItemsOnTop,
+                    ghostIndex = ghostSlot(active, newItemsOnTop),
+                    editingId = editing?.id,
+                    editingText = draftText.text,
                     doneExpanded = doneExpanded,
                     onToggleDoneExpanded = {
                         doneExpanded = !doneExpanded
@@ -293,22 +338,39 @@ fun TaskListScreen(
                     },
                     onToggle = viewModel::setDone,
                     onStar = viewModel::setStarred,
-                    onRename = { renaming = it },
+                    onRename = { task ->
+                        editing = task
+                        draftText = TextFieldValue(task.title, TextRange(task.title.length))
+                    },
                     onDelete = viewModel::delete,
                 )
             }
         }
     }
+}
 
-    renaming?.let { task ->
-        TextPrompt(
-            title = stringResource(R.string.action_edit),
-            label = stringResource(R.string.task_label),
-            initial = task.title,
-            onDismiss = { renaming = null },
-            onConfirm = { viewModel.rename(task.id, it) },
-        )
+/**
+ * What the bottom bar's button does, which depends only on whether a row is open
+ * for editing (#63). Returns the id of a row that was *added*, which is the one
+ * outcome the screen has to follow — there is a placeholder on screen waiting to
+ * become it. A rename has nothing to wait for: the row is already there.
+ *
+ * Out here rather than inline so the screen's own branching stays under the
+ * complexity threshold.
+ */
+private fun submitDraft(
+    trimmed: String,
+    editing: TaskEntity?,
+    add: (String) -> String?,
+    rename: (String, String) -> Unit,
+): String? {
+    if (editing != null) {
+        // Emptying the field and saving is not a request for a nameless row: it
+        // leaves the title alone, the same as backing out of the edit.
+        if (trimmed.isNotEmpty()) rename(editing.id, trimmed)
+        return null
     }
+    return if (trimmed.isEmpty()) null else add(trimmed)
 }
 
 /**
@@ -374,10 +436,20 @@ private data class GhostRowState(
 )
 
 /**
- * The typed-but-not-yet-saved row: which `LazyColumn` key it renders under,
- * and whether it should show at all — plus the one-time scroll that brings it
- * into view when it first appears. Pulled out of [Tasks] to keep that
- * function's own branching under the complexity threshold.
+ * Which `LazyColumn` slot the placeholder row occupies among the active rows.
+ *
+ * The same question [za.co.dielys.domain.spotUnderStarred] answers for the
+ * write, asked here so what is being typed appears where it will end up (#62) —
+ * under the starred block when new items go on top, and at the end otherwise.
+ */
+private fun ghostSlot(
+    active: List<TaskEntity>,
+    onTop: Boolean,
+): Int = if (onTop) spotUnderStarred(active) { it.starred } else active.size
+
+/**
+ * The typed-but-not-yet-saved row: which `LazyColumn` key it renders under, and
+ * whether it should show at all.
  *
  * Keyed on `ghostId` once there is one, so the placeholder and the real row
  * Room eventually produces are the same `LazyColumn` item — the id carries
@@ -385,35 +457,69 @@ private data class GhostRowState(
  * Before a submit there is no id yet; a constant stands in for it, which
  * costs nothing since a ghost never collides with a real task's key.
  */
-@Composable
-private fun rememberGhostRowState(
+private fun ghostRowState(
     ghostText: String?,
     ghostId: String?,
-    ghostAtTop: Boolean,
     active: List<TaskEntity>,
-    listState: LazyListState,
-): GhostRowState {
-    val key = ghostId ?: GHOST_TYPING_KEY
-    val visible = ghostText != null && (ghostId == null || active.none { it.id == ghostId })
+): GhostRowState =
+    GhostRowState(
+        key = ghostId ?: GHOST_TYPING_KEY,
+        visible = ghostText != null && (ghostId == null || active.none { it.id == ghostId }),
+    )
 
-    // A new item lands wherever the setting says, so that is where the screen
-    // goes — as soon as there is something to show there, not once the write
-    // comes back. Keyed on whether there is a ghost at all, not the text
-    // itself, so typing further characters does not re-trigger the scroll.
-    LaunchedEffect(ghostText != null) {
-        if (ghostText == null) return@LaunchedEffect
-        val target = if (ghostAtTop) 0 else active.size
-        listState.animateScrollToItem(target)
-    }
-
-    return GhostRowState(key, visible)
+/**
+ * Puts the row being worked on where it can be worked on: a little under a
+ * third of the way down, so there is still a list above it and a list below it
+ * rather than a row pinned to the top edge with nothing to place it against.
+ *
+ * A fraction of the viewport rather than a row count, because rows are not a
+ * fixed height — two long ones can be most of the screen, and "third row down"
+ * would mean something different on every list. Nearer the top than the middle
+ * because the keyboard is about to take the bottom half.
+ *
+ * Short lists simply clamp: there is no scrolling a list of three rows so that
+ * the first of them sits a third of the way down, and nothing here pretends
+ * otherwise.
+ */
+private suspend fun LazyListState.scrollToWorkingRow(index: Int) {
+    settle()
+    val inset = (layoutInfo.viewportSize.height * WORKING_ROW_FRACTION).toInt()
+    // Negative, because a positive offset scrolls the row *up* past the top
+    // edge; this is asking for the opposite.
+    animateScrollToItem(index, -inset)
 }
 
-/** The two row taps that reorder the list, wrapped so each one also leaves the
- *  viewport somewhere sensible. See [rememberRowMoves]. */
-private class RowMoves(
+/**
+ * Waits for the list to stop being re-laid-out underneath, so the scroll that
+ * follows lands once instead of landing and then correcting itself — which is
+ * what read as the screen scrolling twice (#62).
+ *
+ * Two things move the moment work starts on a row. The keyboard rises, and the
+ * viewport shrinks a frame at a time as it does, so a distance measured before
+ * it settles is measured against a screen that no longer exists. And the
+ * placeholder row goes in, pushing its neighbours along under a scroll already
+ * in flight.
+ *
+ * [SETTLE_FRAME_LIMIT] is a ceiling rather than a target: whatever is still
+ * moving after that long is not a keyboard, and is not worth holding the scroll
+ * for.
+ */
+private suspend fun LazyListState.settle() {
+    var previous: Pair<Int, Int>? = null
+    repeat(SETTLE_FRAME_LIMIT) {
+        withFrameNanos { }
+        val now = layoutInfo.viewportSize.height to layoutInfo.totalItemsCount
+        if (now == previous) return
+        previous = now
+    }
+}
+
+/** What a row's controls do. See [rememberRowActions]. */
+private class RowActions(
     val toggle: (String, Boolean) -> Unit,
     val star: (TaskEntity) -> Unit,
+    val rename: (TaskEntity) -> Unit,
+    val delete: (String) -> Unit,
 )
 
 /**
@@ -425,15 +531,20 @@ private class RowMoves(
  * Both wait for the new order rather than acting on the tap: Room answers
  * several frames later, and until it does the list has not moved, so anything
  * sent at the tap acts on the old one.
+ *
+ * Renaming and deleting pass straight through — they move nothing, and they are
+ * bundled here only so a row takes one of these rather than four callbacks.
  */
 @Composable
-private fun rememberRowMoves(
+private fun rememberRowActions(
     active: List<TaskEntity>,
     done: List<TaskEntity>,
     listState: LazyListState,
     onToggle: (String, Boolean) -> Unit,
     onStar: (String, Boolean) -> Unit,
-): RowMoves {
+    onRename: (TaskEntity) -> Unit,
+    onDelete: (String) -> Unit,
+): RowActions {
     // #56: ticking the row pinned to the top sends that key down into the Done
     // section and the viewport follows it there. Put it back. Any other row
     // leaving does not move the anchor, which is what makes re-pinning to the
@@ -472,7 +583,9 @@ private fun rememberRowMoves(
         listState.requestScrollToItem(0)
     }
 
-    return RowMoves(
+    return RowActions(
+        rename = onRename,
+        delete = onDelete,
         toggle = { id, value ->
             repin = listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset
             onToggle(id, value)
@@ -497,7 +610,9 @@ private fun Tasks(
     highlightedId: String?,
     ghostText: String?,
     ghostId: String?,
-    ghostAtTop: Boolean,
+    ghostIndex: Int,
+    editingId: String?,
+    editingText: String,
     doneExpanded: Boolean,
     onToggleDoneExpanded: () -> Unit,
     onDragStart: (Int) -> Unit,
@@ -530,9 +645,27 @@ private fun Tasks(
             onCancel = rememberUpdatedState(onDragCancel),
         )
 
-    val ghost = rememberGhostRowState(ghostText, ghostId, ghostAtTop, active, listState)
+    val ghost = ghostRowState(ghostText, ghostId, active)
 
-    val moves = rememberRowMoves(active, done, listState, onToggle, onStar)
+    val actions =
+        rememberRowActions(active, done, listState, onToggle, onStar, onRename, onDelete)
+
+    // The one row being worked on: the one being typed into existence, or the
+    // one whose words are down in the bar (#63). Both want the same thing —
+    // to be somewhere it can be read while the keyboard is up — so both get it
+    // from the same place, once.
+    //
+    // Keyed on which row it is rather than on what it says, so the screen holds
+    // still while it is being typed into. The placeholder keeps its stand-in
+    // key across the submit as well, so saving does not scroll a second time on
+    // the way to the real row.
+    val working = editingId ?: GHOST_TYPING_KEY.takeIf { ghost.visible }
+    LaunchedEffect(working) {
+        if (working == null) return@LaunchedEffect
+        val index =
+            if (editingId != null) active.indexOfFirst { it.id == editingId } else ghostIndex
+        if (index >= 0) listState.scrollToWorkingRow(index)
+    }
 
     LazyColumn(
         state = listState,
@@ -548,53 +681,26 @@ private fun Tasks(
                 .padding(horizontal = 16.dp)
                 .taskDragGestures(reorder, count, callbacks),
     ) {
-        if (ghostAtTop && ghost.visible) {
-            item(key = ghost.key) {
-                GhostRow(text = ghostText ?: "", modifier = Modifier.animateItem())
-            }
-        }
-
-        items(active, key = { it.id }) { task ->
-            val dragging = task.id == draggingId
-            // Animated so the row eases back down on drop; the offset itself
-            // stays unanimated, because it has to track the finger exactly.
-            val lift by animateFloatAsState(if (dragging) 1f else 0f, label = "drag-lift")
-            TaskRow(
-                task = task,
+        // Split around the placeholder rather than bracketed by two of them: a
+        // new item goes in under the starred block, which can be anywhere from
+        // nowhere to the whole list (#62).
+        val chrome =
+            RowChrome(
                 accent = accent,
-                dragging = dragging,
-                highlighted = task.id == highlightedId,
-                onToggle = { moves.toggle(task.id, it) },
-                onStar = { moves.star(task) },
-                onRename = { onRename(task) },
-                onDelete = { onDelete(task.id) },
-                modifier =
-                    Modifier
-                        .zIndex(if (dragging) 1f else 0f)
-                        // Placement animation on every row but the dragged one:
-                        // that one is already being placed by the finger, and two
-                        // things moving it at once reads as lag. This is what makes
-                        // a starred task visibly travel to the top instead of
-                        // teleporting there.
-                        .then(if (dragging) Modifier else Modifier.animateItem())
-                        .graphicsLayer {
-                            translationY = if (dragging) reorder.draggingOffset else 0f
-                            // The whole row lifts as one card: shadowed and
-                            // slightly larger, rather than a ripple boxed around
-                            // the title. Square corners throughout — no shape or
-                            // clip here, so there is nothing for the lift to round.
-                            shadowElevation = lift * DRAG_ELEVATION
-                            scaleX = 1f + lift * DRAG_SCALE
-                            scaleY = 1f + lift * DRAG_SCALE
-                        },
+                draggingId = draggingId,
+                highlightedId = highlightedId,
+                editing = EditingRow(editingId, editingText),
+                actions = actions,
             )
-        }
+        taskRows(active.take(ghostIndex), chrome, reorder)
 
-        if (!ghostAtTop && ghost.visible) {
+        if (ghost.visible) {
             item(key = ghost.key) {
                 GhostRow(text = ghostText ?: "", modifier = Modifier.animateItem())
             }
         }
+
+        taskRows(active.drop(ghostIndex), chrome, reorder)
 
         if (done.isNotEmpty()) {
             item(key = "done-heading") {
@@ -610,14 +716,92 @@ private fun Tasks(
                         task = task,
                         accent = accent,
                         modifier = Modifier.animateItem(),
-                        onToggle = { moves.toggle(task.id, it) },
-                        onStar = { moves.star(task) },
-                        onRename = { onRename(task) },
-                        onDelete = { onDelete(task.id) },
+                        onToggle = { actions.toggle(task.id, it) },
+                        onStar = { actions.star(task) },
+                        onRename = { actions.rename(task) },
+                        onDelete = { actions.delete(task.id) },
                     )
                 }
             }
         }
+    }
+}
+
+/**
+ * Everything a still-to-do row needs that is the same for all of them, bundled
+ * so [taskRows] stays inside the parameter-count threshold — the same reason
+ * [DragCallbacks] exists.
+ */
+private class RowChrome(
+    val accent: Color,
+    val draggingId: String?,
+    val highlightedId: String?,
+    val editing: EditingRow,
+    val actions: RowActions,
+)
+
+/** The row whose words are in the add bar, and what they say right now — read
+ *  live, so the placeholder standing in for it keeps up with the typing (#63). */
+private class EditingRow(
+    val id: String?,
+    val text: String,
+)
+
+/**
+ * A run of still-to-do rows. Called twice, for the rows above the placeholder
+ * and the rows below it, so the one body serves both (#62).
+ */
+private fun LazyListScope.taskRows(
+    rows: List<TaskEntity>,
+    chrome: RowChrome,
+    reorder: ReorderState,
+) {
+    items(rows, key = { it.id }) { task ->
+        if (task.id == chrome.editing.id) {
+            // Greyed out where it stands, not hidden: the point of editing in
+            // the bar rather than a dialog is that the list is still there to
+            // read while you do it (#63). Blank falls back to the old title, so
+            // clearing the field does not blank the row it came from.
+            GhostRow(
+                text = chrome.editing.text.ifBlank { task.title },
+                modifier = Modifier.animateItem(),
+            )
+            return@items
+        }
+
+        val dragging = task.id == chrome.draggingId
+        // Animated so the row eases back down on drop; the offset itself
+        // stays unanimated, because it has to track the finger exactly.
+        val lift by animateFloatAsState(if (dragging) 1f else 0f, label = "drag-lift")
+        TaskRow(
+            task = task,
+            accent = chrome.accent,
+            dragging = dragging,
+            highlighted = task.id == chrome.highlightedId,
+            onToggle = { chrome.actions.toggle(task.id, it) },
+            onStar = { chrome.actions.star(task) },
+            onRename = { chrome.actions.rename(task) },
+            onDelete = { chrome.actions.delete(task.id) },
+            modifier =
+                Modifier
+                    .zIndex(if (dragging) 1f else 0f)
+                    // Placement animation on every row but the dragged one:
+                    // that one is already being placed by the finger, and two
+                    // things moving it at once reads as lag. This is what makes
+                    // a starred task visibly travel to the top instead of
+                    // teleporting there.
+                    .then(if (dragging) Modifier else Modifier.animateItem())
+                    .graphicsLayer {
+                        translationY = if (dragging) reorder.draggingOffset else 0f
+                        // The whole row lifts as one card: shadowed and
+                        // slightly larger, rather than a ripple boxed around
+                        // the title. Square corners throughout — no shape or
+                        // clip here, so there is nothing for the lift to round.
+                        shadowElevation = lift * DRAG_ELEVATION
+                        scaleX = 1f + lift * DRAG_SCALE
+                        scaleY = 1f + lift * DRAG_SCALE
+                    },
+        )
     }
 }
 
@@ -660,10 +844,14 @@ private fun DoneHeading(
 }
 
 /**
- * A stand-in for the row that is about to exist: same shape as [TaskRow], so
- * the swap to the real thing once it is saved is that same LazyColumn item's
- * content changing, not a different element appearing in its place. Unchecked
- * and unstarred always — a task that does not exist yet cannot be either.
+ * A row standing in for one that is not settled: the item being typed into the
+ * add bar, or the one whose words are down there being changed (#63).
+ *
+ * Same shape as [TaskRow], so the swap to the real thing once it is saved is
+ * that same LazyColumn item's content changing rather than a different element
+ * appearing in its place. No tick and no star either way: what this shows is a
+ * title mid-flight, and the controls that act on a row belong to the settled
+ * one.
  */
 @Composable
 private fun GhostRow(
@@ -987,10 +1175,18 @@ private fun TaskCheckbox(
     }
 }
 
+/**
+ * The one place words are typed on this screen: a new item, or an existing one
+ * being changed (#63). [editing] is the whole difference — it puts a way out
+ * next to the field and turns the add button into a save.
+ */
 @Composable
 private fun AddTaskBar(
-    value: String,
-    onValueChange: (String) -> Unit,
+    value: TextFieldValue,
+    editing: Boolean,
+    field: FocusRequester,
+    onValueChange: (TextFieldValue) -> Unit,
+    onCancel: () -> Unit,
     onSubmit: () -> Unit,
 ) {
     val dark = isSystemInDarkTheme()
@@ -1008,10 +1204,30 @@ private fun AddTaskBar(
                     .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // Only while editing: adding has nothing to back out of, and a
+            // button that does nothing most of the time is one more thing to
+            // read past on the way to the field.
+            if (editing) {
+                IconButton(onClick = onCancel) {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.action_cancel),
+                    )
+                }
+            }
+
             OutlinedTextField(
                 value = value,
                 onValueChange = onValueChange,
-                placeholder = { Text(stringResource(R.string.add_item_placeholder)) },
+                placeholder = {
+                    Text(
+                        if (editing) {
+                            stringResource(R.string.edit_item_placeholder)
+                        } else {
+                            stringResource(R.string.add_item_placeholder)
+                        },
+                    )
+                },
                 singleLine = true,
                 shape = PillShape,
                 // Matches TextPrompt: the first letter, from the keyboard, so a
@@ -1022,7 +1238,7 @@ private fun AddTaskBar(
                         imeAction = ImeAction.Done,
                     ),
                 keyboardActions = KeyboardActions(onDone = { onSubmit() }),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).focusRequester(field),
             )
             Box(
                 modifier =
@@ -1032,7 +1248,7 @@ private fun AddTaskBar(
                         .clip(CircleShape)
                         .background(
                             color =
-                                if (value.isBlank()) {
+                                if (value.text.isBlank()) {
                                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
                                 } else if (dark) {
                                     MaterialTheme.colorScheme.primaryContainer
@@ -1040,19 +1256,29 @@ private fun AddTaskBar(
                                     MaterialTheme.colorScheme.primary
                                 },
                             shape = CircleShape,
-                        ).clickable(enabled = value.isNotBlank(), onClick = onSubmit),
+                        ).clickable(enabled = value.text.isNotBlank(), onClick = onSubmit),
                 contentAlignment = Alignment.Center,
             ) {
-                // ic_launcher_foreground draws its "D" small within a padded
-                // adaptive-icon canvas — see AuthScreen.kt's badge for the same
-                // crop. Scaling well past the button and clipping to its circle
-                // reproduces the tightly-cropped mark instead of the padded one.
-                Icon(
-                    painter = painterResource(R.drawable.ic_launcher_foreground),
-                    contentDescription = stringResource(R.string.cd_add),
-                    tint = Color.White,
-                    modifier = Modifier.requiredSize(ADD_BUTTON_SIZE * ADD_BUTTON_LOGO_SCALE),
-                )
+                if (editing) {
+                    // A tick, not the mark: this button is agreeing to a change
+                    // here, and the logo is what "add to this list" looks like.
+                    Icon(
+                        Icons.Filled.Check,
+                        contentDescription = stringResource(R.string.action_save),
+                        tint = Color.White,
+                    )
+                } else {
+                    // ic_launcher_foreground draws its "D" small within a padded
+                    // adaptive-icon canvas — see AuthScreen.kt's badge for the same
+                    // crop. Scaling well past the button and clipping to its circle
+                    // reproduces the tightly-cropped mark instead of the padded one.
+                    Icon(
+                        painter = painterResource(R.drawable.ic_launcher_foreground),
+                        contentDescription = stringResource(R.string.cd_add),
+                        tint = Color.White,
+                        modifier = Modifier.requiredSize(ADD_BUTTON_SIZE * ADD_BUTTON_LOGO_SCALE),
+                    )
+                }
             }
         }
     }
@@ -1122,5 +1348,16 @@ private const val DONE_ALPHA = 0.6f
 private const val GHOST_SURFACE_ALPHA = 0.5f
 private const val GHOST_TEXT_ALPHA = 0.55f
 
-/** Stands in for the ghost row's key before there is a real task id to use. */
+/** Stands in for the ghost row's key before there is a real task id to use.
+ *  Also what [Tasks] watches to know a row is being added, since it is the one
+ *  name that does not change between the first keystroke and the save. */
 private const val GHOST_TYPING_KEY = "ghost-typing"
+
+/** How far down the screen the row being worked on belongs — see
+ *  [scrollToWorkingRow]. Under a third, so what is above it is a glance rather
+ *  than half the screen. */
+private const val WORKING_ROW_FRACTION = 0.3f
+
+/** About half a second at 60fps. Long enough for a keyboard to finish rising,
+ *  short enough that a list which never settles is not waited on. */
+private const val SETTLE_FRAME_LIMIT = 30
