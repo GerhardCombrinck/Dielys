@@ -7,6 +7,16 @@
   // Migrations are imported as text so migrations/*.sql stays the one source
   // of truth (G1) rather than being duplicated as string literals in TS.
   "rules": [{ "type": "Text", "globs": ["**/*.sql"], "fallthrough": true }],
+  // The public web pages Google Play links to (privacy policy, account
+  // deletion) and the landing page. A request for a path with a file here is
+  // answered from it without running the Worker; anything else — the API,
+  // assetlinks.json, /magic and /invite — falls through to src/index.ts.
+  // Inherited by both envs below.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "drop-trailing-slash"
+  },
   "vars": {
     "ENVIRONMENT": "dev",
     // The HTTPS App Link origin magic-link emails point at (ADR 0005). Same

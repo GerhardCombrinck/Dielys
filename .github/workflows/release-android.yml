@@ -22,20 +22,38 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
 
-      - name: Build signed release APK
+      # Without this file the build still succeeds but has no FirebaseApp, so
+      # the released app never registers for push (android/AGENTS.md). Fine
+      # for a local build, not for one going to Play — so a blank secret stops
+      # the release here rather than shipping an app that quietly can't be woken.
+      - name: Decode google-services.json
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "::error::GOOGLE_SERVICES_JSON_BASE64 is not set on the prod environment"
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d > android/app/google-services.json
+
+      # The APK is for sideloading from the GitHub Release; Play only accepts
+      # the bundle. Same versionCode for both, so they are the same build.
+      - name: Build signed release APK and bundle
         working-directory: android
         env:
           KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease -PversionCode=${{ github.run_number }}
+        run: ./gradlew assembleRelease bundleRelease -PversionCode=${{ github.run_number }}
 
-      - name: Remove keystore
+      - name: Remove keystore and Firebase config
         if: always()
-        run: rm -f "$RUNNER_TEMP/release.keystore"
+        run: rm -f "$RUNNER_TEMP/release.keystore" android/app/google-services.json
 
-      - name: Attach APK to GitHub Release
+      - name: Attach APK and bundle to GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          files: android/app/build/outputs/apk/release/*.apk
+          files: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/bundle/release/*.aab

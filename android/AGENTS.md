@@ -89,6 +89,11 @@ no token is ever registered, and sync falls back to the WebSocket and the
 half-hourly `WorkManager` floor (H3.12). To turn push on for a build, drop a
 real `app/google-services.json` in — nothing else changes.
 
+Release builds from `release-android.yml` always have it: the job decodes the
+`GOOGLE_SERVICES_JSON_BASE64` secret on the `prod` environment and fails the
+release if that secret is blank, since a Play build without push would ship
+silently degraded. The file must carry a `client` for `za.co.dielys`.
+
 The push code ([M](../docs/CODE_STANDARD.md#m-push-notifications-fcm)) lives
 in `data/push/`. `DielysMessagingService` is a shell: it hands both events to
 `PushHandler`, which is where the tests are. **There is no notification code

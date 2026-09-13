@@ -17,6 +17,9 @@ declare global {
       /** Typed namespaces, so the DOs' RPC methods are checked at the call site. */
       LIST_ROOM: DurableObjectNamespace<ListRoom>;
       USERS_ROOM: DurableObjectNamespace<UsersRoom>;
+      /** The static pages in `public/`. Deployed, they are answered before the
+       * Worker runs; the binding exists so tests can reach them too. */
+      ASSETS: Fetcher;
       /**
        * The HTTPS App Link origin a magic-link email points at (ADR 0005),
        * e.g. "https://dielys.com" — public by nature, so a `vars` value in
