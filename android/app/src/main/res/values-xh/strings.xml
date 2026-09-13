@@ -89,6 +89,9 @@
     <string name="confirm_remove_body">Abasayi kulubona olu luhlu. Oko sele kukwifowuni yabo kuhlala apho.</string>
     <string name="confirm_leave_title">Shiya olu luhlu?</string>
     <string name="confirm_leave_body">Luyanyamalala kule fowuni kwaye uyeka ukufumana utshintsho. Umnini unokukumema kwakhona.</string>
+    <string name="confirm_delete_list_title">Cima %1$s?</string>
+    <string name="confirm_delete_list_body">Yonke into ekuyo ihamba nayo, kwaye ayibuyi.</string>
+    <string name="confirm_delete_shared_body">Yabelwana ngayo. Ukuyicima kuyisusa kuzo zonke iifowuni, hayi kule kuphela, kwaye ayibuyi.</string>
 
     <string name="invited_title">Umenyelwe kuluhlu</string>
     <string name="invited_body">Uyajoyina? Lowo wabelane ngalo uya kubona oko ukongezayo.</string>

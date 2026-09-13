@@ -90,6 +90,9 @@
     <string name="confirm_remove_body">Angekhe basalibona irhelo leli. Okusele kukufuni yabo kuhlala lapho.</string>
     <string name="confirm_leave_title">Tjhiya irhelo leli?</string>
     <string name="confirm_leave_body">Liyanyamalala kufuni le begodu uyalisa ukufumana amatjhuguluko. Umnikazi angakumema godu.</string>
+    <string name="confirm_delete_list_title">Susa %1$s?</string>
+    <string name="confirm_delete_list_body">Koke okuphezu kwawo kuyahamba nawo, begodu angeke ubuyiselwe.</string>
+    <string name="confirm_delete_shared_body">Uhlanganyelwe. Ukuwususa kuwususa kiwo woke amafunu, ingasi leli kwaphela, begodu angeke ubuyiselwe.</string>
 
     <string name="invited_title">Umenyelwe erhelweni</string>
     <string name="invited_body">Uyajoyina? Loyo owabelane ngalo uzokubona lokho okungezako.</string>

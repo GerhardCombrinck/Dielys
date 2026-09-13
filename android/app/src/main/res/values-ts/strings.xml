@@ -89,6 +89,9 @@
     <string name="confirm_remove_body">A va nge he wu voni nxaxamelo lowu. Leswi se swi nga eka riqingho ra vona swi tshama kwalaho.</string>
     <string name="confirm_leave_title">Siya nxaxamelo lowu?</string>
     <string name="confirm_leave_body">Wu nyamalala eka riqingho leri naswona u tshika ku kuma ku cinca. N\'wini a nga ku rhamba nakambe.</string>
+    <string name="confirm_delete_list_title">Susa %1$s?</string>
+    <string name="confirm_delete_list_body">Hinkwaswo leswi nga eka rona swa famba na rona, naswona a swi vuyi.</string>
+    <string name="confirm_delete_shared_body">Ri avelaniwa. Ku ri susa ku ri susa eka switirhisiwa hinkwaswo, ku nga ri leswi ntsena, naswona a swi vuyi.</string>
 
     <string name="invited_title">U rhambiwile eka nxaxamelo</string>
     <string name="invited_body">Wa joyina? Loyi a avelaneke ha wona u ta vona leswi u swi engetelaka.</string>

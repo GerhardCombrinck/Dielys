@@ -94,6 +94,9 @@
     <string name="confirm_remove_body">Ba ka se sa bona lenaneo le. Seo se šetšego se le mogaleng wa bona se dula moo.</string>
     <string name="confirm_leave_title">Tlogela lenaneo le?</string>
     <string name="confirm_leave_body">Le a nyamelela mogaleng wo gomme o kgaotša go hwetša diphetošo. Mong a ka go laletša gape.</string>
+    <string name="confirm_delete_list_title">Phumula %1$s?</string>
+    <string name="confirm_delete_list_body">Tšohle tše di lego go lona di sepela le lona, gomme ga di boe.</string>
+    <string name="confirm_delete_shared_body">Le abelanwe. Go le phumula go le tloša difouneng tša bohle, e sego ye fela, gomme ga le boe.</string>
 
     <string name="invited_title">O laleditšwe lenaneong</string>
     <string name="invited_body">O a tsenela? Yo a abelanego ka lona o tla bona seo o se oketšago.</string>

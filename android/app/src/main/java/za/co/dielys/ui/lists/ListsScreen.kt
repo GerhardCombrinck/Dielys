@@ -59,6 +59,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import za.co.dielys.R
 import za.co.dielys.data.local.ListEntity
+import za.co.dielys.ui.ConfirmPrompt
 import za.co.dielys.ui.SettingsButton
 import za.co.dielys.ui.TextPrompt
 import za.co.dielys.ui.reorder.ReorderState
@@ -84,6 +85,11 @@ fun ListsScreen(
     val invite by viewModel.invite.collectAsStateWithLifecycle()
     var creating by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<ListEntity?>(null) }
+
+    /** The list a delete has been asked about, held here rather than in the view
+     *  model: nothing outside this screen needs to know the question was put,
+     *  and leaving the screen is meant to forget it (#64). */
+    var deleting by remember { mutableStateOf<ListEntity?>(null) }
     var colouring by remember { mutableStateOf<String?>(null) }
 
     // The order a drag is producing, held here until Room agrees with it — the
@@ -149,7 +155,7 @@ fun ListsScreen(
                     onColour = { colouring = it.id },
                     onMembers = { membersViewModel.open(it.id) },
                     onShare = viewModel::invite,
-                    onDelete = viewModel::delete,
+                    onDelete = { deleting = it },
                     modifier = Modifier.weight(1f),
                 )
                 // Anchored, not the last row: it stays put as the list grows past
@@ -169,6 +175,30 @@ fun ListsScreen(
             confirm = stringResource(R.string.action_create),
             onDismiss = { creating = false },
             onConfirm = viewModel::create,
+        )
+    }
+
+    // A delete is the one thing on this screen that cannot be undone from it,
+    // and it sits one tap from Rename in the same menu (#64).
+    deleting?.let { list ->
+        ConfirmPrompt(
+            title =
+                stringResource(
+                    R.string.confirm_delete_list_title,
+                    list.displayTitle(LocalContext.current),
+                ),
+            // A shared list is not this phone's to lose quietly: the delete
+            // goes down the same changelog as any other change, so it takes
+            // the list off everybody's phone, not just this one.
+            body =
+                if (list.isShared) {
+                    stringResource(R.string.confirm_delete_shared_body)
+                } else {
+                    stringResource(R.string.confirm_delete_list_body)
+                },
+            confirm = stringResource(R.string.action_delete),
+            onConfirm = { viewModel.delete(list.id) },
+            onDismiss = { deleting = null },
         )
     }
 
@@ -227,7 +257,7 @@ private fun Lists(
     onColour: (ListEntity) -> Unit,
     onMembers: (ListEntity) -> Unit,
     onShare: (ListEntity) -> Unit,
-    onDelete: (String) -> Unit,
+    onDelete: (ListEntity) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -292,7 +322,7 @@ private fun Lists(
                 onColour = { onColour(row.list) },
                 onMembers = { onMembers(row.list) },
                 onShare = { onShare(row.list) },
-                onDelete = { onDelete(row.list.id) },
+                onDelete = { onDelete(row.list) },
                 dragging = dragging,
                 modifier =
                     Modifier

@@ -89,6 +89,9 @@
     <string name="confirm_remove_body">Ba ka se tlhole ba bona lenaane le. Se se setseng mo mogaleng wa bone se nna foo.</string>
     <string name="confirm_leave_title">Tlogela lenaane le?</string>
     <string name="confirm_leave_body">Le a nyelela mo mogaleng o mme o khutlisa go bona diphetogo. Mong a ka go laletsa gape.</string>
+    <string name="confirm_delete_list_title">Phimola %1$s?</string>
+    <string name="confirm_delete_list_body">Tsotlhe tse di mo go yona di tsamaya le yona, mme ga di boe.</string>
+    <string name="confirm_delete_shared_body">E abelanwe. Go e phimola go e tlosa mo difounong tsa botlhe, e seng eno fela, mme ga e boe.</string>
 
     <string name="invited_title">O laleditswe mo lenaaneng</string>
     <string name="invited_body">A o a tsenela? Yo o le abelaneng o tla bona se o se oketsang.</string>

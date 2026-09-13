@@ -94,6 +94,9 @@
     <string name="confirm_remove_body">Hulle sal hierdie lys nie meer sien nie. Wat reeds op hul foon is, bly daar.</string>
     <string name="confirm_leave_title">Verlaat hierdie lys?</string>
     <string name="confirm_leave_body">Dit verdwyn van hierdie foon af en jy kry nie meer veranderinge nie. Die eienaar kan jou weer nooi.</string>
+    <string name="confirm_delete_list_title">Skrap %1$s?</string>
+    <string name="confirm_delete_list_body">Alles daarop gaan saam, en jy kan dit nie terugkry nie.</string>
+    <string name="confirm_delete_shared_body">Dit word gedeel. As jy dit skrap, verdwyn dit van almal se fone af, nie net hierdie een nie, en jy kan dit nie terugkry nie.</string>
 
     <string name="invited_title">Jy is na \'n lys uitgenooi</string>
     <string name="invited_body">Sluit aan? Wie ook al dit gedeel het, sal sien wat jy byvoeg.</string>

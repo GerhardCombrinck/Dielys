@@ -89,6 +89,9 @@
     <string name="confirm_remove_body">Ngeke basalubona lolu luhlu. Lokusevele kucingo labo kuhlala lapho.</string>
     <string name="confirm_leave_title">Shiya lolu luhlu?</string>
     <string name="confirm_leave_body">Luyanyamalala kulelicingo futsi uyekela kutfola lutjintjo. Umnikati angakumema futsi.</string>
+    <string name="confirm_delete_list_title">Susa %1$s?</string>
+    <string name="confirm_delete_list_body">Konkhe lokukuwo kuhamba nawo, futsi ungeke uwubuyise.</string>
+    <string name="confirm_delete_shared_body">Ubelwene nalabanye. Kuwususa kuwususa kuwo onkhe emafoni, hhayi leli kuphela, futsi ungeke uwubuyise.</string>
 
     <string name="invited_title">Umenyelwe eluhlwini</string>
     <string name="invited_body">Uyajoyina? Lowo labelane ngalo utawubona loko lokungetako.</string>

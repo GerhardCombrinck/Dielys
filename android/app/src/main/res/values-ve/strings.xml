@@ -89,6 +89,9 @@
     <string name="confirm_remove_body">Vha nga si tsha vhona uyu mutevhe. Zwine zwa vha hone kha lutingo lwavho zwi dzula henefho.</string>
     <string name="confirm_leave_title">Litshani uyu mutevhe?</string>
     <string name="confirm_leave_body">U a ngala kha ulu lutingo nahone ni litsha u wana tshanduko. Mune a nga ni ramba hafhu.</string>
+    <string name="confirm_delete_list_title">Thutha %1$s?</string>
+    <string name="confirm_delete_list_body">Zwoṱhe zwi re khazwo zwi ya nazwo, nahone a zwi vhuyi.</string>
+    <string name="confirm_delete_shared_body">Yo kovhekanywa. U i thutha zwi i bvisa kha dziphone dza vhoṱhe, hu si kha iyi fhedzi, nahone a i vhuyi.</string>
 
     <string name="invited_title">No rambiwa kha mutevhe</string>
     <string name="invited_body">Ni a dzhena? We a u kovhekana u do vhona zwine na engedza.</string>

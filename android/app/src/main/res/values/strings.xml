@@ -108,6 +108,9 @@
     <string name="confirm_remove_body">They will not see this list any more. What is already on their phone stays there.</string>
     <string name="confirm_leave_title">Leave this list?</string>
     <string name="confirm_leave_body">It disappears from this phone and you stop getting changes. The owner can invite you again.</string>
+    <string name="confirm_delete_list_title">Delete %1$s?</string>
+    <string name="confirm_delete_list_body">Everything on it goes with it, and there is no getting it back.</string>
+    <string name="confirm_delete_shared_body">It is shared. Deleting it takes it off everybody\'s phone, not just this one, and there is no getting it back.</string>
 
     <string name="invited_title">You were invited to a list</string>
     <string name="invited_body">Join it? Whoever shared it will see what you add.</string>

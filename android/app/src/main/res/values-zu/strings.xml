@@ -89,6 +89,9 @@
     <string name="confirm_remove_body">Ngeke besalubona lolu hlu. Okusevele kukufoni yabo kuhlala lapho.</string>
     <string name="confirm_leave_title">Shiya lolu hlu?</string>
     <string name="confirm_leave_body">Luyanyamalala kule foni futhi uyeka ukuthola izinguquko. Umnikazi angakumema futhi.</string>
+    <string name="confirm_delete_list_title">Susa %1$s?</string>
+    <string name="confirm_delete_list_body">Konke okukulo kuhamba nalo, futhi ngeke ukubuyise.</string>
+    <string name="confirm_delete_shared_body">Lwabelwene nabanye. Ukulususa kulususa kuwo wonke amafoni, hhayi leli kuphela, futhi ngeke ukubuyise.</string>
 
     <string name="invited_title">Umenyelwe ohlwini</string>
     <string name="invited_body">Uyajoyina? Lowo oyabelane ngalo uzobona lokho okwengezayo.</string>

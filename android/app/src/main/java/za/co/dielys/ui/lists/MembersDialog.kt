@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import za.co.dielys.R
 import za.co.dielys.data.Member
+import za.co.dielys.ui.ConfirmPrompt
 
 /**
  * Who a list is shared with, and the way to end that (#60).
@@ -47,13 +48,25 @@ fun MembersDialog(
 
     val loaded = state as? MembersState.Loaded
     confirming?.let { member ->
-        ConfirmRemoval(
-            member = member,
-            leaving = member.userId == loaded?.meUserId,
-            onConfirm = {
-                confirming = null
-                onRemove(state.listId, member.userId)
-            },
+        val leaving = member.userId == loaded?.meUserId
+        ConfirmPrompt(
+            title =
+                if (leaving) {
+                    stringResource(R.string.confirm_leave_title)
+                } else {
+                    stringResource(R.string.confirm_remove_title, member.email)
+                },
+            body =
+                if (leaving) {
+                    stringResource(R.string.confirm_leave_body)
+                } else {
+                    stringResource(R.string.confirm_remove_body)
+                },
+            confirm =
+                stringResource(
+                    if (leaving) R.string.action_leave else R.string.action_remove,
+                ),
+            onConfirm = { onRemove(state.listId, member.userId) },
             onDismiss = { confirming = null },
         )
         return
@@ -169,48 +182,6 @@ private fun notes(
             if (isMe) stringResource(R.string.members_you) else null,
         )
     return parts.ifEmpty { null }?.joinToString(" · ")
-}
-
-@Composable
-private fun ConfirmRemoval(
-    member: Member,
-    leaving: Boolean,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                if (leaving) {
-                    stringResource(R.string.confirm_leave_title)
-                } else {
-                    stringResource(R.string.confirm_remove_title, member.email)
-                },
-            )
-        },
-        text = {
-            Text(
-                if (leaving) {
-                    stringResource(R.string.confirm_leave_body)
-                } else {
-                    stringResource(R.string.confirm_remove_body)
-                },
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(
-                    stringResource(
-                        if (leaving) R.string.action_leave else R.string.action_remove,
-                    ),
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-        },
-    )
 }
 
 private const val NOTE_ALPHA = 0.65f
