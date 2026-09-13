@@ -46,6 +46,17 @@ data class ListEntity(
      */
     val ownedByMe: Boolean get() = role == MembershipRole.OWNER
 
+    /**
+     * Only the owner may delete a list; a member leaves it instead (ADR 0006).
+     *
+     * Not simply [ownedByMe], because the two unknowns go opposite ways. A list
+     * that arrived by invite is discovered *through* `/auth/memberships`, so it
+     * has its role from the moment it exists here. A null role therefore means a
+     * list made on this phone and not synced yet — which this account owns by
+     * construction, and must be able to delete before the claim has landed.
+     */
+    val mayDelete: Boolean get() = role != MembershipRole.MEMBER
+
     /** Sync status is only interesting once someone else can make the local
      *  copy go stale — a solo list never has anything to be behind on. */
     val isShared: Boolean get() = memberCount > 1

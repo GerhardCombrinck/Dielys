@@ -82,6 +82,7 @@
     <string name="members_owner">umnikazi</string>
     <string name="members_solo">Akekho omunye okwamanje. Yabelana ngalo ukuze ungenise umuntu.</string>
     <string name="members_failed">Ayikwazanga ukuhlola ukuthi lwabelwane nobani: %1$s</string>
+    <string name="leave_failed">Ayikwazanga ukushiya lolu hlu: %1$s</string>
     <string name="action_remove">Susa</string>
     <string name="action_leave">Shiya uhlu</string>
     <string name="cd_shared_list">Uhlu olwabelwene</string>

@@ -82,6 +82,7 @@
     <string name="members_owner">mong</string>
     <string name="members_solo">Ga go na ope o mongwe gone jaana. Abelana le ene go mo tsenya.</string>
     <string name="members_failed">Ga e a kgona go tlhatlhoba gore le abelanwe le mang: %1$s</string>
+    <string name="leave_failed">Ga e a kgona go tlogela lenaane le: %1$s</string>
     <string name="action_remove">Tlosa</string>
     <string name="action_leave">Tlogela lenaane</string>
     <string name="cd_shared_list">Lenaane le le abelanwang</string>

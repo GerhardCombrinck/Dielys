@@ -14,10 +14,21 @@ function room(): { stub: DurableObjectStub; listId: string } {
 }
 
 /** A socket plus a queue, so a test can await the next message it expects. */
-async function connect(stub: DurableObjectStub, listId: string, deviceId = "device-a") {
-  const response = await stub.fetch(`https://list-room/ws?listId=${listId}&deviceId=${deviceId}`, {
-    headers: { Upgrade: "websocket" },
-  });
+async function connect(
+  stub: DurableObjectStub,
+  listId: string,
+  deviceId = "device-a",
+  // What the Worker would have resolved. Owner by default, so the tests that are
+  // not about permissions are not quietly testing a refusal.
+  role: "owner" | "member" | null = "owner",
+) {
+  const roleParam = role === null ? "" : `&role=${role}`;
+  const response = await stub.fetch(
+    `https://list-room/ws?listId=${listId}&deviceId=${deviceId}${roleParam}`,
+    {
+      headers: { Upgrade: "websocket" },
+    },
+  );
   expect(response.status).toBe(101);
   const ws = response.webSocket;
   if (!ws) throw new Error("no websocket on upgrade response");
@@ -196,5 +207,50 @@ describe("ListRoom WebSocket — catch-up over the socket (F5.6)", () => {
     // Both delivery paths apply through identical code — the socket dying is
     // a slower catch-up, never a missed change.
     expect(overSocket).toEqual(overHttp);
+  });
+});
+
+describe("ListRoom WebSocket — only the owner deletes the list (ADR 0006)", () => {
+  const deleteList = (listId: string) => ({
+    type: "mutate",
+    protocolVersion: 2,
+    listId,
+    entityType: "list",
+    entityId: listId,
+    idempotencyKey: crypto.randomUUID(),
+    deviceId: "device-b",
+    patch: { deletedAt: "2026-09-13T10:00:00.000Z" },
+  });
+
+  it("refuses a member's delete sent as a frame, which the Worker never sees", async () => {
+    const { stub, listId } = room();
+    const client = await connect(stub, listId, "device-b", "member");
+    client.send(hello(listId, { deviceId: "device-b" }));
+    expect((await client.next()).type).toBe("hello-ok");
+
+    client.send(deleteList(listId));
+    const answer = await client.next();
+    expect(answer.type).toBe("error");
+    if (answer.type !== "error") return;
+    expect(answer.code).toBe("forbidden");
+  });
+
+  it("keeps the role from the upgrade, not from anything the hello says", async () => {
+    const { stub, listId } = room();
+    const client = await connect(stub, listId, "device-b", "member");
+    client.send(hello(listId, { deviceId: "device-b", role: "owner" }));
+    expect((await client.next()).type).toBe("hello-ok");
+
+    client.send(deleteList(listId));
+    const answer = await client.next();
+    expect(answer.type === "error" ? answer.code : answer.type).toBe("forbidden");
+  });
+
+  it("refuses a socket that arrived with no role at all", async () => {
+    const { stub, listId } = room();
+    const client = await connect(stub, listId, "device-b", null);
+    client.send(deleteList(listId));
+    const answer = await client.next();
+    expect(answer.type === "error" ? answer.code : answer.type).toBe("forbidden");
   });
 });

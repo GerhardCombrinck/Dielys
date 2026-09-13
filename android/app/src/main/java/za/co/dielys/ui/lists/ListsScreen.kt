@@ -90,6 +90,10 @@ fun ListsScreen(
      *  model: nothing outside this screen needs to know the question was put,
      *  and leaving the screen is meant to forget it (#64). */
     var deleting by remember { mutableStateOf<ListEntity?>(null) }
+
+    /** The same, for a member leaving from the menu rather than from the
+     *  "shared with" sheet (ADR 0006). */
+    var leaving by remember { mutableStateOf<ListEntity?>(null) }
     var colouring by remember { mutableStateOf<String?>(null) }
 
     // The order a drag is producing, held here until Room agrees with it — the
@@ -156,6 +160,7 @@ fun ListsScreen(
                     onMembers = { membersViewModel.open(it.id) },
                     onShare = viewModel::invite,
                     onDelete = { deleting = it },
+                    onLeave = { leaving = it },
                     modifier = Modifier.weight(1f),
                 )
                 // Anchored, not the last row: it stays put as the list grows past
@@ -199,6 +204,18 @@ fun ListsScreen(
             confirm = stringResource(R.string.action_delete),
             onConfirm = { viewModel.delete(list.id) },
             onDismiss = { deleting = null },
+        )
+    }
+
+    // The same question the "shared with" sheet asks on its own row, in the
+    // same words — it is the same action, reached from somewhere else.
+    leaving?.let { list ->
+        ConfirmPrompt(
+            title = stringResource(R.string.confirm_leave_title),
+            body = stringResource(R.string.confirm_leave_body),
+            confirm = stringResource(R.string.action_leave),
+            onConfirm = { membersViewModel.leave(list.id) },
+            onDismiss = { leaving = null },
         )
     }
 
@@ -258,6 +275,7 @@ private fun Lists(
     onMembers: (ListEntity) -> Unit,
     onShare: (ListEntity) -> Unit,
     onDelete: (ListEntity) -> Unit,
+    onLeave: (ListEntity) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -323,6 +341,7 @@ private fun Lists(
                 onMembers = { onMembers(row.list) },
                 onShare = { onShare(row.list) },
                 onDelete = { onDelete(row.list) },
+                onLeave = { onLeave(row.list) },
                 dragging = dragging,
                 modifier =
                     Modifier
@@ -370,6 +389,7 @@ private fun ListRow(
     onMembers: () -> Unit,
     onShare: () -> Unit,
     onDelete: () -> Unit,
+    onLeave: () -> Unit,
     modifier: Modifier = Modifier,
     dragging: Boolean = false,
 ) {
@@ -472,13 +492,26 @@ private fun ListRow(
                         },
                     )
                 }
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.action_delete)) },
-                    onClick = {
-                        menuOpen = false
-                        onDelete()
-                    },
-                )
+                // One or the other, never both (ADR 0006). A delete takes the
+                // list off every member's phone, so it is the owner's to make;
+                // anybody else can still get it off their own, by leaving.
+                if (list.mayDelete) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.action_delete)) },
+                        onClick = {
+                            menuOpen = false
+                            onDelete()
+                        },
+                    )
+                } else {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.action_leave)) },
+                        onClick = {
+                            menuOpen = false
+                            onLeave()
+                        },
+                    )
+                }
             }
         }
     }

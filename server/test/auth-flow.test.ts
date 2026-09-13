@@ -981,6 +981,105 @@ describe("memberships", () => {
   });
 });
 
+describe("only the owner deletes a list (ADR 0006)", () => {
+  async function sharedList() {
+    const ownerEmail = uniqueEmail();
+    const memberEmail = uniqueEmail();
+    await createUser(ownerEmail);
+    await createUser(memberEmail);
+    const owner = await login(ownerEmail, "device-a");
+    const member = await login(memberEmail, "device-b");
+
+    const listId = crypto.randomUUID();
+    await post(`/lists/${listId}`, {}, owner.accessToken);
+    const invite = await mintInvite(listId, owner.accessToken, memberEmail);
+    await post("/invites/accept", { inviteToken: invite.token }, member.accessToken);
+
+    // Named first, so the list exists in the room before anybody deletes it.
+    const created = await post(
+      `/lists/${listId}/mutate`,
+      listPatch(listId, { title: "Inkopies" }),
+      owner.accessToken,
+    );
+    expect(created.status).toBe(200);
+    return { owner, member, listId };
+  }
+
+  function listPatch(listId: string, patch: Record<string, unknown>) {
+    return {
+      type: "mutate",
+      protocolVersion: 2,
+      listId,
+      entityType: "list",
+      entityId: listId,
+      idempotencyKey: crypto.randomUUID(),
+      deviceId: "device-a",
+      patch,
+    };
+  }
+
+  const deleting = { deletedAt: "2026-09-13T10:00:00.000Z" };
+
+  async function titleAsSeenBy(listId: string, token: string) {
+    const response = await get(`/lists/${listId}/changes?since=0`, token);
+    const body = (await response.json()) as {
+      changes: Array<{ entityType: string; entity: { title?: string; deletedAt?: string | null } }>;
+    };
+    return body.changes.filter((c) => c.entityType === "list").at(-1)?.entity;
+  }
+
+  it("refuses a member's delete, and the list is untouched for everyone", async () => {
+    const { owner, member, listId } = await sharedList();
+
+    const refused = await post(
+      `/lists/${listId}/mutate`,
+      listPatch(listId, deleting),
+      member.accessToken,
+    );
+    expect(refused.status).toBe(403);
+    expect(((await refused.json()) as { code: string }).code).toBe("forbidden");
+
+    const seen = await titleAsSeenBy(listId, owner.accessToken);
+    expect(seen?.deletedAt ?? null).toBeNull();
+  });
+
+  it("does not take the member's word for it on the query string", async () => {
+    const { member, listId } = await sharedList();
+
+    const refused = await post(
+      `/lists/${listId}/mutate?role=owner`,
+      listPatch(listId, deleting),
+      member.accessToken,
+    );
+    expect(refused.status).toBe(403);
+  });
+
+  it("still lets a member rename the list and work on its items", async () => {
+    const { member, listId } = await sharedList();
+
+    const renamed = await post(
+      `/lists/${listId}/mutate`,
+      listPatch(listId, { title: "Braai" }),
+      member.accessToken,
+    );
+    expect(renamed.status).toBe(200);
+  });
+
+  it("lets the owner delete it", async () => {
+    const { owner, member, listId } = await sharedList();
+
+    const deleted = await post(
+      `/lists/${listId}/mutate`,
+      listPatch(listId, deleting),
+      owner.accessToken,
+    );
+    expect(deleted.status).toBe(200);
+
+    const seen = await titleAsSeenBy(listId, member.accessToken);
+    expect(seen?.deletedAt).toBe(deleting.deletedAt);
+  });
+});
+
 describe("end to end: two people, one list", () => {
   it("a mutation by one member is visible to the other", async () => {
     const ownerEmail = uniqueEmail();

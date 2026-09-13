@@ -82,6 +82,7 @@
     <string name="members_owner">mong</string>
     <string name="members_solo">Ha ho motho e mong hajwale. Arolelana le yena ho mo kenya.</string>
     <string name="members_failed">E hlolehile ho hlahloba hore na le arolelanwe le mang: %1$s</string>
+    <string name="leave_failed">E hlolehile ho tlohela lenane lena: %1$s</string>
     <string name="action_remove">Tlosa</string>
     <string name="action_leave">Tlohela lenane</string>
     <string name="cd_shared_list">Lenane le arolelanwang</string>

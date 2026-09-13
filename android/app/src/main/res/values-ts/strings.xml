@@ -82,6 +82,7 @@
     <string name="members_owner">n\'wini</string>
     <string name="members_solo">A ku na un\'wana sweswi. Avelana na yena leswaku a nghena.</string>
     <string name="members_failed">A swi kotekanga ku kambela leswaku wu avelaniwe na mani: %1$s</string>
+    <string name="leave_failed">A swi kotekanga ku siya nxaxamelo leyi: %1$s</string>
     <string name="action_remove">Susa</string>
     <string name="action_leave">Siya nxaxamelo</string>
     <string name="cd_shared_list">Nxaxamelo lowu avelaniwaka</string>

@@ -82,6 +82,7 @@
     <string name="members_owner">mune</string>
     <string name="members_solo">A hu na munwe zwino. Kovhekanani nae uri a dzhene.</string>
     <string name="members_failed">A zwo ngo konadzea u sedza uri wo kovhekanwa na nnyi: %1$s</string>
+    <string name="leave_failed">A zwo ngo konadzea u litsha mutevhe uyu: %1$s</string>
     <string name="action_remove">Bvisani</string>
     <string name="action_leave">Litshani mutevhe</string>
     <string name="cd_shared_list">Mutevhe wo kovhekanwaho</string>

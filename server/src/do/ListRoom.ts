@@ -4,6 +4,7 @@ import {
   type CatchUpResponse,
   type ChangeEnvelope,
   type ErrorCode,
+  type MembershipRole,
   type Mutation,
   type MutationAck,
   PROTOCOL_VERSION,
@@ -11,6 +12,7 @@ import {
   SUPPORTED_PROTOCOL_VERSIONS,
 } from "@dielys/protocol";
 import { applyListPatch, applyTaskPatch, type FieldMeta } from "../domain/apply.js";
+import { mayApply, parseRole } from "../domain/permissions.js";
 import { nextSeq } from "../domain/sequence.js";
 import {
   parseJson,
@@ -41,8 +43,13 @@ import { usersRoom } from "./rooms.js";
 
 /** What a hibernating socket has to remember about its session. */
 interface SocketSession {
-  deviceId: string;
+  /** Null when the upgrade did not say; such a socket is left out of the wake
+   *  fan-out's "already informed" list rather than guessed at. */
+  deviceId: string | null;
   protocolVersion: number;
+  /** Resolved by the Worker on the upgrade (ADR 0006). A frame arrives long
+   *  after that request, so this is the only place the room can find it. */
+  role: MembershipRole | null;
 }
 
 /**
@@ -139,6 +146,10 @@ export class ListRoom extends DurableObject {
       return jsonError("unsupported-protocol-version", 400, mutation.value.idempotencyKey);
     }
 
+    if (!mayApply(parseRole(new URL(request.url).searchParams.get("role")), mutation.value)) {
+      return jsonError("forbidden", 403, mutation.value.idempotencyKey);
+    }
+
     const result = this.applyMutation(mutation.value);
     if (result.type === "error") {
       return new Response(JSON.stringify(result), {
@@ -178,11 +189,14 @@ export class ListRoom extends DurableObject {
     // whole design assumes.
     this.ctx.acceptWebSocket(server);
 
-    const deviceId = url.searchParams.get("deviceId");
-    if (deviceId !== null) {
-      const session: SocketSession = { deviceId, protocolVersion: PROTOCOL_VERSION };
-      server.serializeAttachment(session);
-    }
+    // Always attached now, not only when a device id came with the upgrade:
+    // the role has to survive until the first frame, whatever else is missing.
+    const session: SocketSession = {
+      deviceId: url.searchParams.get("deviceId"),
+      protocolVersion: PROTOCOL_VERSION,
+      role: parseRole(url.searchParams.get("role")),
+    };
+    server.serializeAttachment(session);
 
     return new Response(null, { status: 101, webSocket: client });
   }
@@ -253,9 +267,12 @@ export class ListRoom extends DurableObject {
       return;
     }
 
+    // The role came with the upgrade, not with this message — a hello could
+    // claim anything — so it is carried over from what the upgrade attached.
     const session: SocketSession = {
       deviceId: hello.value.deviceId,
       protocolVersion: hello.value.protocolVersion,
+      role: sessionOf(ws)?.role ?? null,
     };
     ws.serializeAttachment(session);
 
@@ -280,6 +297,10 @@ export class ListRoom extends DurableObject {
     }
     if (!this.bindListId(mutation.value.listId)) {
       send(ws, error("list-mismatch", mutation.value.idempotencyKey));
+      return;
+    }
+    if (!mayApply(sessionOf(ws)?.role ?? null, mutation.value)) {
+      send(ws, error("forbidden", mutation.value.idempotencyKey));
       return;
     }
 
@@ -458,7 +479,7 @@ export class ListRoom extends DurableObject {
     // socket — the outbox drain is an HTTP call with nothing open.
     const informed: string[] = [change.deviceId];
     for (const socket of this.ctx.getWebSockets()) {
-      const session = socket.deserializeAttachment() as SocketSession | null;
+      const session = sessionOf(socket);
       if (session !== null && typeof session.deviceId === "string") {
         informed.push(session.deviceId);
       }
@@ -496,6 +517,10 @@ function messageType(value: unknown): string | null {
 
 function error(code: ErrorCode, idempotencyKey: string | null) {
   return { type: "error" as const, code, idempotencyKey };
+}
+
+function sessionOf(ws: WebSocket): SocketSession | null {
+  return ws.deserializeAttachment() as SocketSession | null;
 }
 
 function send(ws: WebSocket, message: ServerMessage): void {

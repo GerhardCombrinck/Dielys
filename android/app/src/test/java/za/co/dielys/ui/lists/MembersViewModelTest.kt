@@ -167,6 +167,48 @@ class MembersViewModelTest {
             assertEquals(null, viewModel.members.value)
         }
 
+    /**
+     * A member takes a list off their phone from its own menu now that deleting
+     * it is the owner's call (ADR 0006) — and nothing opens when that works.
+     */
+    @Test
+    fun `leaving from the menu takes this account off the list and opens nothing`() =
+        runTest(dispatcher) {
+            api.guestOwns("list-1")
+
+            viewModel.leave("list-1")
+
+            assertEquals(listOf("list-1" to "device-a-user"), api.removedMembers)
+            assertEquals(null, viewModel.members.value)
+        }
+
+    @Test
+    fun `leaving with no stored user id finds this account by email first`() =
+        runTest(dispatcher) {
+            phone.account.userId = null
+            api.guestOwns("list-1")
+
+            viewModel.leave("list-1")
+
+            assertEquals(listOf("list-1" to "device-a-user"), api.removedMembers)
+            assertEquals(null, viewModel.members.value)
+        }
+
+    @Test
+    fun `a leave that could not be sent says why, as a leave`() =
+        runTest(dispatcher) {
+            api.guestOwns("list-1")
+            api.online = false
+
+            viewModel.leave("list-1")
+
+            val failed = viewModel.members.value as MembersState.Failed
+            assertEquals(
+                "Could not leave this list: No connection. Try again when you have signal.",
+                failed.message,
+            )
+        }
+
     /** This account's list, with one guest on it. */
     private fun FakeSyncApi.iAmOwnerOf(listId: String) {
         addMember(listId, "device-a-user", "device-a@dielys.test", isOwner = true)

@@ -2,7 +2,7 @@
  * Worker entry. Routing and auth only, no business logic (D1) — authenticate,
  * resolve which DO to talk to, forward.
  */
-import type { ErrorCode } from "@dielys/protocol";
+import type { ErrorCode, MembershipRole } from "@dielys/protocol";
 import { authenticate, authorizeAdmin, authorizeListAccess } from "./auth/authorize.js";
 import {
   ACCESS_TOKEN_TTL_SECONDS,
@@ -140,7 +140,7 @@ export default {
 
       // D3: one DO per list, addressed by name. Never a random id.
       const stub = env.LIST_ROOM.get(env.LIST_ROOM.idFromName(listId));
-      return await stub.fetch(doRequest(request, url, listId, action));
+      return await stub.fetch(doRequest(request, url, listId, action, auth.value.membership.role));
     } catch (error) {
       // D4: never leak a stack or an internal message to a client.
       log("error", "worker.unhandled", { path: url.pathname, error: String(error) });
@@ -704,10 +704,27 @@ async function readJson(request: Request): Promise<unknown> {
  * `listId` as a query parameter, because a DO cannot recover the name it was
  * addressed by.
  */
-function doRequest(request: Request, url: URL, listId: string, action: string): Request {
+/**
+ * The request as the room sees it. `role` is the answer `UsersRoom` just gave,
+ * handed over so the room can apply the one rule that depends on it — only an
+ * owner deletes a list — to writes the Worker never sees, the ones that arrive
+ * as frames on an open socket (ADR 0006). The room still never asks who is a
+ * member.
+ *
+ * `set`, not `append`: the client's own query string is copied into `target`,
+ * and a `?role=owner` typed onto it must be overwritten, not sat beside.
+ */
+function doRequest(
+  request: Request,
+  url: URL,
+  listId: string,
+  action: string,
+  role: MembershipRole,
+): Request {
   const target = new URL(url);
   target.pathname = `/${action}`;
   target.searchParams.set("listId", listId);
+  target.searchParams.set("role", role);
   return new Request(target, request);
 }
 

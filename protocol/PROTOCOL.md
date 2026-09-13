@@ -43,6 +43,12 @@ edit clobber every field.
 - **Tombstones are sticky** (F5.3). Once `deletedAt` is set, a later patch may still update
   other fields, but `deletedAt: null` is ignored — an update never resurrects a deleted row.
   This is the defined winner H3.7 requires; plain LWW would let arrival order decide.
+- **Only the list's owner may delete it.** A list mutation that sets `deletedAt` from a member
+  is refused with `forbidden` — 403 over HTTP, an `error` frame over the socket — carrying the
+  mutation's `idempotencyKey`. Every other mutation is open to every member. A member who wants
+  a list gone from their own phone leaves it instead (`DELETE /lists/{listId}/members/{self}`).
+  See `docs/adr/0006-owner-only-list-delete.md` for why the socket is where this has to be
+  enforced too.
 
 ## Messages
 

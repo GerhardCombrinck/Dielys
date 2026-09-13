@@ -82,6 +82,7 @@
     <string name="members_owner">umnini</string>
     <string name="members_solo">Akukho mntu wumbi okwangoku. Yabelana ngalo ukuze ungenise umntu.</string>
     <string name="members_failed">Ayikwazanga ukukhangela ukuba lwabelwana nabani: %1$s</string>
+    <string name="leave_failed">Ayikwazanga ukushiya olu luhlu: %1$s</string>
     <string name="action_remove">Susa</string>
     <string name="action_leave">Shiya uluhlu</string>
     <string name="cd_shared_list">Uluhlu olwabelwanayo</string>

@@ -1375,6 +1375,10 @@ How a second user gets access to a list.
 - **`ListRoom` MUST NOT check membership itself.** Every request to a `ListRoom` MUST be
   authorized by the Worker against `UsersRoom` membership first. Authorization logic lives in
   exactly one place.
+- **Only the owner deletes a list** ([ADR 0006](adr/0006-owner-only-list-delete.md)). The Worker
+  hands the room the role it resolved, and the room applies `domain/permissions.ts` `mayApply`
+  to every mutation on both write paths, because the Worker never sees a socket frame. A room
+  request with no role MUST be refused anything that rule restricts — fail closed.
 
 #### Rules
 

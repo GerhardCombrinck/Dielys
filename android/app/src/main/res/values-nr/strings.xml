@@ -83,6 +83,7 @@
     <string name="members_owner">umnikazi</string>
     <string name="members_solo">Akakho omunye okwanje. Yabelana ngalo bona ungenise umuntu.</string>
     <string name="members_failed">Ayikghonanga ukutjheja bona kwabelwana nobani: %1$s</string>
+    <string name="leave_failed">Ayikghonanga ukutjhiya irhelo leli: %1$s</string>
     <string name="action_remove">Susa</string>
     <string name="action_leave">Tjhiya irhelo</string>
     <string name="cd_shared_list">Irhelo elabelwanwako</string>

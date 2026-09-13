@@ -101,6 +101,7 @@
     <string name="members_owner">owner</string>
     <string name="members_solo">Nobody else yet. Share it to let somebody in.</string>
     <string name="members_failed">Could not check who this is shared with: %1$s</string>
+    <string name="leave_failed">Could not leave this list: %1$s</string>
     <string name="action_remove">Remove</string>
     <string name="action_leave">Leave list</string>
     <string name="cd_shared_list">Shared list</string>

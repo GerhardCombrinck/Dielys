@@ -69,7 +69,10 @@ spend a runner minute on per commit. Push when the change is complete and testab
 - **No secrets in `wrangler.jsonc` `vars`** — that file is committed. Secrets go through
   `wrangler secret put` and are gitignored locally as `.dev.vars`.
 - **`ListRoom` never checks membership.** The Worker authorizes every request against
-  `UsersRoom` before forwarding. See [L3](docs/CODE_STANDARD.md#standard-l3).
+  `UsersRoom` before forwarding. See [L3](docs/CODE_STANDARD.md#standard-l3). It *does* apply
+  one permission to the role the Worker hands it — only an owner deletes a list — because
+  socket frames never pass through the Worker. See
+  [ADR 0006](docs/adr/0006-owner-only-list-delete.md).
 - **Login answers the same way for a wrong password and an unknown account** — same status,
   same body, same timing (the login path hashes even when there is no such user). Three
   answers would be an account-enumeration oracle. A list you are not a member of is **403,

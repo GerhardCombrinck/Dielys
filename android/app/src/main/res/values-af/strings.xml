@@ -87,6 +87,7 @@
     <string name="members_owner">eienaar</string>
     <string name="members_solo">Nog niemand anders nie. Deel dit om iemand in te laat.</string>
     <string name="members_failed">Kon nie kyk met wie dit gedeel is nie: %1$s</string>
+    <string name="leave_failed">Kon nie die lys verlaat nie: %1$s</string>
     <string name="action_remove">Verwyder</string>
     <string name="action_leave">Verlaat lys</string>
     <string name="cd_shared_list">Gedeelde lys</string>

@@ -94,35 +94,73 @@ class MembersViewModel
             listId: String,
             userId: String,
         ) {
-            val current = _members.value
-            if (current is MembersState.Loaded && current.listId == listId) {
-                _members.value = current.copy(working = userId)
-            }
+            val loaded = (_members.value as? MembersState.Loaded)?.takeIf { it.listId == listId }
+            if (loaded != null) _members.value = loaded.copy(working = userId)
 
+            // "Me" as the sheet worked it out, by email, before the stored id: a
+            // session that predates the stored id would otherwise not know it
+            // had just left, and reload a sheet for a list it is no longer on.
+            val leaving = userId == (loaded?.meUserId ?: account.userId)
+            viewModelScope.launch { take(listId, userId, leaving) }
+        }
+
+        /**
+         * This account leaving [listId] from the list's own menu, without the
+         * sheet ever opening (ADR 0006) — the way a member gets a list off their
+         * phone now that deleting it is the owner's call.
+         *
+         * Nothing shows unless it goes wrong, and then the sheet opens on the
+         * reason: that is already where a failed leave is explained, so it is
+         * explained in the same place whichever way it was started.
+         */
+        fun leave(listId: String) {
             viewModelScope.launch {
-                when (val result = sharing.removeMember(listId, userId)) {
-                    RemoveResult.Removed -> {
-                        // Leaving takes the sheet with it: there is no list left
-                        // to be shown the members of, and the row underneath is
-                        // on its way out with the next sync.
-                        if (userId == account.userId) {
-                            _members.value = null
-                        } else {
-                            load(listId)
-                        }
-                    }
-
-                    RemoveResult.NotAllowed ->
-                        // Only reachable if the membership changed underneath —
-                        // the sheet offers nothing the server would refuse — so
-                        // showing what is true now beats explaining the refusal.
-                        load(listId)
-
-                    RemoveResult.Offline -> fail(listId, strings.get(R.string.error_offline))
-                    is RemoveResult.ServerProblem -> fail(listId, result.detail)
-                }
+                val me = account.userId ?: whoAmI(listId) ?: return@launch
+                take(listId, me, leaving = true)
             }
         }
+
+        private suspend fun take(
+            listId: String,
+            userId: String,
+            leaving: Boolean,
+        ) {
+            val failed = if (leaving) R.string.leave_failed else R.string.members_failed
+            when (val result = sharing.removeMember(listId, userId)) {
+                // Leaving takes the sheet with it: there is no list left to be
+                // shown the members of, and the row underneath is on its way out
+                // with the next sync.
+                RemoveResult.Removed -> if (leaving) _members.value = null else load(listId)
+
+                // Only reachable if the membership changed underneath — nothing
+                // offered is something the server would refuse — so showing what
+                // is true now beats explaining the refusal.
+                RemoveResult.NotAllowed -> load(listId)
+
+                RemoveResult.Offline -> fail(listId, strings.get(R.string.error_offline), failed)
+                is RemoveResult.ServerProblem -> fail(listId, result.detail, failed)
+            }
+        }
+
+        /**
+         * Which member of [listId] this account is, when no id was stored for it.
+         * Null — with the reason on screen — when the server could not be asked;
+         * null and silent when this account is already off the list, which is
+         * what leaving was for.
+         */
+        private suspend fun whoAmI(listId: String): String? =
+            when (val result = sharing.members(listId)) {
+                is MembersResult.Loaded -> result.members.firstOrNull(::isMe)?.userId
+                MembersResult.NotYours -> null
+                MembersResult.Offline -> {
+                    fail(listId, strings.get(R.string.error_offline), R.string.leave_failed)
+                    null
+                }
+                is MembersResult.ServerProblem -> {
+                    fail(listId, result.detail, R.string.leave_failed)
+                    null
+                }
+            }
 
         private suspend fun load(listId: String) {
             when (val result = sharing.members(listId)) {
@@ -155,8 +193,8 @@ class MembersViewModel
         private fun fail(
             listId: String,
             detail: String,
+            template: Int = R.string.members_failed,
         ) {
-            _members.value =
-                MembersState.Failed(listId, strings.get(R.string.members_failed, detail))
+            _members.value = MembersState.Failed(listId, strings.get(template, detail))
         }
     }

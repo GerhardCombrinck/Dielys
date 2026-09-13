@@ -82,6 +82,7 @@
     <string name="members_owner">umnikati</string>
     <string name="members_solo">Kute lomunye njengamanje. Yabelana ngalo kute ungenise umuntfu.</string>
     <string name="members_failed">Ayikhonanga kuhlola kutsi kwabelwane nabani: %1$s</string>
+    <string name="leave_failed">Ayikhonanga kushiya loluhlu: %1$s</string>
     <string name="action_remove">Susa</string>
     <string name="action_leave">Shiya luhlu</string>
     <string name="cd_shared_list">Luhlu lolwabelwene</string>
