@@ -64,6 +64,34 @@ Worker — which already resolves which DO to talk to (D1) — then:
 Items the deleted user wrote on a shared list stay on it. They carry a device id, never a user
 id or an email, and they are part of a list other people still have.
 
+### From the web: a mailed link, then a button
+
+Play also requires a way to delete an account without the app. `dielys.com/account/delete`
+does it in two steps, with control of the inbox as the only proof of identity — the same proof
+a magic link already accepts for signing in (ADR 0005):
+
+1. `POST /account/deletion/request` with an email. When the address has an account, a
+   256-bit token is minted, its hash stored in `account_deletion_requests` against the user id,
+   and a link to `/account/delete/confirm?token=…` mailed to the address. The answer is the same
+   whether or not there is an account. Rate-limited per client and per address, like
+   `/auth/magic/request`.
+2. That page deletes nothing when it loads — mail scanners and link previews open links on
+   their own. Its button sends `POST /account/deletion/confirm` with the token, which is spent
+   on every path (right, late, or replayed), and the Worker runs the same erasure as
+   `DELETE /account`.
+
+The tokens get **their own table**, not a `purpose` column on `magic_links`: a deletion token
+must never be redeemable as a sign-in, and a separate table makes that true without every
+magic-link query having to remember a filter. They last the same 15 minutes as a magic link.
+
+The mailed link points back at the origin the request came from, not at `APP_BASE_URL`, so a
+request made on the dev deployment is confirmed on the dev deployment. Nothing opens it in the
+app: the App Link intent filter covers only `/magic` and `/invite`.
+
+Only an address with an account costs a Brevo call, so that case answers measurably slower.
+That is an enumeration signal, knowingly accepted: public registration's `already-exists`
+already answers the same question outright (ADR 0004), and both are rate-limited.
+
 ### An invite to a list nobody is on is refused
 
 An invite token is a signed JWT that outlives nothing it refers to. Accepting one for a list

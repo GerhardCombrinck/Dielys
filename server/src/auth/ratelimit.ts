@@ -118,6 +118,31 @@ export const INVITE_EMAIL_PER_RECIPIENT: RateLimit = {
   windowMs: HOUR_MS,
 };
 
+/**
+ * Asking for an account deletion link from the web page (ADR 0007). The same
+ * shape as the magic-link limits and for the same two reasons: a person
+ * retrying while they find the email, and nobody mailbombing someone else.
+ */
+export const ACCOUNT_DELETION_REQUEST_PER_CLIENT: RateLimit = {
+  action: "account-deletion-request",
+  limit: 5,
+  windowMs: HOUR_MS,
+};
+
+export const ACCOUNT_DELETION_REQUEST_PER_EMAIL: RateLimit = {
+  action: "account-deletion-request-email",
+  limit: 3,
+  windowMs: 15 * MINUTE_MS,
+};
+
+/** Not a guessing defence either — the token is 256 random bits — but the
+ * endpoint is public, so it is bounded like every other public one. */
+export const ACCOUNT_DELETION_CONFIRM_PER_CLIENT: RateLimit = {
+  action: "account-deletion-confirm",
+  limit: 20,
+  windowMs: 15 * MINUTE_MS,
+};
+
 /** How many characters of the HMAC end up in the key. 128 bits of it. */
 const KEY_CHARS = 22;
 

@@ -152,6 +152,59 @@ export async function sendInviteEmail(
 }
 
 /**
+ * Sends the "confirm deleting your account" link (ADR 0007). Same
+ * never-throws shape as [sendMagicLinkEmail]. Worded so that someone who did
+ * not ask can see at once that ignoring it is safe: nothing happens unless the
+ * link is opened *and* the button on that page is pressed.
+ */
+export async function sendAccountDeletionEmail(
+  apiKey: string,
+  sender: EmailSender,
+  to: string,
+  link: string,
+  ttlMinutes: number,
+): Promise<SendResult> {
+  let response: Response;
+  try {
+    response = await fetch(BREVO_SEND_URL, {
+      method: "POST",
+      headers: {
+        "api-key": apiKey,
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        sender: { email: sender.email, name: sender.name },
+        to: [{ email: to }],
+        subject: "Confirm deleting your Die Lys account",
+        textContent: `Someone asked to delete the Die Lys account for this address. To go ahead, open this link and confirm:\n\n${link}\n\nIt expires in ${ttlMinutes} minutes and works once. If you did not ask for this, ignore this email and your account stays as it is.`,
+        htmlContent: renderEmailHtml({
+          heading: "Delete your Die Lys account?",
+          bodyHtml: `<p style="margin:0 0 8px;">Someone asked to delete the Die Lys account for this address. Open the link below and confirm on that page to go ahead.</p><p style="margin:0 0 8px;">Your account and any list only you are on will be erased. Lists you share stay with the others.</p>`,
+          buttonText: "Review and confirm",
+          buttonUrl: link,
+          footerNote: `This link expires in ${ttlMinutes} minutes and works once. If you did not ask for this, ignore this email and your account stays as it is.`,
+        }),
+      }),
+    });
+  } catch (error) {
+    log("warn", "brevo.send.failed", { error: String(error) });
+    return { sent: false };
+  }
+
+  if (!response.ok) {
+    // Never log the body: a Brevo error response echoes the recipient (D4).
+    log("warn", "brevo.send.rejected", { status: response.status });
+    return { sent: false };
+  }
+
+  const body = await response
+    .json<{ messageId?: string }>()
+    .catch(() => ({}) as { messageId?: string });
+  return { sent: true, messageId: typeof body.messageId === "string" ? body.messageId : null };
+}
+
+/**
  * Whether Brevo has recorded a `delivered` event for this message yet.
  * Answers `false` on any failure to reach Brevo or parse its response —
  * this only ever gates an optimistic "delivered" label the caller polls

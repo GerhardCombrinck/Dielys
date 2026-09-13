@@ -12,6 +12,7 @@ describe("static pages", () => {
     ["/", "Lists you share"],
     ["/privacy", "Privacy policy"],
     ["/account/delete", "Delete your Die Lys account"],
+    ["/account/delete/confirm", "Delete your account for good?"],
   ] as const) {
     it(`serves ${path}`, async () => {
       // Through the binding: SELF calls the Worker's own fetch directly and

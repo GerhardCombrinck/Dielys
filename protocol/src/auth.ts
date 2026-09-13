@@ -263,3 +263,26 @@ export interface VerifyMagicLinkRequest {
   token: string;
   deviceId: string;
 }
+
+/**
+ * `POST /account/deletion/request` (ADR 0007, "From the web"). For someone who
+ * no longer has the app: a confirmation link is mailed to the address if it
+ * has an account, and the response is the same whether or not it does.
+ */
+export interface RequestAccountDeletionRequest {
+  email: string;
+}
+
+export interface RequestAccountDeletionResponse {
+  /** Seconds until a mailed link expires. Not a timestamp (F5.9). */
+  expiresIn: number;
+}
+
+/**
+ * `POST /account/deletion/confirm`. The token from the mailed link, and
+ * nothing else: holding it is the proof of the inbox. Answered `204` once the
+ * account is erased; `invalid-token` or `token-expired` otherwise.
+ */
+export interface ConfirmAccountDeletionRequest {
+  token: string;
+}

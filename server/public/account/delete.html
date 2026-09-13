@@ -28,8 +28,19 @@
       <li>Confirm. You are signed out and your account is gone.</li>
     </ol>
 
-    <h2>Without the app</h2>
-    <p>Email <a href="mailto:[CONTACT_EMAIL]?subject=Delete%20my%20Die%20Lys%20account">[CONTACT_EMAIL]</a> from the address you sign in with and ask us to delete your account. We will confirm once it is done, within 30 days and usually much sooner.</p>
+    <h2>Here, without the app</h2>
+    <p>Enter the email address you sign in with. We will email you a link; open it and confirm, and your account is deleted.</p>
+
+    <form id="request" class="card" novalidate>
+      <label for="email">Email address</label>
+      <div class="field">
+        <input id="email" name="email" type="email" autocomplete="email" required maxlength="320">
+        <button type="submit">Email me a link</button>
+      </div>
+      <p id="status" class="status" role="status" aria-live="polite" hidden></p>
+    </form>
+
+    <p>If that does not work for you, email <a href="mailto:support@invisionsoft.co.za?subject=Delete%20my%20Die%20Lys%20account">support@invisionsoft.co.za</a> from the address you sign in with and we will delete it for you, within 30 days and usually much sooner.</p>
 
     <h2>What is deleted</h2>
     <ul>
@@ -53,5 +64,53 @@
       <a href="/privacy">Privacy</a>
     </div>
   </footer>
+  <script>
+    // POST /account/deletion/request (PROTOCOL.md "Deleting an account"). The
+    // answer is the same whether or not the address has an account, so the
+    // message is too.
+    const form = document.getElementById("request");
+    const input = document.getElementById("email");
+    const button = form.querySelector("button");
+    const statusLine = document.getElementById("status");
+
+    function say(text, isError) {
+      statusLine.textContent = text;
+      statusLine.classList.toggle("error", isError);
+      statusLine.hidden = false;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const email = input.value.trim();
+      if (!input.checkValidity() || email === "") {
+        say("Enter the email address you sign in with.", true);
+        return;
+      }
+      button.disabled = true;
+      say("Sending…", false);
+      try {
+        const response = await fetch("/account/deletion/request", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        if (response.ok) {
+          const { expiresIn } = await response.json();
+          const minutes = Math.round(expiresIn / 60);
+          say(`If there is a Die Lys account for ${email}, we have emailed it a link. It expires in ${minutes} minutes.`, false);
+        } else if (response.status === 429) {
+          say("Too many tries. Wait a few minutes and try again.", true);
+        } else if (response.status === 400) {
+          say("That does not look like an email address.", true);
+        } else {
+          say("Something went wrong on our side. Try again later, or email us instead.", true);
+        }
+      } catch {
+        say("No connection. Try again when you are online.", true);
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
 </body>
 </html>

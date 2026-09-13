@@ -17,12 +17,14 @@ import { UsersRoom } from "./do/UsersRoom.js";
 import {
   parseJson,
   validateAcceptInviteRequest,
+  validateConfirmAccountDeletionRequest,
   validateCreateInviteRequest,
   validateCreateUserRequest,
   validateLoginRequest,
   validateRefreshRequest,
   validateRegisterDeviceRequest,
   validateRegisterRequest,
+  validateRequestAccountDeletionRequest,
   validateRequestMagicLinkRequest,
   validateSetListPositionRequest,
   validateVerifyMagicLinkRequest,
@@ -98,6 +100,10 @@ export default {
           return await handleAcceptInvite(request, env, now);
         case "/account":
           return await handleDeleteAccount(request, env);
+        case "/account/deletion/request":
+          return await handleRequestAccountDeletion(request, env, url, now);
+        case "/account/deletion/confirm":
+          return await handleConfirmAccountDeletion(request, env, now);
       }
 
       const invite = INVITE_ROUTE.exec(url.pathname);
@@ -547,6 +553,70 @@ async function handleDeleteAccount(request: Request, env: Env): Promise<Response
   if (!auth.ok) return errorResponse(auth.code, auth.status);
 
   await eraseAccount(env, auth.value.userId);
+  return new Response(null, { status: 204 });
+}
+
+/**
+ * `POST /account/deletion/request` — the web deletion page's first step
+ * (ADR 0007). Public: someone without the app has no session to show.
+ */
+async function handleRequestAccountDeletion(
+  request: Request,
+  env: Env,
+  url: URL,
+  now: number,
+): Promise<Response> {
+  if (request.method !== "POST") return errorResponse("malformed", 405);
+  if (!isUsableEmailConfig(env)) {
+    log("error", "worker.account-deletion.unconfigured", {});
+    return errorResponse("internal", 503);
+  }
+
+  const body = await readJson(request);
+  if (body === null) return errorResponse("malformed", 400);
+  const parsed = validateRequestAccountDeletionRequest(body);
+  if (!parsed.ok) return errorResponse("malformed", 400);
+
+  const result = await usersRoom(env).requestAccountDeletion(
+    parsed.value.email,
+    url.origin,
+    await bucketKey(request, env),
+    now,
+  );
+  if (!result.ok) {
+    log("info", "worker.account-deletion.request.rejected", { code: result.code });
+    return errorResponse(result.code, magicRequestStatus(result.code));
+  }
+  return Response.json(result.value);
+}
+
+/**
+ * `POST /account/deletion/confirm` — the second step, sent by the button on
+ * the page the mailed link opens. The token is the only credential.
+ */
+async function handleConfirmAccountDeletion(
+  request: Request,
+  env: Env,
+  now: number,
+): Promise<Response> {
+  if (request.method !== "POST") return errorResponse("malformed", 405);
+
+  const body = await readJson(request);
+  if (body === null) return errorResponse("malformed", 400);
+  const parsed = validateConfirmAccountDeletionRequest(body);
+  if (!parsed.ok) return errorResponse("malformed", 400);
+
+  const result = await usersRoom(env).confirmAccountDeletion(
+    parsed.value.token,
+    await bucketKey(request, env),
+    now,
+  );
+  if (!result.ok) {
+    log("info", "worker.account-deletion.confirm.rejected", { code: result.code });
+    return errorResponse(result.code, result.code === "rate-limited" ? 429 : 401);
+  }
+
+  await eraseAccount(env, result.value.userId);
   return new Response(null, { status: 204 });
 }
 

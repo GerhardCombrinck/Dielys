@@ -57,9 +57,12 @@ async function person(deviceId = `device-${crypto.randomUUID()}`): Promise<Perso
 }
 
 let inviteTokens = new Map<string, string>();
+/** Every "confirm deleting your account" email, with the link it carried. */
+let deletionMails: Array<{ to: string; link: URL }> = [];
 
 beforeEach(() => {
   inviteTokens = new Map();
+  deletionMails = [];
   vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input.toString();
     if (url !== BREVO_URL) throw new Error(`unexpected fetch in test: ${url}`);
@@ -67,9 +70,15 @@ beforeEach(() => {
       to: Array<{ email: string }>;
       textContent: string;
     };
-    const match = /[?&]t=([^\s&]+)/.exec(body.textContent);
-    if (match === null) throw new Error("invite email carried no token");
-    inviteTokens.set(body.to[0]?.email as string, decodeURIComponent(match[1] as string));
+    const to = body.to[0]?.email as string;
+    const deletion = /(https?:\/\/\S+\/account\/delete\/confirm\S*)/.exec(body.textContent);
+    if (deletion !== null) {
+      deletionMails.push({ to, link: new URL(deletion[1] as string) });
+    } else {
+      const match = /[?&]t=([^\s&]+)/.exec(body.textContent);
+      if (match === null) throw new Error("email carried no recognisable link");
+      inviteTokens.set(to, decodeURIComponent(match[1] as string));
+    }
     return Promise.resolve(Response.json({ messageId: "msg" }, { status: 201 }));
   });
 });
@@ -283,5 +292,104 @@ describe("deleting an account (ADR 0007)", () => {
     await deleteAccount(owner.tokens.accessToken);
 
     expect(await closed).toBe(1012);
+  });
+});
+
+describe("deleting an account from the web page (ADR 0007)", () => {
+  const ask = (email: string, address?: string) =>
+    SELF.fetch("https://dielys.test/account/deletion/request", {
+      method: "POST",
+      headers: { "content-type": "application/json", "CF-Connecting-IP": address ?? nextAddress() },
+      body: JSON.stringify({ email }),
+    });
+  const confirm = (token: string) => post("/account/deletion/confirm", { token });
+
+  it("mails a link back to the page it was asked from, and the button erases the account", async () => {
+    const gone = await person();
+    const listId = await ownedList(gone);
+
+    const asked = await ask(gone.email.toUpperCase());
+    expect(asked.status).toBe(200);
+    expect(await asked.json()).toEqual({ expiresIn: 15 * 60 });
+
+    expect(deletionMails).toHaveLength(1);
+    const { to, link } = deletionMails[0] as { to: string; link: URL };
+    expect(to).toBe(gone.email);
+    expect(link.origin).toBe("https://dielys.test");
+    expect(link.pathname).toBe("/account/delete/confirm");
+    const token = link.searchParams.get("token") as string;
+
+    // Asking alone changes nothing: the account still works.
+    expect((await get("/auth/memberships", gone.tokens.accessToken)).status).toBe(200);
+    const refreshStillWorks = await post("/auth/refresh", {
+      refreshToken: gone.tokens.refreshToken,
+      deviceId: gone.deviceId,
+    });
+    expect(refreshStillWorks.status).toBe(200);
+
+    expect((await confirm(token)).status).toBe(204);
+
+    const login = await post("/auth/login", {
+      email: gone.email,
+      password: PASSWORD,
+      deviceId: gone.deviceId,
+    });
+    expect(login.status).toBe(401);
+    const stranger = await person();
+    expect((await post(`/lists/${listId}`, {}, stranger.tokens.accessToken)).status).toBe(200);
+    expect(await changeCount(listId, stranger.tokens.accessToken)).toBe(0);
+  });
+
+  it("answers the same for an address with no account, and mails nothing", async () => {
+    const asked = await ask(uniqueEmail());
+    expect(asked.status).toBe(200);
+    expect(await asked.json()).toEqual({ expiresIn: 15 * 60 });
+    expect(deletionMails).toHaveLength(0);
+  });
+
+  it("a link works once", async () => {
+    const gone = await person();
+    await ask(gone.email);
+    const token = deletionMails[0]?.link.searchParams.get("token") as string;
+
+    expect((await confirm(token)).status).toBe(204);
+    const replay = await confirm(token);
+    expect(replay.status).toBe(401);
+    expect(((await replay.json()) as { code: string }).code).toBe("invalid-token");
+  });
+
+  it("a newer request replaces the older link", async () => {
+    const kept = await person();
+    await ask(kept.email);
+    await ask(kept.email);
+    const [older, newer] = deletionMails.map((m) => m.link.searchParams.get("token") as string);
+
+    expect((await confirm(older as string)).status).toBe(401);
+    expect((await confirm(newer as string)).status).toBe(204);
+  });
+
+  it("never lets a deletion token sign anybody in", async () => {
+    const kept = await person();
+    await ask(kept.email);
+    const token = deletionMails[0]?.link.searchParams.get("token") as string;
+
+    const signIn = await post("/auth/magic/verify", { token, deviceId: "device-z" });
+    expect(signIn.status).toBe(401);
+    // And trying did not spend it.
+    expect((await confirm(token)).status).toBe(204);
+  });
+
+  it("refuses a made-up token and a malformed body", async () => {
+    expect((await confirm("not-a-real-token")).status).toBe(401);
+    expect((await post("/account/deletion/confirm", { token: "" })).status).toBe(400);
+    expect((await ask("not-an-email")).status).toBe(400);
+  });
+
+  it("stops one address being mailed over and over", async () => {
+    const target = await person();
+    const statuses: number[] = [];
+    for (let i = 0; i < 4; i++) statuses.push((await ask(target.email)).status);
+    expect(statuses).toEqual([200, 200, 200, 429]);
+    expect(deletionMails).toHaveLength(3);
   });
 });

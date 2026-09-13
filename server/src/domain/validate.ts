@@ -14,6 +14,7 @@ import {
   type AcceptInviteRequest,
   type CatchUpRequest,
   type ClientHello,
+  type ConfirmAccountDeletionRequest,
   type CreateInviteRequest,
   type ListPatch,
   type LoginRequest,
@@ -29,6 +30,7 @@ import {
   type RefreshRequest,
   type RegisterDeviceRequest,
   type RegisterRequest,
+  type RequestAccountDeletionRequest,
   type RequestMagicLinkRequest,
   type SetListPositionRequest,
   type TaskPatch,
@@ -302,6 +304,27 @@ export function validateVerifyMagicLinkRequest(input: unknown): Validated<Verify
   }
   if (!isId(input.deviceId)) return fail("deviceId");
   return { ok: true, value: { token, deviceId: input.deviceId } };
+}
+
+/** `POST /account/deletion/request` (ADR 0007): an address, nothing else. */
+export function validateRequestAccountDeletionRequest(
+  input: unknown,
+): Validated<RequestAccountDeletionRequest> {
+  if (!isRecord(input)) return fail("not an object");
+  if (!isEmail(input.email)) return fail("email");
+  return { ok: true, value: { email: input.email } };
+}
+
+/** Bounded the same way as a magic-link token, for the same reason. */
+export function validateConfirmAccountDeletionRequest(
+  input: unknown,
+): Validated<ConfirmAccountDeletionRequest> {
+  if (!isRecord(input)) return fail("not an object");
+  const token = input.token;
+  if (typeof token !== "string" || token.length === 0 || token.length > 512) {
+    return fail("token");
+  }
+  return { ok: true, value: { token } };
 }
 
 export function validateRefreshRequest(input: unknown): Validated<RefreshRequest> {

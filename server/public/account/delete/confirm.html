@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Confirm account deletion · Die Lys</title>
+  <!-- The token is in the query string; keep it out of any Referer sent from here. -->
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <a href="/">
+        <svg viewBox="27 27 54 54" aria-hidden="true"><rect x="27" y="27" width="54" height="54" rx="12" fill="#1B2A4A" stroke="#fff" stroke-opacity=".25"/><path fill="#fff" d="M45.5,40 h8 a11,11 0 0 1 0,28 h-8 z"/></svg>
+        <strong>Die Lys</strong>
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <section id="ask">
+      <h1>Delete your account for good?</h1>
+      <p class="lede">This is the last step. Nothing has been deleted yet.</p>
+      <div class="card">
+        <p>When you press the button:</p>
+        <ul>
+          <li>Your account and email address are erased, and you are signed out on every phone.</li>
+          <li>Every list only you are on is erased, with everything on it.</li>
+          <li>Lists you share stay with the others. If you own one, it passes to whoever has been on it longest.</li>
+        </ul>
+        <p><strong>There is no getting it back.</strong></p>
+        <button id="confirm" class="danger" type="button">Delete my account</button>
+        <p id="status" class="status" role="status" aria-live="polite" hidden></p>
+      </div>
+      <p><a href="/">Keep my account</a></p>
+    </section>
+
+    <section id="done" hidden>
+      <h1>Your account has been deleted</h1>
+      <p class="lede">Your account, and every list only you were on, are gone. You can uninstall Die Lys from your phone.</p>
+    </section>
+
+    <section id="dead" hidden>
+      <h1>This link no longer works</h1>
+      <p class="lede">It has expired or has already been used. Links work once, for 15 minutes.</p>
+      <p><a href="/account/delete">Ask for a new link</a></p>
+    </section>
+  </main>
+
+  <footer>
+    <div class="bar">
+      <span>© Invisionsoft (Pty) Ltd</span>
+      <a href="/">Home</a>
+      <a href="/privacy">Privacy</a>
+    </div>
+  </footer>
+  <script>
+    // Opening this page deletes nothing: mail scanners open links on their own.
+    // Only the button sends POST /account/deletion/confirm with the token.
+    const token = new URLSearchParams(location.search).get("token");
+    const button = document.getElementById("confirm");
+    const statusLine = document.getElementById("status");
+
+    function show(id) {
+      for (const section of ["ask", "done", "dead"]) {
+        document.getElementById(section).hidden = section !== id;
+      }
+    }
+
+    function say(text) {
+      statusLine.textContent = text;
+      statusLine.classList.add("error");
+      statusLine.hidden = false;
+    }
+
+    if (!token) show("dead");
+
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      statusLine.hidden = true;
+      try {
+        const response = await fetch("/account/deletion/confirm", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+        if (response.status === 204) {
+          // Drop the spent token from the address bar and history.
+          history.replaceState(null, "", location.pathname);
+          show("done");
+          return;
+        }
+        if (response.status === 401 || response.status === 400) {
+          show("dead");
+          return;
+        }
+        say(response.status === 429
+          ? "Too many tries. Wait a few minutes and try again."
+          : "Something went wrong on our side. Nothing was deleted. Try again in a moment.");
+      } catch {
+        say("No connection. Nothing was deleted. Try again when you are online.");
+      }
+      button.disabled = false;
+    });
+  </script>
+</body>
+</html>

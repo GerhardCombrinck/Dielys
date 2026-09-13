@@ -559,3 +559,60 @@ export function deleteMagicLink(sql: SqlStorage, tokenHash: string): void {
 export function deleteExpiredMagicLinks(sql: SqlStorage, before: string): void {
   sql.exec("DELETE FROM magic_links WHERE expires_at < ?", before);
 }
+
+export interface AccountDeletionRequestRow {
+  tokenHash: string;
+  userId: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+/** A mailed "delete my account" link, by the hash of its token (ADR 0007). */
+export function insertAccountDeletionRequest(
+  sql: SqlStorage,
+  row: AccountDeletionRequestRow,
+): void {
+  sql.exec(
+    `INSERT INTO account_deletion_requests (token_hash, user_id, expires_at, created_at)
+     VALUES (?, ?, ?, ?)`,
+    row.tokenHash,
+    row.userId,
+    row.expiresAt,
+    row.createdAt,
+  );
+}
+
+export function selectAccountDeletionRequest(
+  sql: SqlStorage,
+  tokenHash: string,
+): AccountDeletionRequestRow | null {
+  const rows = [
+    ...sql.exec(
+      `SELECT token_hash, user_id, expires_at, created_at
+         FROM account_deletion_requests WHERE token_hash = ?`,
+      tokenHash,
+    ),
+  ];
+  const row = rows[0];
+  if (row === undefined) return null;
+  return {
+    tokenHash: String(row.token_hash),
+    userId: String(row.user_id),
+    expiresAt: String(row.expires_at),
+    createdAt: String(row.created_at),
+  };
+}
+
+export function deleteAccountDeletionRequest(sql: SqlStorage, tokenHash: string): void {
+  sql.exec("DELETE FROM account_deletion_requests WHERE token_hash = ?", tokenHash);
+}
+
+/** One outstanding link per account: a new request replaces the old, and an
+ * erased account leaves none behind. */
+export function deleteAccountDeletionRequestsForUser(sql: SqlStorage, userId: string): void {
+  sql.exec("DELETE FROM account_deletion_requests WHERE user_id = ?", userId);
+}
+
+export function deleteExpiredAccountDeletionRequests(sql: SqlStorage, before: string): void {
+  sql.exec("DELETE FROM account_deletion_requests WHERE expires_at < ?", before);
+}

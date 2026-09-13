@@ -9,6 +9,9 @@ import {
   verifyPassword,
 } from "../auth/password.js";
 import {
+  ACCOUNT_DELETION_CONFIRM_PER_CLIENT,
+  ACCOUNT_DELETION_REQUEST_PER_CLIENT,
+  ACCOUNT_DELETION_REQUEST_PER_EMAIL,
   bucketFor,
   emailKey,
   INVITE_EMAIL_PER_LIST,
@@ -27,6 +30,7 @@ import {
   isEmailDelivered,
   sendInviteEmail as mailInvite,
   parseEmailSender,
+  sendAccountDeletionEmail,
   sendMagicLinkEmail,
 } from "../email/brevo.js";
 import { log } from "../lib/log.js";
@@ -42,8 +46,11 @@ import {
   countListMembers,
   countUsers,
   type DeviceRow,
+  deleteAccountDeletionRequest,
+  deleteAccountDeletionRequestsForUser,
   deleteDevice,
   deleteDevicesForUser,
+  deleteExpiredAccountDeletionRequests,
   deleteExpiredMagicLinks,
   deleteExpiredRefreshTokens,
   deleteListHead,
@@ -54,12 +61,14 @@ import {
   deleteRefreshTokensForUser,
   deleteStaleRateLimits,
   deleteUser,
+  insertAccountDeletionRequest,
   insertMagicLink,
   insertMembership,
   insertRefreshToken,
   insertUser,
   markRefreshTokenUsed,
   recordListHead,
+  selectAccountDeletionRequest,
   selectDevicesForList,
   selectListMembers,
   selectLongestOtherMember,
@@ -86,6 +95,10 @@ export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
  * message, short enough that a link sitting unread in an inbox stops being
  * useful quickly. */
 export const MAGIC_LINK_TTL_MS = 15 * 60 * 1000;
+
+/** How long a mailed account deletion link lasts — the same 15 minutes as a
+ * magic link, which is what the privacy policy promises for both. */
+export const ACCOUNT_DELETION_TTL_MS = MAGIC_LINK_TTL_MS;
 
 /**
  * A ceiling on one fan-out, not a household size. Two people have two phones;
@@ -582,6 +595,7 @@ export class UsersRoom extends DurableObject {
       deleteRefreshTokensForUser(this.sql, userId);
       deleteDevicesForUser(this.sql, userId);
       deleteMagicLinksForEmail(this.sql, user.email);
+      deleteAccountDeletionRequestsForUser(this.sql, userId);
       deleteUser(this.sql, userId);
     });
 
@@ -592,6 +606,95 @@ export class UsersRoom extends DurableObject {
       handedOver,
     });
     return erasure;
+  }
+
+  /**
+   * The web page's first step (ADR 0007, "From the web"): mails a link that
+   * confirms deleting the account for [email], when there is one. Answers the
+   * same either way, so the page cannot be used to ask whether an address has
+   * an account — though the send makes the known-account case slower, a
+   * difference registration's own `already-exists` already gives away.
+   *
+   * [origin] is the site the request came from, so the link returns to the
+   * page on that same deployment rather than to prod from dev.
+   */
+  async requestAccountDeletion(
+    email: string,
+    origin: string,
+    clientKey: string,
+    now: number,
+  ): Promise<UsersResult<{ expiresIn: number }>> {
+    const normalized = normalizeEmail(email);
+    const answer = { ok: true as const, value: { expiresIn: ACCOUNT_DELETION_TTL_MS / 1000 } };
+
+    if (!this.consume(ACCOUNT_DELETION_REQUEST_PER_CLIENT, clientKey, now)) {
+      return { ok: false, code: "rate-limited" };
+    }
+    const emailBucket = await emailKey(normalized, this.env.JWT_SIGNING_KEY);
+    if (!this.consume(ACCOUNT_DELETION_REQUEST_PER_EMAIL, emailBucket, now)) {
+      return { ok: false, code: "rate-limited" };
+    }
+
+    const user = selectUserByEmail(this.sql, normalized);
+    if (user === null) return answer;
+
+    const sender = this.email();
+    if (sender === null) {
+      log("error", "usersroom.account-deletion.unconfigured", {});
+      return { ok: false, code: "internal" };
+    }
+
+    const token = generateRefreshToken();
+    const link = new URL("/account/delete/confirm", origin);
+    link.searchParams.set("token", token);
+    const result = await sendAccountDeletionEmail(
+      this.env.BREVO_API_KEY,
+      sender,
+      normalized,
+      link.toString(),
+      ACCOUNT_DELETION_TTL_MS / 60_000,
+    );
+    if (!result.sent) return { ok: false, code: "internal" };
+
+    const tokenHash = await hashRefreshToken(token);
+    const nowIso = new Date(now).toISOString();
+    this.ctx.storage.transactionSync(() => {
+      deleteAccountDeletionRequestsForUser(this.sql, user.id);
+      insertAccountDeletionRequest(this.sql, {
+        tokenHash,
+        userId: user.id,
+        expiresAt: new Date(now + ACCOUNT_DELETION_TTL_MS).toISOString(),
+        createdAt: nowIso,
+      });
+      deleteExpiredAccountDeletionRequests(this.sql, nowIso);
+    });
+    log("info", "usersroom.account-deletion.requested", { userId: user.id });
+    return answer;
+  }
+
+  /**
+   * The web page's second step: spends the token and names the account it was
+   * minted for, which the Worker then erases exactly as `DELETE /account` does.
+   * Burned on every path, like a magic link, so a link works once whether it
+   * was right, late, or replayed.
+   */
+  async confirmAccountDeletion(
+    token: string,
+    clientKey: string,
+    now: number,
+  ): Promise<UsersResult<{ userId: string }>> {
+    if (!this.consume(ACCOUNT_DELETION_CONFIRM_PER_CLIENT, clientKey, now)) {
+      return { ok: false, code: "rate-limited" };
+    }
+
+    const tokenHash = await hashRefreshToken(token);
+    const row = selectAccountDeletionRequest(this.sql, tokenHash);
+    if (row === null) return { ok: false, code: "invalid-token" };
+
+    this.ctx.storage.transactionSync(() => deleteAccountDeletionRequest(this.sql, tokenHash));
+    if (Date.parse(row.expiresAt) <= now) return { ok: false, code: "token-expired" };
+
+    return { ok: true, value: { userId: row.userId } };
   }
 
   async checkMembership(userId: string, listId: string): Promise<Membership | null> {

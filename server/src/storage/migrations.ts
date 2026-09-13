@@ -19,6 +19,7 @@ import usersV4 from "../../migrations/users/0004_membership_position.sql";
 import usersV5 from "../../migrations/users/0005_magic_links.sql";
 import usersV6 from "../../migrations/users/0006_magic_link_delivery.sql";
 import usersV7 from "../../migrations/users/0007_list_heads.sql";
+import usersV8 from "../../migrations/users/0008_account_deletion_requests.sql";
 
 export interface Migration {
   version: number;
@@ -40,6 +41,7 @@ export const USERS_MIGRATIONS: readonly Migration[] = [
   { version: 5, name: "0005_magic_links", sql: usersV5 },
   { version: 6, name: "0006_magic_link_delivery", sql: usersV6 },
   { version: 7, name: "0007_list_heads", sql: usersV7 },
+  { version: 8, name: "0008_account_deletion_requests", sql: usersV8 },
 ];
 
 /**

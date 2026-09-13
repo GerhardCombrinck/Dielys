@@ -104,6 +104,8 @@ rules are CODE_STANDARD.md L1–L3.
 | POST | `/lists/{listId}/invite` | access token, owner | `CreateInviteRequest` → `CreateInviteResponse` |
 | POST | `/invites/accept` | access token | `AcceptInviteRequest` → `AcceptInviteResponse` |
 | DELETE | `/account` | access token | Erases the caller's account. `204`, no body. See "Deleting an account" |
+| POST | `/account/deletion/request` | none | `RequestAccountDeletionRequest` → `RequestAccountDeletionResponse` |
+| POST | `/account/deletion/confirm` | none | `ConfirmAccountDeletionRequest` → `204` |
 | POST | `/admin/users` | `ADMIN_TOKEN` | Account creation (L2). Not a public endpoint |
 
 Every request carries the access token as `Authorization: Bearer <jwt>` — **including the
@@ -180,6 +182,13 @@ that is already gone, so a retry after a lost response is safe. After it, the ca
 token is refused like any other dead one.
 
 An invite to a list that has no members left is refused with `forbidden`.
+
+Without the app, the same deletion is reached from `dielys.com/account/delete` in two steps.
+`POST /account/deletion/request` takes an email and answers `{ expiresIn }` whether or not the
+address has an account; when it does, a link to `/account/delete/confirm?token=…` is mailed to
+it. That page deletes nothing on its own — mail scanners open links — until the person presses
+its button, which sends `POST /account/deletion/confirm` with the token. A token is single-use,
+expires with the same 15 minutes as a magic link, and can never be redeemed as a sign-in.
 
 ## Wake push (M1)
 
