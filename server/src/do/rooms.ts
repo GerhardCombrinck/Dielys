@@ -5,10 +5,16 @@
  * caller any more: `ListRoom` reaches `UsersRoom` to fan a wake push out to the
  * devices that did not get the change over a socket (M2).
  */
+import type { ListRoom } from "./ListRoom.js";
 import type { UsersRoom } from "./UsersRoom.js";
 
 /** The name the singleton is addressed by. Changing it orphans every account. */
 const USERS_ROOM_NAME = "users-v1";
+
+/** One list's room. D3: addressed by the list id, never a random id. */
+export function listRoom(env: Env, listId: string): DurableObjectStub<ListRoom> {
+  return env.LIST_ROOM.get(env.LIST_ROOM.idFromName(listId));
+}
 
 export function usersRoom(env: Env): DurableObjectStub<UsersRoom> {
   // A singleton by construction: one fixed name, so every Worker isolate in

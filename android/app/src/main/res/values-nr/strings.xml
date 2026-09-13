@@ -117,4 +117,11 @@
     <string name="settings_sign_out">Phuma</string>
     <string name="settings_language">Ilimi</string>
     <string name="settings_language_system_default">Okuzenzakalelako kwesistimu</string>
+
+    <string name="settings_delete_account">Susa i-akhawunti</string>
+    <string name="settings_deleting_account">Isusa i-akhawunti…</string>
+    <string name="confirm_delete_account_title">Susa i-akhawunti yakho?</string>
+    <string name="confirm_delete_account_body">I-akhawunti yakho, nanyana ngiliphi irhelo okukuwe wedwa kilo, kususwa kufuni le nakusesiveni sethu. Amarhelo owabelana ngawo ahlala nabanye; elakho liya kilowo obekade kilo isikhathi eside. Angeke ubuyiselwe.</string>
+    <string name="action_delete_account">Susa i-akhawunti</string>
+    <string name="error_delete_account_failed">Ayikghonanga ukususa i-akhawunti yakho: %1$s. Akukho okutjhugulukileko.</string>
 </resources>

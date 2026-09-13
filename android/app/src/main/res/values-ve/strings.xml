@@ -116,4 +116,11 @@
     <string name="settings_sign_out">Bvani</string>
     <string name="settings_language">Luambo</string>
     <string name="settings_language_system_default">Zwa sisiteme</string>
+
+    <string name="settings_delete_account">Thutha akhaunthu</string>
+    <string name="settings_deleting_account">I khou thutha akhaunthu…</string>
+    <string name="confirm_delete_account_title">Thutha akhaunthu yaṋu?</string>
+    <string name="confirm_delete_account_body">Akhaunthu yaṋu, na mutevhe muṅwe na muṅwe une na vha khawo ni noṱhe, zwi a thuthiwa kha ulu lutingo na kha sevha yashu. Mitevhe ine na i kovhekana i sala na vhaṅwe; une wa vha waṋu u ya kha ane a vha khawo tshifhinga tshilapfu. A zwi vhuyi.</string>
+    <string name="action_delete_account">Thutha akhaunthu</string>
+    <string name="error_delete_account_failed">Zwo kundelwa u thutha akhaunthu yaṋu: %1$s. A hu na zwo shandukaho.</string>
 </resources>

@@ -116,4 +116,11 @@
     <string name="settings_sign_out">Phuma</string>
     <string name="settings_language">Ulimi</string>
     <string name="settings_language_system_default">Okuzenzakalelayo kwesistimu</string>
+
+    <string name="settings_delete_account">Susa i-akhawunti</string>
+    <string name="settings_deleting_account">Isusa i-akhawunti…</string>
+    <string name="confirm_delete_account_title">Susa i-akhawunti yakho?</string>
+    <string name="confirm_delete_account_body">I-akhawunti yakho, kanye nanoma yiluphi uhlu okulo wena wedwa, kususwa kule foni nakuseva yethu. Uhlu owabelana ngalo luhlala nabanye; olwakho luya kulowo obekade ekulo isikhathi eside. Ngeke ukubuyise.</string>
+    <string name="action_delete_account">Susa i-akhawunti</string>
+    <string name="error_delete_account_failed">Ayikwazanga ukususa i-akhawunti yakho: %1$s. Akukho okushintshile.</string>
 </resources>

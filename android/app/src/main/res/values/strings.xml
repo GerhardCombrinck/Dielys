@@ -136,4 +136,12 @@
     <string name="settings_sign_out">Sign out</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_system_default">System default</string>
+
+    <!-- Deleting the account (ADR 0007). -->
+    <string name="settings_delete_account">Delete account</string>
+    <string name="settings_deleting_account">Deleting account…</string>
+    <string name="confirm_delete_account_title">Delete your account?</string>
+    <string name="confirm_delete_account_body">Your account, and any list only you are on, are erased from our server, and everything is cleared off this phone. Lists you share stay with the others; one you own passes to whoever has been on it longest. There is no getting it back.</string>
+    <string name="action_delete_account">Delete account</string>
+    <string name="error_delete_account_failed">Could not delete your account: %1$s. Nothing was changed.</string>
 </resources>

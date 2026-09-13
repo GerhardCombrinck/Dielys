@@ -72,6 +72,15 @@ export function updateUserPassword(sql: SqlStorage, userId: string, password: Pa
   );
 }
 
+/**
+ * The account row, gone (ADR 0007). A real `DELETE`, not a tombstone: F5.3 is
+ * about list entities that have to sync, and an erased account is only erased
+ * if its email address is no longer here.
+ */
+export function deleteUser(sql: SqlStorage, userId: string): void {
+  sql.exec("DELETE FROM users WHERE id = ?", userId);
+}
+
 export function countUsers(sql: SqlStorage): number {
   const row = sql.exec("SELECT COUNT(*) AS n FROM users").one();
   return Number(row.n);
@@ -272,6 +281,66 @@ export function deleteMembership(sql: SqlStorage, userId: string, listId: string
   return rows.length > 0;
 }
 
+/** Every list one user is on and their role on it, unordered — for walking
+ * them when the account goes (ADR 0007), not for showing to anybody. */
+export function selectRolesForUser(
+  sql: SqlStorage,
+  userId: string,
+): Array<{ listId: string; role: MembershipRole }> {
+  const cursor = sql.exec("SELECT list_id, role FROM memberships WHERE user_id = ?", userId);
+  return [...cursor].map((row) => ({
+    listId: String(row.list_id),
+    role: String(row.role) as MembershipRole,
+  }));
+}
+
+/**
+ * Who on a list, other than [excludingUserId], has been on it longest — the
+ * member ownership passes to when the owner's account is deleted (ADR 0007).
+ * `user_id` breaks a tie, so the answer never depends on row order.
+ */
+export function selectLongestOtherMember(
+  sql: SqlStorage,
+  listId: string,
+  excludingUserId: string,
+): string | null {
+  const rows = [
+    ...sql.exec(
+      `SELECT user_id FROM memberships
+        WHERE list_id = ? AND user_id != ?
+        ORDER BY created_at, user_id
+        LIMIT 1`,
+      listId,
+      excludingUserId,
+    ),
+  ];
+  const row = rows[0];
+  return row === undefined ? null : String(row.user_id);
+}
+
+export function updateMembershipRole(
+  sql: SqlStorage,
+  userId: string,
+  listId: string,
+  role: MembershipRole,
+): void {
+  sql.exec(
+    "UPDATE memberships SET role = ? WHERE user_id = ? AND list_id = ?",
+    role,
+    userId,
+    listId,
+  );
+}
+
+export function deleteMembershipsForUser(sql: SqlStorage, userId: string): void {
+  sql.exec("DELETE FROM memberships WHERE user_id = ?", userId);
+}
+
+/** A list nobody is on any more has no head worth recording (ADR 0007). */
+export function deleteListHead(sql: SqlStorage, listId: string): void {
+  sql.exec("DELETE FROM list_heads WHERE list_id = ?", listId);
+}
+
 /**
  * Moves one list in one member's order. Returns false when the caller is not on
  * that list, which the route answers as a 403 — never a 404, so this cannot be
@@ -349,6 +418,10 @@ export function upsertDevice(sql: SqlStorage, device: DeviceRow, updatedAt: stri
 
 export function deleteDevice(sql: SqlStorage, deviceId: string): void {
   sql.exec("DELETE FROM devices WHERE device_id = ?", deviceId);
+}
+
+export function deleteDevicesForUser(sql: SqlStorage, userId: string): void {
+  sql.exec("DELETE FROM devices WHERE user_id = ?", userId);
 }
 
 /**

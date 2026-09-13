@@ -43,13 +43,17 @@ import {
   countUsers,
   type DeviceRow,
   deleteDevice,
+  deleteDevicesForUser,
   deleteExpiredMagicLinks,
   deleteExpiredRefreshTokens,
+  deleteListHead,
   deleteMagicLink,
   deleteMagicLinksForEmail,
   deleteMembership,
+  deleteMembershipsForUser,
   deleteRefreshTokensForUser,
   deleteStaleRateLimits,
+  deleteUser,
   insertMagicLink,
   insertMembership,
   insertRefreshToken,
@@ -58,15 +62,18 @@ import {
   recordListHead,
   selectDevicesForList,
   selectListMembers,
+  selectLongestOtherMember,
   selectMagicLink,
   selectMagicLinkByRequestId,
   selectMembership,
   selectMemberships,
   selectRateLimit,
   selectRefreshToken,
+  selectRolesForUser,
   selectUserByEmail,
   selectUserById,
   updateMembershipPosition,
+  updateMembershipRole,
   updateUserPassword,
   upsertDevice,
   upsertRateLimit,
@@ -96,6 +103,16 @@ const MAX_WAKE_TARGETS = 32;
 const RATE_LIMIT_RETENTION_MS = REGISTER_GLOBAL.windowMs;
 
 export type UsersResult<T> = { ok: true; value: T } | { ok: false; code: AuthErrorCode };
+
+/**
+ * What [UsersRoom.deleteAccount] left for the Worker to do to the rooms
+ * (ADR 0007): erase the ones nobody is on now, and reset the sockets on the
+ * rest so they re-authorize against the memberships as they stand.
+ */
+export interface AccountErasure {
+  erasedLists: string[];
+  sharedLists: string[];
+}
 
 export interface Session {
   userId: string;
@@ -531,6 +548,52 @@ export class UsersRoom extends DurableObject {
     return { ok: true, value: { userId: row.userId, refreshToken: token } };
   }
 
+  /**
+   * Erases an account (ADR 0007). One transaction: owned lists that others are
+   * on pass to their longest-standing member; lists nobody else is on are
+   * handed back for the Worker to erase; every row naming the user goes.
+   *
+   * Not refused for an account that is already gone — that answers as done,
+   * so a client that lost the first response can retry. The id comes from a
+   * verified access token, so there is nothing to enumerate.
+   */
+  async deleteAccount(userId: string): Promise<AccountErasure> {
+    const erasure: AccountErasure = { erasedLists: [], sharedLists: [] };
+    const user = selectUserById(this.sql, userId);
+    if (user === null) return erasure;
+
+    let handedOver = 0;
+    this.ctx.storage.transactionSync(() => {
+      for (const { listId, role } of selectRolesForUser(this.sql, userId)) {
+        const successor = selectLongestOtherMember(this.sql, listId, userId);
+        if (successor === null) {
+          erasure.erasedLists.push(listId);
+          deleteListHead(this.sql, listId);
+          continue;
+        }
+        erasure.sharedLists.push(listId);
+        if (role === "owner") {
+          updateMembershipRole(this.sql, successor, listId, "owner");
+          handedOver += 1;
+        }
+      }
+
+      deleteMembershipsForUser(this.sql, userId);
+      deleteRefreshTokensForUser(this.sql, userId);
+      deleteDevicesForUser(this.sql, userId);
+      deleteMagicLinksForEmail(this.sql, user.email);
+      deleteUser(this.sql, userId);
+    });
+
+    log("info", "usersroom.account.deleted", {
+      userId,
+      erased: erasure.erasedLists.length,
+      shared: erasure.sharedLists.length,
+      handedOver,
+    });
+    return erasure;
+  }
+
   async checkMembership(userId: string, listId: string): Promise<Membership | null> {
     return selectMembership(this.sql, userId, listId);
   }
@@ -637,6 +700,14 @@ export class UsersRoom extends DurableObject {
 
     const existing = selectMembership(this.sql, userId, listId);
     if (existing !== null) return { ok: true, value: { alreadyMember: true } };
+
+    // An invite outlives the list it names: its owner may have deleted their
+    // account since, leaving nobody on it and its room erased (ADR 0007).
+    // Joining would make this caller a member of nothing, with no owner.
+    if (countListMembers(this.sql, listId) === 0) {
+      log("info", "usersroom.membership.list-gone", { listId });
+      return { ok: false, code: "forbidden" };
+    }
 
     this.ctx.storage.transactionSync(() => {
       insertMembership(this.sql, userId, listId, role, new Date(now).toISOString());

@@ -97,6 +97,21 @@ interface SyncApi {
 }
 
 /**
+ * The account itself, as opposed to its lists. Its own seam rather than one
+ * more call on [SyncApi], which nothing in sync ever needs it from; the same
+ * authenticated transport implements both.
+ */
+interface AccountApi {
+    /**
+     * `DELETE /account` (ADR 0007). Erases the signed-in account on the server:
+     * sessions, device rows, memberships, and every list nobody else is on.
+     * Lists shared with others stay with them. Deleting an account that is
+     * already gone succeeds, so a retry after a lost response is harmless.
+     */
+    suspend fun deleteAccount()
+}
+
+/**
  * Where the caller has to decide between "try again later" and "this will never
  * work", the type says which. [Transport] and [Unavailable] are retried forever
  * with backoff; [Rejected] is a client bug and retrying it is a hot loop.

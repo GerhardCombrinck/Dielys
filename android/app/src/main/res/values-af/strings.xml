@@ -122,4 +122,11 @@
     <string name="settings_sign_out">Meld af</string>
     <string name="settings_language">Taal</string>
     <string name="settings_language_system_default">Stelselverstek</string>
+
+    <string name="settings_delete_account">Skrap rekening</string>
+    <string name="settings_deleting_account">Skrap tans rekening…</string>
+    <string name="confirm_delete_account_title">Skrap jou rekening?</string>
+    <string name="confirm_delete_account_body">Jou rekening, en enige lys waarop net jy is, word van ons bediener af uitgevee, en alles word van hierdie foon af verwyder. Lyste wat jy deel, bly by die ander; een wat aan jou behoort, gaan na wie die langste daarop is. Jy kan dit nie terugkry nie.</string>
+    <string name="action_delete_account">Skrap rekening</string>
+    <string name="error_delete_account_failed">Kon nie jou rekening skrap nie: %1$s. Niks is verander nie.</string>
 </resources>

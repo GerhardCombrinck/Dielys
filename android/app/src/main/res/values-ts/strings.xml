@@ -116,4 +116,11 @@
     <string name="settings_sign_out">Huma</string>
     <string name="settings_language">Ririmi</string>
     <string name="settings_language_system_default">Swa sisiteme</string>
+
+    <string name="settings_delete_account">Susa akhawunti</string>
+    <string name="settings_deleting_account">Ku susa akhawunti…</string>
+    <string name="confirm_delete_account_title">Susa akhawunti ya wena?</string>
+    <string name="confirm_delete_account_body">Akhawunti ya wena, ni nxaxamelo wihi na wihi lowu u nga ri eka wona u ri wexe, swi susiwa eka riqingho leri ni le ka sevha ya hina. Minxaxamelo leyi u yi avelanaka yi sala ni van\'wana; lowu nga wa wena wu ya eka loyi a nga eka wona nkarhi wo leha. A swi vuyi.</string>
+    <string name="action_delete_account">Susa akhawunti</string>
+    <string name="error_delete_account_failed">Swi tsandzekile ku susa akhawunti ya wena: %1$s. A ku na lexi cinciweke.</string>
 </resources>

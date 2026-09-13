@@ -64,8 +64,10 @@ spend a runner minute on per commit. Push when the change is complete and testab
   [G2](docs/CODE_STANDARD.md#standard-g2).
 - **Sequence numbers are assigned inside the DO**, in the same transaction as the change-row
   write. Never in the Worker, never derived from a client or server timestamp taken elsewhere.
-- **Deletes are tombstones.** No `DELETE FROM`. See
-  [F5.3](docs/CODE_STANDARD.md#standard-f5).
+- **Deletes are tombstones.** No `DELETE FROM` on list entities. See
+  [F5.3](docs/CODE_STANDARD.md#standard-f5). The one deliberate exception is account
+  deletion, which really erases the account's rows and the rooms nobody is left on —
+  [ADR 0007](docs/adr/0007-account-deletion.md).
 - **No secrets in `wrangler.jsonc` `vars`** — that file is committed. Secrets go through
   `wrangler secret put` and are gitignored locally as `.dev.vars`.
 - **`ListRoom` never checks membership.** The Worker authorizes every request against

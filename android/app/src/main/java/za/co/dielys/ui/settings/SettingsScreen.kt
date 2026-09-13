@@ -30,6 +30,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,22 +43,32 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import za.co.dielys.R
+import za.co.dielys.ui.ConfirmPrompt
 
 /**
- * Account details and signing out — everything that is about the account
- * rather than about any one list. Read-only aside from that one action (E1.2:
- * the screen reads through the view model, never a repository directly).
+ * Account details, signing out and deleting the account — everything that is
+ * about the account rather than about any one list (E1.2: the screen reads
+ * through the view model, never a repository directly).
+ *
+ * [onAccountDeleted] runs once the account is gone from the server and this
+ * phone; it is the caller's sign-out, which takes Settings off the screen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
     onSignOut: () -> Unit,
+    onAccountDeleted: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val state = viewModel.state
     val newItemsOnTop by viewModel.newItemsOnTop.collectAsStateWithLifecycle()
+    val deletion by viewModel.deletion.collectAsStateWithLifecycle()
+
+    LaunchedEffect(deletion) {
+        if (deletion == AccountDeletion.Done) onAccountDeleted()
+    }
 
     Scaffold(
         modifier = modifier,
@@ -82,7 +93,14 @@ fun SettingsScreen(
             )
         },
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
+        Column(
+            modifier =
+                Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+        ) {
             Text(
                 stringResource(R.string.settings_account),
                 style = MaterialTheme.typography.titleMedium,
@@ -130,7 +148,59 @@ fun SettingsScreen(
             ) {
                 Text(stringResource(R.string.settings_sign_out))
             }
+
+            DeleteAccountSection(
+                deletion = deletion,
+                onDelete = viewModel::deleteAccount,
+            )
         }
+    }
+}
+
+/**
+ * Below signing out and quieter than it: a text button, not a filled one, so
+ * the permanent action is never the one a thumb lands on by habit. The prompt
+ * says what goes and what stays, because "delete account" alone does not tell
+ * somebody that the lists they share will carry on without them (ADR 0007).
+ */
+@Composable
+private fun DeleteAccountSection(
+    deletion: AccountDeletion,
+    onDelete: () -> Unit,
+) {
+    var confirming by remember { mutableStateOf(false) }
+    val busy = deletion == AccountDeletion.Busy || deletion == AccountDeletion.Done
+
+    TextButton(
+        onClick = { confirming = true },
+        enabled = !busy,
+        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+    ) {
+        Text(
+            stringResource(
+                if (busy) R.string.settings_deleting_account else R.string.settings_delete_account,
+            ),
+        )
+    }
+
+    if (deletion is AccountDeletion.Failed) {
+        Text(
+            deletion.message,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+    }
+
+    if (confirming) {
+        ConfirmPrompt(
+            title = stringResource(R.string.confirm_delete_account_title),
+            body = stringResource(R.string.confirm_delete_account_body),
+            confirm = stringResource(R.string.action_delete_account),
+            onConfirm = onDelete,
+            onDismiss = { confirming = false },
+        )
     }
 }
 

@@ -103,6 +103,7 @@ rules are CODE_STANDARD.md L1–L3.
 | POST | `/lists/{listId}` | access token | Claim a client-generated list id as owner |
 | POST | `/lists/{listId}/invite` | access token, owner | `CreateInviteRequest` → `CreateInviteResponse` |
 | POST | `/invites/accept` | access token | `AcceptInviteRequest` → `AcceptInviteResponse` |
+| DELETE | `/account` | access token | Erases the caller's account. `204`, no body. See "Deleting an account" |
 | POST | `/admin/users` | `ADMIN_TOKEN` | Account creation (L2). Not a public endpoint |
 
 Every request carries the access token as `Authorization: Bearer <jwt>` — **including the
@@ -162,6 +163,23 @@ recorded head can lag the room it describes. So:
 
 Additive: an older client ignores the field, and an older server's answer has no field, which a
 client treats as `null`.
+
+### Deleting an account
+
+`DELETE /account` erases the caller's account for good — `docs/adr/0007-account-deletion.md`.
+The email address, sessions, device rows and memberships are removed, not tombstoned. Of the
+caller's lists:
+
+- one nobody else is on is erased, room and all;
+- one they own that others are on passes to the member who has been on it longest;
+- one somebody else owns simply loses them as a member.
+
+Every open socket on a list that survives is closed with `1012`, so clients reconnect and are
+authorized against the memberships as they now stand. `204` on success, and also for an account
+that is already gone, so a retry after a lost response is safe. After it, the caller's refresh
+token is refused like any other dead one.
+
+An invite to a list that has no members left is refused with `forbidden`.
 
 ## Wake push (M1)
 

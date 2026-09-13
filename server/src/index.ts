@@ -12,7 +12,7 @@ import {
 } from "./auth/jwt.js";
 import { clientAddress, clientKey } from "./auth/ratelimit.js";
 import { ListRoom } from "./do/ListRoom.js";
-import { usersRoom } from "./do/rooms.js";
+import { listRoom, usersRoom } from "./do/rooms.js";
 import { UsersRoom } from "./do/UsersRoom.js";
 import {
   parseJson,
@@ -96,6 +96,8 @@ export default {
           return await handleCreateUser(request, env, now);
         case "/invites/accept":
           return await handleAcceptInvite(request, env, now);
+        case "/account":
+          return await handleDeleteAccount(request, env);
       }
 
       const invite = INVITE_ROUTE.exec(url.pathname);
@@ -138,8 +140,7 @@ export default {
         return errorResponse(auth.code, auth.status);
       }
 
-      // D3: one DO per list, addressed by name. Never a random id.
-      const stub = env.LIST_ROOM.get(env.LIST_ROOM.idFromName(listId));
+      const stub = listRoom(env, listId);
       return await stub.fetch(doRequest(request, url, listId, action, auth.value.membership.role));
     } catch (error) {
       // D4: never leak a stack or an internal message to a client.
@@ -533,6 +534,53 @@ async function handleRegisterDevice(request: Request, env: Env, now: number): Pr
     now,
   );
   return new Response(null, { status: 204 });
+}
+
+/**
+ * `DELETE /account` — erases the caller's own account (ADR 0007). The access
+ * token names whose; there is no body and nothing to choose.
+ */
+async function handleDeleteAccount(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "DELETE") return errorResponse("malformed", 405);
+
+  const auth = await authenticate(request, env);
+  if (!auth.ok) return errorResponse(auth.code, auth.status);
+
+  await eraseAccount(env, auth.value.userId);
+  return new Response(null, { status: 204 });
+}
+
+/**
+ * The whole of an account deletion (ADR 0007): `UsersRoom` removes the account
+ * and decides what happens to each list in one transaction, then the rooms are
+ * told. Rooms come second because the transaction is what makes the account
+ * gone; a room call that fails after it leaves an unreachable room behind, not
+ * a half-deleted account.
+ *
+ * A failed room call is logged with its list id rather than failing the
+ * request: the account is already erased, and a retry would find nothing left
+ * to tell it about.
+ */
+async function eraseAccount(env: Env, userId: string): Promise<void> {
+  const erasure = await usersRoom(env).deleteAccount(userId);
+
+  const calls = [
+    ...erasure.erasedLists.map((listId) =>
+      listRoom(env, listId)
+        .erase()
+        .catch((error: unknown) => {
+          log("error", "worker.account.erase-failed", { listId, error: String(error) });
+        }),
+    ),
+    ...erasure.sharedLists.map((listId) =>
+      listRoom(env, listId)
+        .disconnectAll()
+        .catch((error: unknown) => {
+          log("warn", "worker.account.disconnect-failed", { listId, error: String(error) });
+        }),
+    ),
+  ];
+  await Promise.all(calls);
 }
 
 // --- list membership routes ----------------------------------------------

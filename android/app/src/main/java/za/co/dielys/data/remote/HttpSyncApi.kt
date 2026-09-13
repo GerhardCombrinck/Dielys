@@ -38,7 +38,8 @@ class HttpSyncApi
         private val client: OkHttpClient,
         private val baseUrl: HttpUrl,
         private val tokens: AccessTokens,
-    ) : SyncApi {
+    ) : SyncApi,
+        AccountApi {
         private val jsonMedia = "application/json".toMediaType()
 
         override suspend fun mutate(
@@ -148,6 +149,11 @@ class HttpSyncApi
             // The answer echoes back what was asked for, so there is nothing to
             // read: either the membership is gone or this threw saying why.
             request(url("lists", listId, "members", userId), body = null, method = "DELETE")
+        }
+
+        override suspend fun deleteAccount() {
+            // 204 and no body: nothing to read, only whether it threw.
+            request(url("account"), body = null, method = "DELETE")
         }
 
         private fun url(vararg segments: String): HttpUrl =

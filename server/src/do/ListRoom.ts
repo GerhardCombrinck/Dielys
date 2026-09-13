@@ -125,6 +125,50 @@ export class ListRoom extends DurableObject {
     }
   }
 
+  // --- Account deletion (ADR 0007) ----------------------------------------
+
+  /**
+   * Erases this list outright, because nobody is on it any more: its last
+   * member deleted their account. Reached only over RPC from the Worker, after
+   * `UsersRoom` has already removed every membership that could reach it —
+   * there is no route to it.
+   *
+   * Sockets first, so nothing is still being told about a list that no longer
+   * exists. The schema comes back empty afterwards, so the object still answers
+   * like a fresh room instead of failing on missing tables if anything ever
+   * does address it again.
+   */
+  async erase(): Promise<void> {
+    this.closeAllSockets("list-erased");
+    await this.ctx.storage.deleteAll();
+    this.ctx.storage.transactionSync(() => {
+      applyPendingMigrations(this.sql, LIST_MIGRATIONS);
+    });
+    log("info", "listroom.erased", {});
+  }
+
+  /**
+   * Closes every socket on a list that survived a member's account deletion,
+   * so each client reconnects and the Worker authorizes it again. That drops
+   * the deleted account's own sockets, and gives a member who was just made
+   * owner a socket that carries the role they hold now (ADR 0006 and 0007).
+   */
+  async disconnectAll(): Promise<void> {
+    this.closeAllSockets("membership-changed");
+  }
+
+  /** 1012 ("service restart"): the client's reconnect loop treats it as
+   * transient and comes straight back, which is the whole point. */
+  private closeAllSockets(reason: string): void {
+    for (const socket of this.ctx.getWebSockets()) {
+      try {
+        socket.close(1012, reason);
+      } catch (err) {
+        log("warn", "listroom.close.failed", { error: String(err) });
+      }
+    }
+  }
+
   // --- HTTP ---------------------------------------------------------------
 
   /**

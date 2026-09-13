@@ -18,6 +18,7 @@ import za.co.dielys.data.local.SessionStore
 import za.co.dielys.data.local.StringProvider
 import za.co.dielys.data.local.UiPrefs
 import za.co.dielys.data.remote.AccessTokens
+import za.co.dielys.data.remote.AccountApi
 import za.co.dielys.data.remote.AuthApi
 import za.co.dielys.data.remote.HttpAuthApi
 import za.co.dielys.data.remote.HttpSyncApi
@@ -35,6 +36,11 @@ abstract class BindingsModule {
     @Binds
     @Singleton
     abstract fun syncApi(impl: HttpSyncApi): SyncApi
+
+    /** Deleting the account (ADR 0007), over the same authenticated client. */
+    @Binds
+    @Singleton
+    abstract fun accountApi(impl: HttpSyncApi): AccountApi
 
     /** Login, registration and refresh, behind the same kind of seam. */
     @Binds

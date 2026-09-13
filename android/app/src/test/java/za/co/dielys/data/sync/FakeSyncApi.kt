@@ -1,6 +1,7 @@
 package za.co.dielys.data.sync
 
 import za.co.dielys.data.remote.AcceptInviteResponse
+import za.co.dielys.data.remote.AccountApi
 import za.co.dielys.data.remote.ApiException
 import za.co.dielys.data.remote.CatchUpResponse
 import za.co.dielys.data.remote.ChangeEnvelope
@@ -32,7 +33,9 @@ import java.io.IOException
  * JVM, where "the network went away mid-drain" is one boolean rather than an
  * emulator and a firewall rule (H1).
  */
-class FakeSyncApi : SyncApi {
+class FakeSyncApi :
+    SyncApi,
+    AccountApi {
     /** Flip to false to make every call fail the way no network fails. */
     var online: Boolean = true
 
@@ -207,6 +210,15 @@ class FakeSyncApi : SyncApi {
             throw ApiException.Rejected(status = 403, code = code)
         }
         return membersOf[listId].orEmpty().toList()
+    }
+
+    /** How many times `DELETE /account` got through. */
+    var accountDeletions: Int = 0
+        private set
+
+    override suspend fun deleteAccount() {
+        gate()
+        accountDeletions++
     }
 
     override suspend fun removeMember(

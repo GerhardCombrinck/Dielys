@@ -63,6 +63,9 @@ fun DielysApp() {
             SettingsScreen(
                 onBack = { settingsOpen = false },
                 onSignOut = session::signOut,
+                // Deleting already cleared the session and the phone's data; this
+                // is only the part that takes the app back to the sign-in screen.
+                onAccountDeleted = session::signOut,
             )
 
         openList != null -> {
