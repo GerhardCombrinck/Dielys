@@ -33,11 +33,15 @@ import javax.inject.Inject
  * the row to the top once, as an edit both phones agree on (F5.5) — so a row that
  * is later dragged somewhere else stays where it was dragged. Sorting by the flag
  * would make dragging a starred row pointless.
+ *
+ * [loaded] is false until Room has answered for this list: the board before
+ * that is not an empty list, it is no list yet, and the screen draws the two
+ * differently (#65).
  */
-
 data class TaskBoard(
     val active: List<TaskEntity> = emptyList(),
     val done: List<TaskEntity> = emptyList(),
+    val loaded: Boolean = false,
 ) {
     val isEmpty: Boolean get() = active.isEmpty() && done.isEmpty()
 }
@@ -94,11 +98,16 @@ class TaskListViewModel
                     // subscription — otherwise opening list B renders list A's
                     // stale board (including its Done section) until Room answers,
                     // and animateItem() then animates that stale-to-real jump.
+                    // Not loaded, so it is not mistaken for an empty list (#65).
                     flow {
                         emit(TaskBoard())
                         emitAll(
                             repo.observeTasks(id).map { tasks ->
-                                TaskBoard(tasks.filterNot { it.done }, tasks.filter { it.done })
+                                TaskBoard(
+                                    tasks.filterNot { it.done },
+                                    tasks.filter { it.done },
+                                    loaded = true,
+                                )
                             },
                         )
                     }

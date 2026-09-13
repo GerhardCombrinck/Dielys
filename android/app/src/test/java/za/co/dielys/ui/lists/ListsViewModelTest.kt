@@ -11,6 +11,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -60,10 +61,13 @@ class ListsViewModelTest {
             api.online = false
 
             viewModel.lists.test {
-                assertEquals(emptyList<String>(), awaitItem().map { it.list.title })
+                // Room's first answer, and an empty one — not the "nothing yet"
+                // before it, which is null (#65).
+                assertNull(awaitItem())
+                assertEquals(emptyList<String>(), awaitItem()?.map { it.list.title })
                 viewModel.create("  Groceries  ")
 
-                val shown = awaitItem()
+                val shown = awaitItem().orEmpty()
                 assertEquals(listOf("Groceries"), shown.map { it.list.title })
                 // No server timestamp yet: the row is an optimistic local write,
                 // which is what the screen labels "Not synced yet".
@@ -101,11 +105,12 @@ class ListsViewModelTest {
 
             viewModel.lists.test {
                 // `stateIn` hands the screen its initial value before Room has
-                // answered — the empty frame a real screen paints for an instant.
-                assertEquals(emptyList<String>(), awaitItem().map { it.list.title })
-                assertEquals(listOf("Braai"), awaitItem().map { it.list.title })
+                // answered. Null, so it is drawn as loading rather than as a
+                // phone with no lists (#65).
+                assertNull(awaitItem())
+                assertEquals(listOf("Braai"), awaitItem()?.map { it.list.title })
                 viewModel.delete(id)
-                assertEquals(emptyList<String>(), awaitItem().map { it.list.title })
+                assertEquals(emptyList<String>(), awaitItem()?.map { it.list.title })
             }
 
             // F5.3: a delete is a tombstone. The row is still there, still known

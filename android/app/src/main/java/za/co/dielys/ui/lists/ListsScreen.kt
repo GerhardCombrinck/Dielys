@@ -60,6 +60,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import za.co.dielys.R
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.ui.ConfirmPrompt
+import za.co.dielys.ui.Loading
 import za.co.dielys.ui.SettingsButton
 import za.co.dielys.ui.TextPrompt
 import za.co.dielys.ui.reorder.ReorderState
@@ -80,7 +81,8 @@ fun ListsScreen(
     // server, and it shares no state with the rows underneath it.
     membersViewModel: MembersViewModel = viewModel(),
 ) {
-    val rows by viewModel.lists.collectAsStateWithLifecycle()
+    val answer by viewModel.lists.collectAsStateWithLifecycle()
+    val rows = answer.orEmpty()
     val members by membersViewModel.members.collectAsStateWithLifecycle()
     val invite by viewModel.invite.collectAsStateWithLifecycle()
     var creating by remember { mutableStateOf(false) }
@@ -138,7 +140,9 @@ fun ListsScreen(
         },
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            if (rows.isEmpty()) {
+            if (answer == null) {
+                Loading()
+            } else if (rows.isEmpty()) {
                 Empty(onCreate = { creating = true })
             } else {
                 Lists(

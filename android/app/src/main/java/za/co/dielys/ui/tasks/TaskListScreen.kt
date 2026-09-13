@@ -101,6 +101,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import za.co.dielys.R
 import za.co.dielys.data.local.TaskEntity
 import za.co.dielys.domain.spotUnderStarred
+import za.co.dielys.ui.Loading
 import za.co.dielys.ui.SettingsButton
 import za.co.dielys.ui.SyncStatus
 import za.co.dielys.ui.lists.displayTitle
@@ -308,7 +309,7 @@ fun TaskListScreen(
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
             if (board.isEmpty && ghostText == null) {
-                Empty()
+                NoRows(loaded = board.loaded)
             } else {
                 Tasks(
                     active = active,
@@ -1284,8 +1285,14 @@ private fun AddTaskBar(
     }
 }
 
+/** No rows to draw — because the list has none, or because Room has not said
+ *  yet. Only the first of those gets to say "nothing here" (#65). */
 @Composable
-private fun Empty() {
+private fun NoRows(loaded: Boolean) {
+    if (!loaded) {
+        Loading()
+        return
+    }
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp),
         verticalArrangement = Arrangement.Center,

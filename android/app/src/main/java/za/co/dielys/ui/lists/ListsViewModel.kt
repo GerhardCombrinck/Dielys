@@ -132,7 +132,9 @@ class ListsViewModel
         private val invites: PendingInvite,
         private val strings: StringProvider,
     ) : ViewModel() {
-        val lists: StateFlow<List<ListRow>> =
+        /** Null until Room has answered — not the same as no lists, which gets the
+         *  "make your first list" screen; this gets nothing (#65). */
+        val lists: StateFlow<List<ListRow>?> =
             combine(
                 repo.observeLists(),
                 repo.observeItemCounts(),
@@ -140,7 +142,7 @@ class ListsViewModel
             ) { lists, counts, accents ->
                 val byListId = counts.associate { it.listId to it.count }
                 lists.map { ListRow(it, byListId[it.id] ?: 0, accents[it.id]) }
-            }.asState(emptyList())
+            }.asState(null)
 
         /** Edits made on this device that the server has not acknowledged yet. */
         val pending: StateFlow<Int> = repo.observePendingCount().asState(0)

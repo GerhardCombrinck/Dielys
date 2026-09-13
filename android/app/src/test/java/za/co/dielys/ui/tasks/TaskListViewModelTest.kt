@@ -89,6 +89,26 @@ class TaskListViewModelTest {
         }
 
     /**
+     * The frame before Room answers and a list with nothing in it are both empty,
+     * and only one of them is allowed to say so (#65).
+     */
+    @Test
+    fun `an empty list is loaded, and the frame before it is not`() =
+        runTest(dispatcher) {
+            open()
+
+            viewModel.board.test {
+                val before = awaitItem()
+                assertTrue(before.isEmpty)
+                assertFalse(before.loaded)
+
+                val answered = awaitItem()
+                assertTrue(answered.isEmpty)
+                assertTrue(answered.loaded)
+            }
+        }
+
+    /**
      * A star says "this one first", so it moves the row to the top and writes
      * the position with it — one patch, so no device ever sees the star without
      * the move.
