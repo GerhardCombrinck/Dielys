@@ -1,6 +1,7 @@
 package za.co.dielys.data.sync
 
 import androidx.room.withTransaction
+import za.co.dielys.data.local.CatchUpSweeps
 import za.co.dielys.data.local.DielysDatabase
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.local.OutboxEntity
@@ -9,6 +10,7 @@ import za.co.dielys.data.remote.ApiException
 import za.co.dielys.data.remote.DielysJson
 import za.co.dielys.data.remote.SetListPositionRequest
 import za.co.dielys.data.remote.SyncApi
+import za.co.dielys.domain.Clock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -46,13 +48,18 @@ class SyncEngine
         private val api: SyncApi,
         private val applier: ChangeApplier,
         private val push: PushTokenStore,
+        private val sweeps: CatchUpSweeps,
+        private val clock: Clock,
     ) {
         suspend fun sync(): SyncOutcome {
             val drained = drainOutbox()
             if (drained != SyncOutcome.Success) return drained
-            val discovered = discoverLists()
-            if (discovered != SyncOutcome.Success) return discovered
-            val caught = catchUpAll()
+            val heads =
+                when (val found = discover()) {
+                    is Discovery.Found -> found.heads
+                    is Discovery.Failed -> return found.outcome
+                }
+            val caught = catchUpAll(heads)
             if (caught != SyncOutcome.Success) return caught
             return registerPushToken()
         }
@@ -99,12 +106,24 @@ class SyncEngine
          * that follows carries the `list-created` change that names it, and until
          * that lands the screen says so rather than inventing a name.
          */
-        suspend fun discoverLists(): SyncOutcome {
+        suspend fun discoverLists(): SyncOutcome =
+            when (val found = discover()) {
+                is Discovery.Found -> SyncOutcome.Success
+                is Discovery.Failed -> found.outcome
+            }
+
+        /**
+         * [discoverLists], also handing back how far each list's changelog has
+         * got, so the catch-up that follows in the same [sync] can skip the lists
+         * that have not moved. Only [sync] uses the heads: they are fresh for the
+         * length of one run and nothing longer.
+         */
+        private suspend fun discover(): Discovery {
             val memberships =
                 try {
                     api.memberships()
                 } catch (error: ApiException) {
-                    return error.toOutcome()
+                    return Discovery.Failed(error.toOutcome())
                 }
 
             for (membership in memberships) {
@@ -137,7 +156,9 @@ class SyncEngine
             }
 
             forgetListsNoLongerOurs(memberships.map { it.listId }.toSet())
-            return SyncOutcome.Success
+            return Discovery.Found(
+                memberships.mapNotNull { m -> m.maxSeq?.let { m.listId to it } }.toMap(),
+            )
         }
 
         /**
@@ -204,13 +225,42 @@ class SyncEngine
             return SyncOutcome.Success
         }
 
-        /** Pulls every list this device knows about up to the server head. */
-        suspend fun catchUpAll(): SyncOutcome {
-            for (list in db.lists().knownIds()) {
-                val outcome = catchUp(list)
+        /**
+         * Pulls every list this device knows about up to the server head — except
+         * the ones [heads] says this device already has everything from.
+         *
+         * Asking a list that has not changed is one request answered with
+         * nothing, and on a half-hourly background sync that is most of them: it
+         * was most of all the traffic this app sends. The heads come from the
+         * `/auth/memberships` call the same sync has just made, so skipping costs
+         * no extra request (PROTOCOL.md "Which lists have changed").
+         *
+         * A head is a lower bound. The room reports it without waiting, so a
+         * report can be lost, and a list skipped on a lost report stays behind
+         * until something else moves it — its next write, a push, or opening it.
+         * So once a day the heads are ignored and every list is pulled in full,
+         * which bounds how long "stays behind" can mean. A list with no head at
+         * all, or no cursor, is always pulled.
+         */
+        suspend fun catchUpAll(heads: Map<String, Long> = emptyMap()): SyncOutcome {
+            val now = clock.nowMillis()
+            val sweep = sweepDue(sweeps.lastFullCatchUpAt, now)
+            for (listId in db.lists().knownIds()) {
+                if (!sweep && isCaughtUp(listId, heads[listId])) continue
+                val outcome = catchUp(listId)
                 if (outcome != SyncOutcome.Success) return outcome
             }
+            if (sweep) sweeps.lastFullCatchUpAt = now
             return SyncOutcome.Success
+        }
+
+        private suspend fun isCaughtUp(
+            listId: String,
+            head: Long?,
+        ): Boolean {
+            if (head == null) return false
+            val cursor = db.syncState().cursor(listId) ?: return false
+            return cursor >= head
         }
 
         /**
@@ -275,6 +325,16 @@ class SyncEngine
                 SendResult.Stop(error.toOutcome())
             }
 
+        private sealed interface Discovery {
+            data class Found(
+                val heads: Map<String, Long>,
+            ) : Discovery
+
+            data class Failed(
+                val outcome: SyncOutcome,
+            ) : Discovery
+        }
+
         private sealed interface SendResult {
             data class Done(
                 val gap: Boolean,
@@ -293,3 +353,19 @@ private fun ApiException.toOutcome(): SyncOutcome =
         is ApiException.Unauthorized -> SyncOutcome.SessionExpired(this)
         else -> SyncOutcome.Retry(this)
     }
+
+/**
+ * Whether this sync should ignore the heads and pull every list. Never swept, a
+ * day since the last sweep, or a clock that has gone backwards — a phone whose
+ * time was corrected must not be left waiting for a date it has already passed.
+ */
+internal fun sweepDue(
+    lastFullCatchUpAt: Long?,
+    now: Long,
+): Boolean =
+    lastFullCatchUpAt == null ||
+        now < lastFullCatchUpAt ||
+        now - lastFullCatchUpAt >= FULL_CATCH_UP_EVERY_MILLIS
+
+/** How long a list skipped on a lost head report can stay behind, at most. */
+internal const val FULL_CATCH_UP_EVERY_MILLIS = 24L * 60 * 60 * 1000

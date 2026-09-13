@@ -135,6 +135,14 @@ data class Membership(
     val position: String? = null,
     /** How many people are on this list, this account included. */
     val memberCount: Int = 1,
+    /**
+     * The highest seq this list's changelog has reached, as far as the server
+     * knows (PROTOCOL.md "Which lists have changed"). A lower bound: a cursor
+     * already there means nothing to fetch *probably*, which is why the daily
+     * sweep in `SyncEngine.catchUpAll` exists. Null — including from a server
+     * that predates the field — means ask.
+     */
+    val maxSeq: Long? = null,
 )
 
 /** `POST /auth/memberships/position` — one list, moved in the caller's own order. */

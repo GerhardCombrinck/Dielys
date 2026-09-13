@@ -55,6 +55,7 @@ import {
   insertRefreshToken,
   insertUser,
   markRefreshTokenUsed,
+  recordListHead,
   selectDevicesForList,
   selectListMembers,
   selectMagicLink,
@@ -711,19 +712,27 @@ export class UsersRoom extends DurableObject {
   }
 
   /**
-   * Wakes the member devices that did not already get this change over a
-   * socket (M2).
+   * Hears about one accepted change: records the list's new head, then wakes
+   * the member devices that did not already get it over a socket (M2).
    *
    * `ListRoom` calls this after it has committed, passing the device ids it
    * knows are connected plus the one that made the write. Membership lives
    * here, so the fan-out lives here too — and the object that owns the device
    * rows is also the one that can drop a dead token without a second hop.
    *
+   * The head comes first and does not depend on push being configured: it is
+   * what lets `/auth/memberships` tell a phone which lists to skip, and a
+   * deployment with no FCM credential still has phones polling it.
+   *
    * Fire-and-forget by design: this returns as soon as the send is scheduled.
    * A push is a hint, and a caller that waited for Google before answering the
    * client would have made a write slower in order to make it no more correct.
+   * The same is true of the head, which is why clients treat it as a lower
+   * bound.
    */
-  async notifyListMembers(listId: string, seq: number, connected: string[]): Promise<void> {
+  async listChanged(listId: string, seq: number, connected: string[]): Promise<void> {
+    recordListHead(this.sql, listId, seq);
+
     const sender = this.fcm();
     if (sender === null) return;
 

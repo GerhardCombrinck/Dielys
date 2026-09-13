@@ -940,8 +940,57 @@ describe("memberships", () => {
       memberships: Array<{ listId: string; position: string | null }>;
     };
     expect(partnerLists.memberships).toEqual([
-      { listId, role: "member", position: null, memberCount: 2 },
+      { listId, role: "member", position: null, memberCount: 2, maxSeq: null },
     ]);
+  });
+
+  /**
+   * What lets a phone skip asking a quiet list for changes. Null before the list
+   * has had a write, because "no record" must read as "ask", not as "nothing".
+   */
+  it("says how far each list's changelog has got, for every member", async () => {
+    const ownerEmail = uniqueEmail();
+    const partnerEmail = uniqueEmail();
+    await createUser(ownerEmail);
+    await createUser(partnerEmail);
+    const owner = await login(ownerEmail, "device-a");
+    const partner = await login(partnerEmail, "device-b");
+
+    const listId = crypto.randomUUID();
+    await post(`/lists/${listId}`, {}, owner.accessToken);
+    const invite = await mintInvite(listId, owner.accessToken, partnerEmail);
+    await post("/invites/accept", { inviteToken: invite.token }, partner.accessToken);
+
+    const headFor = async (token: string) => {
+      const body = (await (await get("/auth/memberships", token)).json()) as {
+        memberships: Array<{ listId: string; maxSeq: number | null }>;
+      };
+      return body.memberships.find((m) => m.listId === listId)?.maxSeq;
+    };
+    expect(await headFor(partner.accessToken)).toBeNull();
+
+    for (const title of ["Melk", "Brood"]) {
+      const written = await post(
+        `/lists/${listId}/mutate`,
+        {
+          type: "mutate",
+          protocolVersion: 2,
+          listId,
+          entityType: "task",
+          entityId: crypto.randomUUID(),
+          idempotencyKey: crypto.randomUUID(),
+          deviceId: "device-a",
+          patch: { title, position: "a0" },
+        },
+        owner.accessToken,
+      );
+      expect(written.status).toBe(200);
+    }
+
+    // Recorded after the write is acknowledged, not before it: the room tells
+    // UsersRoom without making the writer wait for it.
+    await vi.waitFor(async () => expect(await headFor(partner.accessToken)).toBe(2));
+    expect(await headFor(owner.accessToken)).toBe(2);
   });
 
   it("refuses a list the caller is not on with 403, not 404", async () => {

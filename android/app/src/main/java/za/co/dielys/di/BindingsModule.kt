@@ -7,6 +7,7 @@ import dagger.hilt.components.SingletonComponent
 import za.co.dielys.data.SessionRepository
 import za.co.dielys.data.local.AccountIdentity
 import za.co.dielys.data.local.AndroidStringProvider
+import za.co.dielys.data.local.CatchUpSweeps
 import za.co.dielys.data.local.DeviceIdentity
 import za.co.dielys.data.local.DoneSectionPrefs
 import za.co.dielys.data.local.LocalePrefs
@@ -70,6 +71,10 @@ abstract class BindingsModule {
     @Binds
     @Singleton
     abstract fun pushTokenStore(impl: SessionStore): PushTokenStore
+
+    @Binds
+    @Singleton
+    abstract fun catchUpSweeps(impl: SessionStore): CatchUpSweeps
 
     /**
      * Third face, watched rather than read. Deliberately not bound to

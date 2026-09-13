@@ -179,9 +179,10 @@ export function selectMembership(
 ): Membership | null {
   const rows = [
     ...sql.exec(
-      `SELECT m.list_id, m.role, m.position,
+      `SELECT m.list_id, m.role, m.position, h.max_seq,
               (SELECT COUNT(*) FROM memberships m2 WHERE m2.list_id = m.list_id) AS member_count
          FROM memberships m
+         LEFT JOIN list_heads h ON h.list_id = m.list_id
         WHERE m.user_id = ? AND m.list_id = ?`,
       userId,
       listId,
@@ -210,9 +211,10 @@ export function countListMembers(sql: SqlStorage, listId: string): number {
  */
 export function selectMemberships(sql: SqlStorage, userId: string): Membership[] {
   const cursor = sql.exec(
-    `SELECT m.list_id, m.role, m.position,
+    `SELECT m.list_id, m.role, m.position, h.max_seq,
             (SELECT COUNT(*) FROM memberships m2 WHERE m2.list_id = m.list_id) AS member_count
        FROM memberships m
+       LEFT JOIN list_heads h ON h.list_id = m.list_id
       WHERE m.user_id = ?
       ORDER BY COALESCE(m.position, '~'), m.created_at, m.list_id`,
     userId,
@@ -304,7 +306,25 @@ function toMembership(row: Record<string, SqlStorageValue>): Membership {
     role: String(row.role) as MembershipRole,
     position: row.position === null || row.position === undefined ? null : String(row.position),
     memberCount: Number(row.member_count),
+    maxSeq: row.max_seq === null || row.max_seq === undefined ? null : Number(row.max_seq),
   };
+}
+
+/**
+ * Moves a list's recorded head forward to `seq`, never back.
+ *
+ * `MAX` rather than a plain overwrite because the calls that bring these are
+ * fire-and-forget and can land out of order: seq 12's report arriving after
+ * seq 13's must not make a client think 13 is still to come — worse, that it
+ * already has everything once its cursor reaches 12.
+ */
+export function recordListHead(sql: SqlStorage, listId: string, seq: number): void {
+  sql.exec(
+    `INSERT INTO list_heads (list_id, max_seq) VALUES (?, ?)
+     ON CONFLICT(list_id) DO UPDATE SET max_seq = MAX(max_seq, excluded.max_seq)`,
+    listId,
+    seq,
+  );
 }
 
 /**

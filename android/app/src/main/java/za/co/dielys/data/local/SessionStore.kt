@@ -59,6 +59,15 @@ interface PushTokenStore {
 }
 
 /**
+ * When this phone last pulled every list in full, rather than only the ones
+ * `/auth/memberships` said had moved (PROTOCOL.md "Which lists have changed").
+ * Null before it ever has, or since the last sign-out.
+ */
+interface CatchUpSweeps {
+    var lastFullCatchUpAt: Long?
+}
+
+/**
  * Whether there is a session, as something that can be watched.
  *
  * The socket supervisor has to react to a sign-in and a sign-out, and it cannot
@@ -90,6 +99,7 @@ class SessionStore
     ) : DeviceIdentity,
         AccountIdentity,
         PushTokenStore,
+        CatchUpSweeps,
         SessionSignal {
         private val prefs: SharedPreferences =
             context.getSharedPreferences("dielys-session", Context.MODE_PRIVATE)
@@ -141,6 +151,20 @@ class SessionStore
             get() = prefs.getString(KEY_PUSH_TOKEN_SENT, null)
             set(value) = prefs.edit().putString(KEY_PUSH_TOKEN_SENT, value).apply()
 
+        override var lastFullCatchUpAt: Long?
+            get() = prefs.getLong(KEY_LAST_FULL_CATCH_UP, NEVER).takeIf { it != NEVER }
+            set(value) {
+                val edit = prefs.edit()
+                if (value ==
+                    null
+                ) {
+                    edit.remove(KEY_LAST_FULL_CATCH_UP)
+                } else {
+                    edit.putLong(KEY_LAST_FULL_CATCH_UP, value)
+                }
+                edit.apply()
+            }
+
         /**
          * Clears the session but keeps [deviceId] and [pushToken] — neither the
          * device nor the token FCM issued it has changed.
@@ -149,6 +173,9 @@ class SessionStore
          * files a push token under the device id, so signing in as somebody else
          * on this phone has to move that row or it would keep being woken for the
          * previous account's lists (M2).
+         *
+         * [lastFullCatchUpAt] goes too: the next account's lists have never been
+         * pulled on this phone, so its first sync should pull all of them.
          */
         fun clearSession() {
             prefs
@@ -158,6 +185,7 @@ class SessionStore
                 .remove(KEY_USER_ID)
                 .remove(KEY_EMAIL)
                 .remove(KEY_PUSH_TOKEN_SENT)
+                .remove(KEY_LAST_FULL_CATCH_UP)
                 .apply()
             session.value = false
         }
@@ -170,5 +198,9 @@ class SessionStore
             const val KEY_EMAIL = "email"
             const val KEY_PUSH_TOKEN = "push-token"
             const val KEY_PUSH_TOKEN_SENT = "push-token-sent"
+            const val KEY_LAST_FULL_CATCH_UP = "last-full-catch-up"
+
+            /** Preferences have no null Long; no real clock reads this far back. */
+            const val NEVER = Long.MIN_VALUE
         }
     }

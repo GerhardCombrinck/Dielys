@@ -3,6 +3,7 @@ package za.co.dielys.data
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import za.co.dielys.data.local.AccountIdentity
+import za.co.dielys.data.local.CatchUpSweeps
 import za.co.dielys.data.local.DeviceIdentity
 import za.co.dielys.data.local.DielysDatabase
 import za.co.dielys.data.local.PushTokenStore
@@ -27,7 +28,8 @@ class DeviceStack(
     val scheduler = RecordingScheduler()
     val applier = ChangeApplier(db)
     val push = FakePushTokens()
-    val engine = SyncEngine(db, api, applier, push)
+    val sweeps = FakeSweeps()
+    val engine = SyncEngine(db, api, applier, push, sweeps, clock)
     val sharing = SharingRepository(api, scheduler)
     val invites = PendingInvite()
 
@@ -57,6 +59,11 @@ class FakePushTokens(
     override var pushToken: String? = null,
     override var pushTokenSent: String? = null,
 ) : PushTokenStore
+
+/** When the last full catch-up ran, in memory. */
+class FakeSweeps(
+    override var lastFullCatchUpAt: Long? = null,
+) : CatchUpSweeps
 
 /** A device id without preferences, a `Context`, or a session behind it. */
 class FixedDevice(

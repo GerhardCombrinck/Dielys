@@ -16,7 +16,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import za.co.dielys.data.FakePushTokens
+import za.co.dielys.data.FakeSweeps
 import za.co.dielys.data.FixedDevice
+import za.co.dielys.data.SteppingClock
 import za.co.dielys.data.directExecutor
 import za.co.dielys.data.inMemoryDatabase
 import za.co.dielys.data.local.ListEntity
@@ -36,7 +38,8 @@ class SyncSocketsTest {
     private val api = FakeSyncApi()
     private val db = inMemoryDatabase(directExecutor)
     private val applier = ChangeApplier(db)
-    private val engine = SyncEngine(db, api, applier, FakePushTokens())
+    private val engine =
+        SyncEngine(db, api, applier, FakePushTokens(), FakeSweeps(), SteppingClock())
     private val sockets = FakeListSockets()
     private val signal = FakeSessionSignal()
     private val session =

@@ -98,6 +98,23 @@ class FakeSyncApi : SyncApi {
     /** Makes the next [listMembers] fail with this code, once. */
     var rejectMembersWith: String? = null
 
+    /** Every list `GET /lists/{id}/changes` was asked about, in order. */
+    val changesAsked: MutableList<String> = mutableListOf()
+
+    /**
+     * What `/auth/memberships` reports as each list's head, when not simply the
+     * real one. [freezeHeads] stands for the room's report to UsersRoom being
+     * lost: writes keep landing, the reported head stops moving.
+     */
+    private var reportedHeads: Map<String, Long>? = null
+
+    /** False stands for a server that predates `maxSeq`. */
+    var reportHeads: Boolean = true
+
+    fun freezeHeads() {
+        reportedHeads = heads.toMap()
+    }
+
     private val heads = mutableMapOf<String, Long>()
     private val changelog = mutableMapOf<String, MutableList<ChangeEnvelope>>()
     private val acks = mutableMapOf<String, MutationAck>()
@@ -140,6 +157,7 @@ class FakeSyncApi : SyncApi {
         since: Long,
     ): CatchUpResponse {
         gate()
+        changesAsked += listId
         val pending = changelog[listId].orEmpty().filter { it.seq > since }
         val page = pending.take(pageSize)
         return CatchUpResponse(
@@ -161,7 +179,8 @@ class FakeSyncApi : SyncApi {
 
     override suspend fun memberships(): List<Membership> {
         gate()
-        return memberOf.toList()
+        val known = reportedHeads ?: heads
+        return memberOf.map { it.copy(maxSeq = if (reportHeads) known[it.listId] else null) }
     }
 
     override suspend fun setListPosition(

@@ -247,3 +247,18 @@ describe("a write with push unconfigured", () => {
     expect(await response.json()).toMatchObject({ type: "ack", duplicate: false });
   });
 });
+
+describe("list heads (what /auth/memberships reports as maxSeq)", () => {
+  it("only ever moves forward, whatever order the reports arrive in", async () => {
+    const session = await signedIn("phone-a");
+    const listId = crypto.randomUUID();
+    expect((await post(`/lists/${listId}`, {}, session.accessToken)).status).toBe(200);
+
+    // Fire-and-forget reports can overtake each other; 13 then 12 must stay 13.
+    await users().listChanged(listId, 13, []);
+    await users().listChanged(listId, 12, []);
+
+    const membership = await users().checkMembership(session.userId, listId);
+    expect(membership?.maxSeq).toBe(13);
+  });
+});

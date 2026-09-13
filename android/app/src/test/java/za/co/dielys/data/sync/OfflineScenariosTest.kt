@@ -109,7 +109,8 @@ class OfflineScenariosTest {
             assertEquals(1, stranded.attempts)
 
             // Next launch: same row, same body, same key (F5.2).
-            val restarted = SyncEngine(phone.db, api, phone.applier, phone.push)
+            val restarted =
+                SyncEngine(phone.db, api, phone.applier, phone.push, phone.sweeps, phone.clock)
             assertEquals(SyncOutcome.Success, restarted.sync())
 
             assertEquals(stranded.body, api.sentBodies.last())

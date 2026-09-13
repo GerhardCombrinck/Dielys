@@ -120,6 +120,15 @@ export interface Membership {
    * interesting once someone else can make the local copy go stale.
    */
   memberCount: number;
+  /**
+   * The highest seq this list's changelog has reached, as far as the server
+   * knows — so a client can skip asking a list for changes when its cursor is
+   * already there (PROTOCOL.md "Which lists have changed").
+   *
+   * A lower bound, and null when the server has no record yet (a list with no
+   * write since this field was added). Null means "ask", never "nothing new".
+   */
+  maxSeq: number | null;
 }
 
 export interface MembershipsResponse {

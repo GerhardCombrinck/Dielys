@@ -487,7 +487,7 @@ export class ListRoom extends DurableObject {
 
     this.ctx.waitUntil(
       usersRoom(this.env)
-        .notifyListMembers(change.listId, change.seq, informed)
+        .listChanged(change.listId, change.seq, informed)
         .catch((error: unknown) => {
           log("warn", "listroom.wake.failed", { listId: change.listId, error: String(error) });
         }),

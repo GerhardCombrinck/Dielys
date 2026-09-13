@@ -145,6 +145,24 @@ list's changelog for the same reason — a `ListRoom` change is seen by everybod
 neighbours it was dropped between. A membership with a null position sorts after every
 positioned one, by age, so a newly joined list lands at the bottom rather than in the middle.
 
+### Which lists have changed
+
+`Membership.maxSeq` is the highest `seq` the list's changelog has reached, as far as `UsersRoom`
+knows. A client whose cursor for that list is already at or past it has nothing to fetch, and
+can skip `GET /lists/{listId}/changes` for it — which is most lists on most background syncs.
+
+It is a **lower bound**, not the truth. `ListRoom` reports each accepted change to `UsersRoom`
+after acknowledging it, without waiting (the same call that sends the wake push, M2), so the
+recorded head can lag the room it describes. So:
+
+- `null` — no write recorded since this field was added — means **ask**, never "nothing new".
+- A client MUST still pull every list in full on some slower cadence, rather than trusting the
+  head forever. The Android client does it once a day.
+- A head only ever moves forward, even when reports arrive out of order.
+
+Additive: an older client ignores the field, and an older server's answer has no field, which a
+client treats as `null`.
+
 ## Wake push (M1)
 
 Types in `src/push.ts`. The enforceable rule is
