@@ -11,6 +11,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import za.co.dielys.ui.auth.AuthScreen
 import za.co.dielys.ui.auth.SessionViewModel
 import za.co.dielys.ui.lists.InvitationDialog
+import za.co.dielys.ui.lists.JoiningDialog
 import za.co.dielys.ui.lists.ListsScreen
 import za.co.dielys.ui.lists.ListsViewModel
 import za.co.dielys.ui.settings.SettingsScreen
@@ -87,4 +88,10 @@ fun DielysApp() {
     if (invitation != null) {
         InvitationDialog(onAccept = lists::acceptInvitation, onDecline = lists::declineInvitation)
     }
+
+    // Never both at once: accepting takes the invitation, which is the same
+    // moment the join starts. Over every screen rather than inside the lists
+    // one, because a link can be tapped while a list is open (#61).
+    val joining by lists.join.collectAsStateWithLifecycle()
+    joining?.let { JoiningDialog(state = it, onDismiss = lists::dismissJoin) }
 }

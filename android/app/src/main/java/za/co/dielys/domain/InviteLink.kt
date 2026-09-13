@@ -12,12 +12,12 @@ package za.co.dielys.domain
  * An `https://` App Link, same as [MagicLinkUrl] — the domain verification and
  * fallback page (`GET /invite`) that ADR 0005 built for the magic-link sign-in
  * link cover this path too, `handle_all_urls` in assetlinks.json being
- * domain-wide rather than per-path. Sharing still goes through a plain share
- * sheet rather than email specifically (see `ShareDialogs.shareInvite`), so an
- * `https://` link matters even for chat apps: several of them, Gmail's Android
+ * domain-wide rather than per-path. The server emails the invite, and tapping
+ * the link in that mail is the only way onto somebody else's list, so an
+ * `https://` link is not a nicety: several mail and chat apps, Gmail's Android
  * app among them, do not reliably make a custom-scheme link tappable out of
- * HTML mail, which is why pasting into [za.co.dielys.ui.lists.JoinDialog] still
- * has to keep working as the fallback.
+ * HTML mail, and a link that cannot be tapped is a dead end with nothing behind
+ * it.
  *
  * No `android.net.Uri` here on purpose (E1.1): the shape is fixed and the parsing
  * is worth testing on the JVM.

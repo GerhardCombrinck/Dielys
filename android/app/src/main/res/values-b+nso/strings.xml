@@ -95,12 +95,18 @@
     <string name="confirm_leave_title">Tlogela lenaneo le?</string>
     <string name="confirm_leave_body">Le a nyamelela mogaleng wo gomme o kgaotša go hwetša diphetošo. Mong a ka go laletša gape.</string>
 
-    <string name="join_list_title">Tsenela lenaneo</string>
-    <string name="join_paste_prompt">Kgomaretša taletšo yeo motho a go romeletšego yona.</string>
-    <string name="join_invite_label">Taletšo</string>
     <string name="invited_title">O laleditšwe lenaneong</string>
     <string name="invited_body">O a tsenela? Yo a abelanego ka lona o tla bona seo o se oketšago.</string>
     <string name="invited_not_now">E sego gabjale</string>
+    <string name="joining_title">Go tsenelela lenaneo</string>
+    <string name="joining_checking">Go lekolwa talšetšo…</string>
+    <string name="joining_fetching">Go tsewa lenaneo…</string>
+    <string name="joining_slow">Go tšea nako e telele go feta ka mehla. Lenaneo le tla tšwelela ge go na le leswao.</string>
+    <string name="join_failed_title">Ga se gwa kgonega go tsenelela</string>
+    <string name="join_expired">Talšetšo yeo e feletšwe ke nako. Kgopela e mpšha.</string>
+    <string name="join_wrong_account">Talšetšo ye e rometšwe atereseng ye nngwe ya imeile, e sego yeo o tsenego ka yona.</string>
+    <string name="join_not_an_invite">Seo ga se bonagale bjalo ka talšetšo.</string>
+    <string name="join_failed">Ga se gwa kgonega go tsenelela: %1$s</string>
 
     <string name="settings_title">Dipeakanyo</string>
     <string name="settings_account">Akhaonto</string>

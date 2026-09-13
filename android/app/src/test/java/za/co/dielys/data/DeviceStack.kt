@@ -66,8 +66,11 @@ class FixedDevice(
 /** Who a test is signed in as, for the screens that have to recognise
  *  themselves among the people on a shared list (#60). */
 class FixedAccount(
-    override val userId: String? = null,
-    override val email: String? = null,
+    /** A `var` so a test can drop it: a session older than the server's own
+     *  login answer has no stored id, and the sheet still has to recognise
+     *  itself (#60). */
+    override var userId: String? = null,
+    override var email: String? = null,
 ) : AccountIdentity
 
 /**

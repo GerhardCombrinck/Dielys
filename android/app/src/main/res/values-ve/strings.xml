@@ -90,12 +90,18 @@
     <string name="confirm_leave_title">Litshani uyu mutevhe?</string>
     <string name="confirm_leave_body">U a ngala kha ulu lutingo nahone ni litsha u wana tshanduko. Mune a nga ni ramba hafhu.</string>
 
-    <string name="join_list_title">Dzhenani kha mutevhe</string>
-    <string name="join_paste_prompt">Nambatedzani tshiitisi tshe muthu a ni rumela.</string>
-    <string name="join_invite_label">Tshiitisi</string>
     <string name="invited_title">No rambiwa kha mutevhe</string>
     <string name="invited_body">Ni a dzhena? We a u kovhekana u do vhona zwine na engedza.</string>
     <string name="invited_not_now">Hu si zwino</string>
+    <string name="joining_title">U dzhenela mutevhe</string>
+    <string name="joining_checking">Hu khou sedzwa u rambiwa…</string>
+    <string name="joining_fetching">Hu khou dziwa mutevhe…</string>
+    <string name="joining_slow">Zwi khou dzhia tshifhinga tshilapfu u fhira zwa misi. Mutevhe u ɗo bvelela musi hu na tshiga.</string>
+    <string name="join_failed_title">A zwo ngo konadzea u dzhenela</string>
+    <string name="join_expired">Uyo u rambiwa wo no fhela tshifhinga. Humbela muswa.</string>
+    <string name="join_wrong_account">Hoyu u rambiwa wo rumelwa kha iṅwe adiresi ya imeili, hu si ine wa dzhena ngayo.</string>
+    <string name="join_not_an_invite">Zwenezwo a zwi vhonali sa u rambiwa.</string>
+    <string name="join_failed">A zwo ngo konadzea u dzhenela: %1$s</string>
 
     <string name="settings_title">Zwiimiswa</string>
     <string name="settings_account">Akhaunthu</string>

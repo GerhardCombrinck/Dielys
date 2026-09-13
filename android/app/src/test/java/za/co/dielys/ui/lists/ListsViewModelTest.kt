@@ -44,7 +44,6 @@ class ListsViewModelTest {
                 phone.accents,
                 phone.sharing,
                 phone.invites,
-                phone.account,
                 AndroidStringProvider(ApplicationProvider.getApplicationContext()),
             )
     }
@@ -194,12 +193,22 @@ class ListsViewModelTest {
 
             viewModel.join("Join \"Braai\" on Dielys: ${InviteLink.url("aaa.bbb.ccc")}")
 
-            assertEquals("Joined. The list will appear in a moment.", viewModel.joined.value)
+            // #61: accepting is not arriving. The server has the membership, and
+            // the screen keeps saying so until the list itself turns up.
+            assertEquals(
+                JoinState.Fetching("list-from-the-other-phone"),
+                viewModel.join.value,
+            )
             // H3.12: the list is on the server, not here, so the join asks for a
             // sync rather than leaving it to the half-hourly worker.
             assertEquals(1, phone.scheduler.requests)
         }
 
+    /**
+     * #61: being on the list already and joining it fresh end in the same
+     * place — looking at the list — so they are not told apart. A phone that
+     * was reinstalled is already a member and still has nothing to show.
+     */
     @Test
     fun `accepting the same invite twice is a no-op, not an error`() =
         runTest(dispatcher) {
@@ -207,10 +216,42 @@ class ListsViewModelTest {
             api.inviteFor = "list-from-the-other-phone"
 
             viewModel.join(InviteLink.url("aaa.bbb.ccc"))
-            viewModel.dismissJoined()
+            viewModel.dismissJoin()
             viewModel.join(InviteLink.url("aaa.bbb.ccc"))
 
-            assertEquals("You are already on that list.", viewModel.joined.value)
+            assertEquals(
+                JoinState.Fetching("list-from-the-other-phone"),
+                viewModel.join.value,
+            )
+        }
+
+    /**
+     * The spinner's whole job (#61): it ends when the list is really on screen,
+     * not when the server said yes. Room getting the row is what closes it.
+     */
+    @Test
+    fun `the wait ends when the list actually arrives`() =
+        runTest(dispatcher) {
+            api.inviteToken = "aaa.bbb.ccc"
+            api.inviteFor = "list-from-the-other-phone"
+
+            viewModel.join(InviteLink.url("aaa.bbb.ccc"))
+
+            viewModel.join.test {
+                assertEquals(JoinState.Fetching("list-from-the-other-phone"), awaitItem())
+
+                // What `/auth/memberships` writes first: the list is known, but
+                // it has no name yet, so there is still nothing worth showing
+                // and the wait carries on.
+                phone.db.lists().upsert(ListEntity(id = "list-from-the-other-phone", title = ""))
+                expectNoEvents()
+
+                // And then the changelog lands and names it.
+                phone.db.lists().upsert(
+                    ListEntity(id = "list-from-the-other-phone", title = "Braai"),
+                )
+                assertEquals(null, awaitItem())
+            }
         }
 
     @Test
@@ -220,7 +261,10 @@ class ListsViewModelTest {
 
             viewModel.join(InviteLink.url("some.other.token"))
 
-            assertEquals("That invite has expired. Ask for a new one.", viewModel.joined.value)
+            assertEquals(
+                JoinState.Failed("That invite has expired. Ask for a new one."),
+                viewModel.join.value,
+            )
         }
 
     /** L3: holding the link is not enough — it must be the invited address. */
@@ -234,8 +278,11 @@ class ListsViewModelTest {
             viewModel.join(InviteLink.url("aaa.bbb.ccc"))
 
             assertEquals(
-                "This invite was sent to a different email than the one you're signed in with.",
-                viewModel.joined.value,
+                JoinState.Failed(
+                    "This invite was sent to a different email address than the one you are " +
+                        "signed in with.",
+                ),
+                viewModel.join.value,
             )
         }
 
@@ -244,7 +291,10 @@ class ListsViewModelTest {
         runTest(dispatcher) {
             viewModel.join("see you saturday")
 
-            assertEquals("That does not look like an invite.", viewModel.joined.value)
+            assertEquals(
+                JoinState.Failed("That does not look like an invite."),
+                viewModel.join.value,
+            )
             assertEquals(null, api.inviteFor)
         }
 
@@ -260,11 +310,14 @@ class ListsViewModelTest {
 
             phone.invites.offer(InviteLink.url("aaa.bbb.ccc"))
             assertNotNull(viewModel.invitation.value)
-            assertEquals(null, viewModel.joined.value)
+            assertEquals(null, viewModel.join.value)
 
             viewModel.acceptInvitation()
 
-            assertEquals("Joined. The list will appear in a moment.", viewModel.joined.value)
+            assertEquals(
+                JoinState.Fetching("list-from-the-other-phone"),
+                viewModel.join.value,
+            )
             assertEquals(null, viewModel.invitation.value)
         }
 
@@ -277,7 +330,7 @@ class ListsViewModelTest {
             viewModel.declineInvitation()
 
             assertEquals(null, viewModel.invitation.value)
-            assertEquals(null, viewModel.joined.value)
+            assertEquals(null, viewModel.join.value)
         }
 
     /**

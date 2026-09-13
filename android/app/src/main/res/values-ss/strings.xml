@@ -90,12 +90,18 @@
     <string name="confirm_leave_title">Shiya lolu luhlu?</string>
     <string name="confirm_leave_body">Luyanyamalala kulelicingo futsi uyekela kutfola lutjintjo. Umnikati angakumema futsi.</string>
 
-    <string name="join_list_title">Joyina luhlu</string>
-    <string name="join_paste_prompt">Namatsisela simemo lositfunyelwe ngumuntfu.</string>
-    <string name="join_invite_label">Simemo</string>
     <string name="invited_title">Umenyelwe eluhlwini</string>
     <string name="invited_body">Uyajoyina? Lowo labelane ngalo utawubona loko lokungetako.</string>
     <string name="invited_not_now">Cha nyalo</string>
+    <string name="joining_title">Kujoyinwa luhlu</string>
+    <string name="joining_checking">Kubukwa simemo…</string>
+    <string name="joining_fetching">Kulandvwa luhlu…</string>
+    <string name="joining_slow">Kutsatsa sikhatsi lesidze kunalokujwayelekile. Luhlu luyawuvela nangabe kunesignali.</string>
+    <string name="join_failed_title">Akukhonakalanga kujoyina</string>
+    <string name="join_expired">Lesomemo sesiphelelwe sikhatsi. Cela lesisha.</string>
+    <string name="join_wrong_account">Lesimemo sitfunyelwe kulelinye likheli le-imeyili, hhayi lelo longene ngalo.</string>
+    <string name="join_not_an_invite">Loko akubukeki njengesimemo.</string>
+    <string name="join_failed">Akukhonakalanga kujoyina: %1$s</string>
 
     <string name="settings_title">Tilungiselelo</string>
     <string name="settings_account">I-akhawunti</string>

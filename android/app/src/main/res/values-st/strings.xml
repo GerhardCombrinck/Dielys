@@ -90,12 +90,18 @@
     <string name="confirm_leave_title">Tlohela lenane lena?</string>
     <string name="confirm_leave_body">Le a nyamela fonong ena mme o kgaotsa ho fumana diphetoho. Mong a ka o memela hape.</string>
 
-    <string name="join_list_title">Kena lenaneng</string>
-    <string name="join_paste_prompt">Momahanya memo eo motho a e o rometseng.</string>
-    <string name="join_invite_label">Memo</string>
     <string name="invited_title">O memilwe lenaneng</string>
     <string name="invited_body">O a kena? Ya e arolelaneng o tla bona seo o se eketsang.</string>
     <string name="invited_not_now">Eseng hajwale</string>
+    <string name="joining_title">Ho kenella lenane</string>
+    <string name="joining_checking">Ho hlahlojwa memo…</string>
+    <string name="joining_fetching">Ho latswa lenane…</string>
+    <string name="joining_slow">Ho nka nako e telele ho feta tloaelo. Lenane le tla hlaha ha ho na le letshwao.</string>
+    <string name="join_failed_title">Ha ho a kgonahala ho kenella</string>
+    <string name="join_expired">Memo eo e felletswe ke nako. Kopa e ntjha.</string>
+    <string name="join_wrong_account">Memo ena e romelletswe atereseng e nngwe ya imeile, eseng eo o kenneng ka yona.</string>
+    <string name="join_not_an_invite">Seo ha se shebahale jwaloka memo.</string>
+    <string name="join_failed">Ha ho a kgonahala ho kenella: %1$s</string>
 
     <string name="settings_title">Ditlhophiso</string>
     <string name="settings_account">Akhaonto</string>

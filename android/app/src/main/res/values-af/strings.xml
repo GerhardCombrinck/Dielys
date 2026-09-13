@@ -95,12 +95,18 @@
     <string name="confirm_leave_title">Verlaat hierdie lys?</string>
     <string name="confirm_leave_body">Dit verdwyn van hierdie foon af en jy kry nie meer veranderinge nie. Die eienaar kan jou weer nooi.</string>
 
-    <string name="join_list_title">Sluit by \'n lys aan</string>
-    <string name="join_paste_prompt">Plak die uitnodiging wat iemand vir jou gestuur het.</string>
-    <string name="join_invite_label">Uitnodiging</string>
     <string name="invited_title">Jy is na \'n lys uitgenooi</string>
     <string name="invited_body">Sluit aan? Wie ook al dit gedeel het, sal sien wat jy byvoeg.</string>
     <string name="invited_not_now">Nie nou nie</string>
+    <string name="joining_title">Sluit by die lys aan</string>
+    <string name="joining_checking">Kyk na die uitnodiging…</string>
+    <string name="joining_fetching">Haal die lys…</string>
+    <string name="joining_slow">Dit vat langer as gewoonlik. Die lys sal verskyn sodra daar sein is.</string>
+    <string name="join_failed_title">Kon nie aansluit nie</string>
+    <string name="join_expired">Daardie uitnodiging het verval. Vra vir ’n nuwe een.</string>
+    <string name="join_wrong_account">Hierdie uitnodiging is aan ’n ander e-posadres gestuur as die een waarmee jy aangemeld is.</string>
+    <string name="join_not_an_invite">Dit lyk nie na ’n uitnodiging nie.</string>
+    <string name="join_failed">Kon nie aansluit nie: %1$s</string>
 
     <!-- Settings. -->
     <string name="settings_title">Instellings</string>

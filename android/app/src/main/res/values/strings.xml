@@ -109,12 +109,18 @@
     <string name="confirm_leave_title">Leave this list?</string>
     <string name="confirm_leave_body">It disappears from this phone and you stop getting changes. The owner can invite you again.</string>
 
-    <string name="join_list_title">Join a list</string>
-    <string name="join_paste_prompt">Paste the invite somebody sent you.</string>
-    <string name="join_invite_label">Invite</string>
     <string name="invited_title">You were invited to a list</string>
     <string name="invited_body">Join it? Whoever shared it will see what you add.</string>
     <string name="invited_not_now">Not now</string>
+    <string name="joining_title">Joining the list</string>
+    <string name="joining_checking">Checking the invite…</string>
+    <string name="joining_fetching">Getting the list…</string>
+    <string name="joining_slow">This is taking longer than usual. The list will appear as soon as there is signal.</string>
+    <string name="join_failed_title">Could not join</string>
+    <string name="join_expired">That invite has expired. Ask for a new one.</string>
+    <string name="join_wrong_account">This invite was sent to a different email address than the one you are signed in with.</string>
+    <string name="join_not_an_invite">That does not look like an invite.</string>
+    <string name="join_failed">Could not join: %1$s</string>
 
     <!-- Settings. -->
     <string name="settings_title">Settings</string>

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -18,12 +19,8 @@ import za.co.dielys.data.DielysRepository
 import za.co.dielys.data.InviteResult
 import za.co.dielys.data.JoinResult
 import za.co.dielys.data.ListAccents
-import za.co.dielys.data.Member
-import za.co.dielys.data.MembersResult
 import za.co.dielys.data.PendingInvite
-import za.co.dielys.data.RemoveResult
 import za.co.dielys.data.SharingRepository
-import za.co.dielys.data.local.AccountIdentity
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.local.StringProvider
 import za.co.dielys.domain.InviteLink
@@ -69,36 +66,56 @@ sealed interface InviteState {
 }
 
 /**
- * The "shared with" sheet (#60), from the moment the people icon is tapped.
+ * Joining a list by invite, from the tap to the moment the list is on screen
+ * (#61).
  *
- * Read live from the server rather than from Room: it is only ever on screen
- * while the sheet is open, and a stale answer about who can see your list is
- * worse than a moment of "checking…".
+ * Accepting only writes a membership on the server — the list itself arrives on
+ * the sync that follows, seconds later. Without a state to show for those
+ * seconds the screen said nothing at all, and the wait read as a tap that had
+ * not worked.
  */
-sealed interface MembersState {
-    val listId: String
+sealed interface JoinState {
+    /** Asking the server whether the invite is good. */
+    data object Checking : JoinState
 
-    data class Loading(
-        override val listId: String,
-    ) : MembersState
-
-    data class Loaded(
-        override val listId: String,
-        val members: List<Member>,
-        /** This account, so the sheet knows which row is "you" and whether to
-         *  offer Remove on the others or Leave on itself. */
-        val meUserId: String?,
-        val iAmOwner: Boolean,
-        /** Set while a remove or leave is in flight, so the row it names can
-         *  say so instead of the whole sheet going blank. */
-        val working: String? = null,
-    ) : MembersState
+    /**
+     * Accepted. The list belongs to this account now, but this phone has not
+     * been handed it yet: Room has no row for it, or a row with no title, until
+     * the catch-up lands.
+     */
+    data class Fetching(
+        val listId: String,
+    ) : JoinState
 
     data class Failed(
-        override val listId: String,
         val message: String,
-    ) : MembersState
+    ) : JoinState
 }
+
+/**
+ * Why a join did not happen, in the words the screen uses (#61).
+ *
+ * Out here rather than on the view model because it is a mapping and not a
+ * decision: nothing about it needs the class's state.
+ */
+private fun JoinResult.refusal(strings: StringProvider): String =
+    when (this) {
+        JoinResult.BadInvite -> strings.get(R.string.join_expired)
+        JoinResult.WrongRecipient -> strings.get(R.string.join_wrong_account)
+        JoinResult.Offline -> strings.get(R.string.error_offline)
+        is JoinResult.ServerProblem -> strings.get(R.string.join_failed, detail)
+        // The caller takes this branch first; a join that worked is not one.
+        is JoinResult.Joined -> error("a join that worked is not a refusal")
+    }
+
+/**
+ * Whether a joined list is really here yet (#61) — present, named, and not a
+ * list the owner deleted while the invite was in the post. A row with a blank
+ * title is one `/auth/memberships` has announced but whose changelog has not
+ * landed, which on screen is "Untitled list" rather than the list.
+ */
+private fun ListEntity?.hasArrived(): Boolean =
+    this != null && deletedAt == null && title.isNotBlank()
 
 /**
  * The lists screen, fed entirely by Room (E1.2). Every action below writes
@@ -113,7 +130,6 @@ class ListsViewModel
         private val accents: ListAccents,
         private val sharing: SharingRepository,
         private val invites: PendingInvite,
-        private val account: AccountIdentity,
         private val strings: StringProvider,
     ) : ViewModel() {
         val lists: StateFlow<List<ListRow>> =
@@ -141,10 +157,6 @@ class ListsViewModel
         private val _invite = MutableStateFlow<InviteState?>(null)
         val invite: StateFlow<InviteState?> = _invite.asStateFlow()
 
-        /** The "shared with" sheet, or null when it is closed (#60). */
-        private val _members = MutableStateFlow<MembersState?>(null)
-        val members: StateFlow<MembersState?> = _members.asStateFlow()
-
         /**
          * An invite that arrived by tapping a link. Offered, never acted on: a
          * link is something a stranger can send, so joining stays a thing the
@@ -152,9 +164,13 @@ class ListsViewModel
          */
         val invitation: StateFlow<String?> = invites.pending
 
-        /** What the last join attempt said, for a one-line answer on screen. */
-        private val _joined = MutableStateFlow<String?>(null)
-        val joined: StateFlow<String?> = _joined.asStateFlow()
+        /**
+         * The join in progress, or null when nothing is being joined (#61).
+         * Cleared by [awaitList] the moment the list is on screen, so the
+         * success case ends by showing the list rather than by asking for a tap.
+         */
+        private val _join = MutableStateFlow<JoinState?>(null)
+        val join: StateFlow<JoinState?> = _join.asStateFlow()
 
         fun create(title: String) {
             val trimmed = title.trim()
@@ -241,122 +257,49 @@ class ListsViewModel
         }
 
         /**
-         * The "shared with" sheet (#60). Opens showing "checking…" and asks the
-         * server, rather than opening on whatever Room last heard: the member
-         * count in Room is a number, and this question is about names.
-         */
-        fun openMembers(listId: String) {
-            _members.value = MembersState.Loading(listId)
-            viewModelScope.launch { loadMembers(listId) }
-        }
-
-        fun dismissMembers() {
-            _members.value = null
-        }
-
-        /**
-         * Takes somebody off the list — the owner removing them, or this account
-         * leaving. Reloads rather than removing the row locally: whether the
-         * sheet should still be open at all depends on who just went, and the
-         * server is the one that knows the answer.
-         */
-        fun removeMember(
-            listId: String,
-            userId: String,
-        ) {
-            val current = _members.value
-            if (current is MembersState.Loaded && current.listId == listId) {
-                _members.value = current.copy(working = userId)
-            }
-
-            viewModelScope.launch {
-                when (val result = sharing.removeMember(listId, userId)) {
-                    RemoveResult.Removed -> {
-                        // Leaving takes the sheet with it: there is no list left
-                        // to be shown the members of, and the row underneath is
-                        // on its way out with the next sync.
-                        if (userId == account.userId) {
-                            _members.value = null
-                        } else {
-                            loadMembers(listId)
-                        }
-                    }
-
-                    RemoveResult.NotAllowed ->
-                        // Only reachable if the membership changed underneath —
-                        // the sheet offers nothing the server would refuse — so
-                        // showing what is true now beats explaining the refusal.
-                        loadMembers(listId)
-
-                    RemoveResult.Offline -> fail(listId, strings.get(R.string.error_offline))
-                    is RemoveResult.ServerProblem -> fail(listId, result.detail)
-                }
-            }
-        }
-
-        private suspend fun loadMembers(listId: String) {
-            when (val result = sharing.members(listId)) {
-                is MembersResult.Loaded ->
-                    _members.value =
-                        MembersState.Loaded(
-                            listId = listId,
-                            members = result.members,
-                            meUserId = result.members.firstOrNull(::isMe)?.userId,
-                            iAmOwner = result.members.firstOrNull(::isMe)?.isOwner == true,
-                        )
-
-                // Already off this list. Nothing to show and nothing to do about
-                // it here; the next sync takes the row off the screen too.
-                MembersResult.NotYours -> _members.value = null
-                MembersResult.Offline -> fail(listId, strings.get(R.string.error_offline))
-                is MembersResult.ServerProblem -> fail(listId, result.detail)
-            }
-        }
-
-        /**
-         * Matched on the email rather than the id: the id is only stored from
-         * the server's own login answer, and a session that predates that would
-         * otherwise never recognise itself and would be offered Remove on its
-         * own row.
-         */
-        private fun isMe(member: Member): Boolean =
-            member.email.equals(account.email?.trim(), ignoreCase = true)
-
-        private fun fail(
-            listId: String,
-            detail: String,
-        ) {
-            _members.value =
-                MembersState.Failed(listId, strings.get(R.string.members_failed, detail))
-        }
-
-        /**
          * Takes whatever was pasted — a link, or a whole shared message with a
          * link in it — because that is what comes out of a chat app.
          */
         fun join(pasted: String) {
             val token = InviteLink.tokenFrom(pasted)
             if (token == null) {
-                _joined.value = "That does not look like an invite."
+                _join.value = JoinState.Failed(strings.get(R.string.join_not_an_invite))
                 return
             }
 
+            _join.value = JoinState.Checking
             viewModelScope.launch {
-                _joined.value =
-                    when (val result = sharing.join(token)) {
-                        is JoinResult.Joined ->
-                            if (result.alreadyMember) {
-                                "You are already on that list."
-                            } else {
-                                "Joined. The list will appear in a moment."
-                            }
+                val result = sharing.join(token)
+                if (result !is JoinResult.Joined) {
+                    _join.value = JoinState.Failed(result.refusal(strings))
+                    return@launch
+                }
 
-                        JoinResult.BadInvite -> "That invite has expired. Ask for a new one."
-                        JoinResult.WrongRecipient ->
-                            "This invite was sent to a different email than the one you're signed in with."
-                        JoinResult.Offline -> "No connection. Try again when you have signal."
-                        is JoinResult.ServerProblem -> "Could not join: ${result.detail}"
-                    }
+                // Accepting is not arriving, which is the whole of #61: the
+                // server has written the membership, and the list itself only
+                // comes down on the sync that follows. So the wait is for Room
+                // to really have it (E1.2) — and for a *title*, not merely a
+                // row: `/auth/memberships` writes the row first and the
+                // changelog names it a moment later, so ending on the row alone
+                // would end the wait on "Untitled list".
+                //
+                // `alreadyMember` is not told apart here on purpose. Accepting
+                // an invite twice and accepting it once end in the same place,
+                // looking at the list, and a phone that has been reinstalled is
+                // already a member while still having nothing to show.
+                //
+                // No deadline: how long a spinner is worth watching is a
+                // question about the dialog, and the dialog answers it.
+                _join.value = JoinState.Fetching(result.listId)
+                repo.observeList(result.listId).first { it.hasArrived() }
+
+                // Only if this is still the join being waited on — the dialog
+                // may have been dismissed and another invite accepted since,
+                // and a list arriving late must not close somebody else's
+                // spinner.
+                if ((_join.value as? JoinState.Fetching)?.listId == result.listId) {
+                    _join.value = null
+                }
             }
         }
 
@@ -368,8 +311,8 @@ class ListsViewModel
             invites.take()
         }
 
-        fun dismissJoined() {
-            _joined.value = null
+        fun dismissJoin() {
+            _join.value = null
         }
 
         /**

@@ -91,12 +91,18 @@
     <string name="confirm_leave_title">Tjhiya irhelo leli?</string>
     <string name="confirm_leave_body">Liyanyamalala kufuni le begodu uyalisa ukufumana amatjhuguluko. Umnikazi angakumema godu.</string>
 
-    <string name="join_list_title">Joyina irhelo</string>
-    <string name="join_paste_prompt">Namathisela isimemo osithunyelwe mumuntu.</string>
-    <string name="join_invite_label">Isimemo</string>
     <string name="invited_title">Umenyelwe erhelweni</string>
     <string name="invited_body">Uyajoyina? Loyo owabelane ngalo uzokubona lokho okungezako.</string>
     <string name="invited_not_now">Ingasi nje</string>
+    <string name="joining_title">Kujoyinwa irhelo</string>
+    <string name="joining_checking">Kutjhejwa isimemo…</string>
+    <string name="joining_fetching">Kulandwa irhelo…</string>
+    <string name="joining_slow">Kuthatha isikhathi eside kunalokho okujayelekileko. Irhelo lizokuvela nekunesignali.</string>
+    <string name="join_failed_title">Akhange kukwazeke ukujoyina</string>
+    <string name="join_expired">Isimemo leso siphelelwe sikhathi. Bawa esitjha.</string>
+    <string name="join_wrong_account">Isimemo lesi sithunyelwe kwenye i-adresi ye-imeyili, ingasi leyo ongene ngayo.</string>
+    <string name="join_not_an_invite">Lokho akukhambi njengesimemo.</string>
+    <string name="join_failed">Akhange kukwazeke ukujoyina: %1$s</string>
 
     <string name="settings_title">Iimlungiselelo</string>
     <string name="settings_account">I-akhawunti</string>

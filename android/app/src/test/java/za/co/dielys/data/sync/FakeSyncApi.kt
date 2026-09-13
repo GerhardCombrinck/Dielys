@@ -95,6 +95,9 @@ class FakeSyncApi : SyncApi {
     /** Makes the next [removeMember] fail with this code, once. */
     var rejectRemoveWith: String? = null
 
+    /** Makes the next [listMembers] fail with this code, once. */
+    var rejectMembersWith: String? = null
+
     private val heads = mutableMapOf<String, Long>()
     private val changelog = mutableMapOf<String, MutableList<ChangeEnvelope>>()
     private val acks = mutableMapOf<String, MutationAck>()
@@ -180,6 +183,10 @@ class FakeSyncApi : SyncApi {
 
     override suspend fun listMembers(listId: String): List<ListMember> {
         gate()
+        rejectMembersWith?.let { code ->
+            rejectMembersWith = null
+            throw ApiException.Rejected(status = 403, code = code)
+        }
         return membersOf[listId].orEmpty().toList()
     }
 
@@ -243,6 +250,37 @@ class FakeSyncApi : SyncApi {
     /** Answers the next accept the way the server answers a mismatched recipient email (L3). */
     fun refuseAcceptAsWrongRecipient() {
         rejectAcceptWith = ErrorCode.FORBIDDEN
+    }
+
+    /** Answers the next members call the way the server answers somebody who is
+     *  not on the list (#60). */
+    fun refuseMembersAsNotOurs() {
+        rejectMembersWith = ErrorCode.FORBIDDEN
+    }
+
+    /** Answers the next removal the way the server answers a member reaching for
+     *  somebody else, or an owner trying to leave their own list (#60). */
+    fun refuseRemoveAsNotAllowed() {
+        rejectRemoveWith = ErrorCode.FORBIDDEN
+    }
+
+    /**
+     * Puts somebody on [listId] for `GET /lists/{id}/members` to answer with.
+     *
+     * A function rather than letting tests build the row themselves: the screens
+     * that ask this question may not name a `data.remote` type at all (E1.2),
+     * and their tests are under `ui` too, so the architecture test holds them to
+     * the same rule.
+     */
+    fun addMember(
+        listId: String,
+        userId: String,
+        email: String,
+        isOwner: Boolean = false,
+    ) {
+        val role = if (isOwner) MembershipRole.OWNER else MembershipRole.MEMBER
+        membersOf.getOrPut(listId) { mutableListOf() } +=
+            ListMember(userId = userId, email = email, role = role)
     }
 
     /** A change made by the other device, already on the server. */

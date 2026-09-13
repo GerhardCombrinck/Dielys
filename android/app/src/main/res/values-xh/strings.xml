@@ -90,12 +90,18 @@
     <string name="confirm_leave_title">Shiya olu luhlu?</string>
     <string name="confirm_leave_body">Luyanyamalala kule fowuni kwaye uyeka ukufumana utshintsho. Umnini unokukumema kwakhona.</string>
 
-    <string name="join_list_title">Joyina uluhlu</string>
-    <string name="join_paste_prompt">Ncamathisela isimemo osithunyelweyo ngumntu.</string>
-    <string name="join_invite_label">Isimemo</string>
     <string name="invited_title">Umenyelwe kuluhlu</string>
     <string name="invited_body">Uyajoyina? Lowo wabelane ngalo uya kubona oko ukongezayo.</string>
     <string name="invited_not_now">Hayi ngoku</string>
+    <string name="joining_title">Kujoyinwa uluhlu</string>
+    <string name="joining_checking">Kujongwa isimemo…</string>
+    <string name="joining_fetching">Kulandwa uluhlu…</string>
+    <string name="joining_slow">Kuthatha ixesha elide kunesiqhelo. Uluhlu luya kuvela xa kukho umqondiso.</string>
+    <string name="join_failed_title">Ayikwazanga ukujoyina</string>
+    <string name="join_expired">Eso simemo siphelelwe lixesha. Cela esitsha.</string>
+    <string name="join_wrong_account">Esi simemo sithunyelwe kwenye idilesi ye-imeyile, ingeyiyo leyo ungene ngayo.</string>
+    <string name="join_not_an_invite">Oko akukhangeleki njengesimemo.</string>
+    <string name="join_failed">Ayikwazanga ukujoyina: %1$s</string>
 
     <string name="settings_title">Iisetingi</string>
     <string name="settings_account">I-akhawunti</string>

@@ -56,6 +56,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import za.co.dielys.R
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.ui.SettingsButton
@@ -74,9 +75,12 @@ fun ListsScreen(
     onSettings: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ListsViewModel,
+    // Its own view model (#60): the sheet is a live conversation with the
+    // server, and it shares no state with the rows underneath it.
+    membersViewModel: MembersViewModel = viewModel(),
 ) {
     val rows by viewModel.lists.collectAsStateWithLifecycle()
-    val members by viewModel.members.collectAsStateWithLifecycle()
+    val members by membersViewModel.members.collectAsStateWithLifecycle()
     val invite by viewModel.invite.collectAsStateWithLifecycle()
     var creating by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<ListEntity?>(null) }
@@ -143,7 +147,7 @@ fun ListsScreen(
                     onOpen = onOpen,
                     onRename = { renaming = it },
                     onColour = { colouring = it.id },
-                    onMembers = { viewModel.openMembers(it.id) },
+                    onMembers = { membersViewModel.open(it.id) },
                     onShare = viewModel::invite,
                     onDelete = viewModel::delete,
                     modifier = Modifier.weight(1f),
@@ -191,8 +195,8 @@ fun ListsScreen(
     members?.let { state ->
         MembersDialog(
             state = state,
-            onRemove = viewModel::removeMember,
-            onDismiss = viewModel::dismissMembers,
+            onRemove = membersViewModel::remove,
+            onDismiss = membersViewModel::dismiss,
         )
     }
 

@@ -90,12 +90,18 @@
     <string name="confirm_leave_title">Siya nxaxamelo lowu?</string>
     <string name="confirm_leave_body">Wu nyamalala eka riqingho leri naswona u tshika ku kuma ku cinca. N\'wini a nga ku rhamba nakambe.</string>
 
-    <string name="join_list_title">Joyina nxaxamelo</string>
-    <string name="join_paste_prompt">Namarhela xirhambo lexi munhu a ku rhumeleke xona.</string>
-    <string name="join_invite_label">Xirhambo</string>
     <string name="invited_title">U rhambiwile eka nxaxamelo</string>
     <string name="invited_body">Wa joyina? Loyi a avelaneke ha wona u ta vona leswi u swi engetelaka.</string>
     <string name="invited_not_now">Ku nga ri sweswi</string>
+    <string name="joining_title">Ku joyina nxaxamelo</string>
+    <string name="joining_checking">Ku kamberiwa xirhambo…</string>
+    <string name="joining_fetching">Ku tekiwa nxaxamelo…</string>
+    <string name="joining_slow">Swi teka nkarhi wo leha ku tlula tolovelo. Nxaxamelo wu ta humelela loko ku ri ni xikombiso.</string>
+    <string name="join_failed_title">A swi kotekanga ku joyina</string>
+    <string name="join_expired">Xirhambo xexo xi hundzeriwe hi nkarhi. Kombela xintshwa.</string>
+    <string name="join_wrong_account">Xirhambo lexi xi rhumeriwe eka adirese yin’wana ya imeyili, ku nga ri leyi u ngheneke ha yona.</string>
+    <string name="join_not_an_invite">Sweswo a swi vonaki swi fana ni xirhambo.</string>
+    <string name="join_failed">A swi kotekanga ku joyina: %1$s</string>
 
     <string name="settings_title">Vulunghiwa</string>
     <string name="settings_account">Akhawunti</string>
