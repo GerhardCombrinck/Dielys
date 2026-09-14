@@ -4,6 +4,7 @@ import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -39,6 +40,9 @@ class ListsViewModelTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         phone = DeviceStack(api, "device-a")
+        // A phone that has synced before, which is most of what this screen sees.
+        // The tests about the first sync after signing in take this back (#66).
+        phone.sweeps.lastFullCatchUpAt = 0L
         viewModel =
             ListsViewModel(
                 phone.repo,
@@ -46,6 +50,7 @@ class ListsViewModelTest {
                 phone.sharing,
                 phone.invites,
                 AndroidStringProvider(ApplicationProvider.getApplicationContext()),
+                phone.sweeps,
             )
     }
 
@@ -121,6 +126,68 @@ class ListsViewModelTest {
                     .find(id)
                     ?.deletedAt,
             )
+        }
+
+    /**
+     * #66: straight after signing in, the lists are on the server and not yet
+     * here. Neither the empty-screen invitation to make a first list nor an
+     * "Untitled list" for each one `/auth/memberships` announced is true, so
+     * the screen keeps loading until the first sync has pulled them.
+     */
+    @Test
+    fun `after signing in, the screen waits for the first sync rather than showing placeholders`() =
+        runTest(dispatcher) {
+            val otherPhone = DeviceStack(api, "device-b")
+            otherPhone.repo.createList("Braai")
+            otherPhone.engine.sync()
+            phone.sweeps.lastFullCatchUpAt = null
+
+            viewModel.lists.test {
+                assertNull(awaitItem())
+
+                // Known, but nameless until its changelog lands: still nothing.
+                phone.engine.discoverLists()
+                assertEquals(
+                    listOf(""),
+                    phone.db
+                        .lists()
+                        .observeAll()
+                        .first()
+                        .map { it.title },
+                )
+                expectNoEvents()
+
+                phone.engine.sync()
+                assertEquals(listOf("Braai"), awaitItem()?.map { it.list.title })
+            }
+            otherPhone.close()
+        }
+
+    @Test
+    fun `a first sync that finds no lists is an empty screen, not a wait`() =
+        runTest(dispatcher) {
+            phone.sweeps.lastFullCatchUpAt = null
+
+            viewModel.lists.test {
+                assertNull(awaitItem())
+                phone.engine.sync()
+                assertEquals(emptyList<String>(), awaitItem()?.map { it.list.title })
+            }
+        }
+
+    /** Making a list works offline, so a first sync stuck without signal does not
+     *  keep a list made meanwhile off the screen. */
+    @Test
+    fun `a list made before the first sync lands is shown`() =
+        runTest(dispatcher) {
+            api.online = false
+            phone.sweeps.lastFullCatchUpAt = null
+
+            viewModel.lists.test {
+                assertNull(awaitItem())
+                viewModel.create("Groceries")
+                assertEquals(listOf("Groceries"), awaitItem()?.map { it.list.title })
+            }
         }
 
     @Test

@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
 import za.co.dielys.R
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.ui.ConfirmPrompt
@@ -104,6 +105,15 @@ fun ListsScreen(
     var draggingId by remember { mutableStateOf<String?>(null) }
     val shown = draft ?: rows
 
+    // How long a spinner is worth watching is this screen's question, as it is
+    // the join dialog's (#61); the view model only knows whether lists are here.
+    var waitedLong by remember { mutableStateOf(false) }
+    LaunchedEffect(answer == null) {
+        if (answer != null) return@LaunchedEffect
+        delay(FIRST_SYNC_PATIENCE_MILLIS)
+        waitedLong = true
+    }
+
     LaunchedEffect(rows, draft) {
         val current = draft ?: return@LaunchedEffect
         if (!draftStillWanted(current.map { it.list.id }, rows.map { it.list.id })) draft = null
@@ -140,10 +150,13 @@ fun ListsScreen(
         },
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            if (answer == null) {
+            if (answer == null && !waitedLong) {
                 Loading()
             } else if (rows.isEmpty()) {
-                Empty(onCreate = { creating = true })
+                // Past the wait with still no answer is the first sync stuck
+                // without signal (#66). Making a list still works offline, so
+                // the screen offers it — and says the others are on their way.
+                Empty(onCreate = { creating = true }, stillSyncing = answer == null)
             } else {
                 Lists(
                     rows = shown,
@@ -554,7 +567,10 @@ private fun NewListRow(
 }
 
 @Composable
-private fun Empty(onCreate: () -> Unit) {
+private fun Empty(
+    onCreate: () -> Unit,
+    stillSyncing: Boolean,
+) {
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp),
         verticalArrangement = Arrangement.Center,
@@ -565,7 +581,9 @@ private fun Empty(onCreate: () -> Unit) {
             style = MaterialTheme.typography.titleMedium,
         )
         Text(
-            stringResource(R.string.empty_lists_subtitle),
+            stringResource(
+                if (stillSyncing) R.string.lists_syncing_slow else R.string.empty_lists_subtitle,
+            ),
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(top = 4.dp, bottom = 20.dp),
         )
@@ -576,6 +594,10 @@ private fun Empty(onCreate: () -> Unit) {
 }
 
 private const val ALPHA_MUTED = 0.65f
+
+/** How long the first sync after signing in gets before the screen stops
+ *  waiting on it and lets a list be made anyway (#66). */
+private const val FIRST_SYNC_PATIENCE_MILLIS = 8_000L
 
 /** Breathing room between cards, so neighbours read as separate surfaces. */
 private val CARD_GAP = 8.dp

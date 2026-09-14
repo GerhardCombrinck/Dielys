@@ -2,10 +2,14 @@ package za.co.dielys.data
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import za.co.dielys.data.local.AccountIdentity
 import za.co.dielys.data.local.CatchUpSweeps
 import za.co.dielys.data.local.DeviceIdentity
 import za.co.dielys.data.local.DielysDatabase
+import za.co.dielys.data.local.FirstSync
 import za.co.dielys.data.local.PushTokenStore
 import za.co.dielys.data.sync.ChangeApplier
 import za.co.dielys.data.sync.FakeSyncApi
@@ -60,10 +64,21 @@ class FakePushTokens(
     override var pushTokenSent: String? = null,
 ) : PushTokenStore
 
-/** When the last full catch-up ran, in memory. */
+/** When the last full catch-up ran, in memory, and whether one ever has (#66). */
 class FakeSweeps(
-    override var lastFullCatchUpAt: Long? = null,
-) : CatchUpSweeps
+    lastFullCatchUpAt: Long? = null,
+) : CatchUpSweeps,
+    FirstSync {
+    private val pulled = MutableStateFlow(lastFullCatchUpAt != null)
+
+    override val listsPulled: StateFlow<Boolean> = pulled.asStateFlow()
+
+    override var lastFullCatchUpAt: Long? = lastFullCatchUpAt
+        set(value) {
+            field = value
+            pulled.value = value != null
+        }
+}
 
 /** A device id without preferences, a `Context`, or a session behind it. */
 class FixedDevice(

@@ -72,6 +72,7 @@
     <string name="untitled_list">Lenaneo le le se nago sehlogo</string>
     <string name="empty_lists_title">Ga go mananeo gabjale</string>
     <string name="empty_lists_subtitle">Dira le lengwe la dijo, mešomo ya gae, goba selo se sengwe le se sengwe seo o se abelanago.</string>
+    <string name="lists_syncing_slow">Go tšea nako e telele go feta ka mehla. Mananeo a gago a tla tšwelela ge go na le mogala — o sa kgona go dira le lefsa.</string>
     <string name="create_first_list">Hlama lenaneo la gago la mathomo</string>
 
     <string name="share_failed_title">E paletšwe go abelana</string>

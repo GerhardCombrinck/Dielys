@@ -21,6 +21,7 @@ import za.co.dielys.data.JoinResult
 import za.co.dielys.data.ListAccents
 import za.co.dielys.data.PendingInvite
 import za.co.dielys.data.SharingRepository
+import za.co.dielys.data.local.FirstSync
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.local.StringProvider
 import za.co.dielys.domain.InviteLink
@@ -131,17 +132,38 @@ class ListsViewModel
         private val sharing: SharingRepository,
         private val invites: PendingInvite,
         private val strings: StringProvider,
+        firstSync: FirstSync,
     ) : ViewModel() {
-        /** Null until Room has answered — not the same as no lists, which gets the
-         *  "make your first list" screen; this gets nothing (#65). */
+        /**
+         * Null until there is something true to say — not the same as no lists,
+         * which gets the "make your first list" screen; this gets nothing (#65).
+         *
+         * That is until Room has answered, and, on a phone that has not pulled
+         * this account's lists yet, until it has (#66): straight after signing in
+         * an empty table means "not here yet", not "none".
+         *
+         * A list `/auth/memberships` has announced but whose changelog has not
+         * landed is left off entirely, rather than drawn as "Untitled list" for
+         * the second it takes to arrive — the same test the join uses (#61).
+         */
         val lists: StateFlow<List<ListRow>?> =
             combine(
                 repo.observeLists(),
                 repo.observeItemCounts(),
                 accents.observeAll(),
-            ) { lists, counts, accents ->
+                firstSync.listsPulled,
+            ) { lists, counts, accents, pulled ->
                 val byListId = counts.associate { it.listId to it.count }
-                lists.map { ListRow(it, byListId[it.id] ?: 0, accents[it.id]) }
+                val (arrived, announced) = lists.partition { it.hasArrived() }
+                // Still waiting while a list is announced and not named, even
+                // once the sync has finished: Room tells this flow about the rows
+                // a moment after the sync says it wrote them, and in that moment
+                // the screen would flash "make your first list".
+                if (arrived.isEmpty() && (!pulled || announced.isNotEmpty())) {
+                    null
+                } else {
+                    arrived.map { ListRow(it, byListId[it.id] ?: 0, accents[it.id]) }
+                }
             }.asState(null)
 
         /** Edits made on this device that the server has not acknowledged yet. */

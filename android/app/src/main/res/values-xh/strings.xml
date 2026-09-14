@@ -67,6 +67,7 @@
     <string name="untitled_list">Uluhlu olungenasihloko</string>
     <string name="empty_lists_title">Akukho zintlu okwangoku</string>
     <string name="empty_lists_subtitle">Yenza olunye lokutya, imisebenzi yasekhaya, okanye nantoni na oyabelana ngayo.</string>
+    <string name="lists_syncing_slow">Kuthatha ixesha elide kunesiqhelo. Uluhlu lwakho luza kuvela xa kukho isignali — usenokwenza olutsha.</string>
     <string name="create_first_list">Yila uluhlu lwakho lokuqala</string>
 
     <string name="share_failed_title">Ayikwazanga ukwabelana</string>

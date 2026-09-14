@@ -68,6 +68,18 @@ interface CatchUpSweeps {
 }
 
 /**
+ * Whether this account's lists have been pulled onto this phone at least once
+ * since it signed in (#66) — the same moment [CatchUpSweeps.lastFullCatchUpAt]
+ * is first written, as something the lists screen can watch.
+ *
+ * Until then an empty screen is not an answer: the account may well have lists
+ * that are still on their way, and "make your first list" would be a lie.
+ */
+interface FirstSync {
+    val listsPulled: StateFlow<Boolean>
+}
+
+/**
  * Whether there is a session, as something that can be watched.
  *
  * The socket supervisor has to react to a sign-in and a sign-out, and it cannot
@@ -100,6 +112,7 @@ class SessionStore
         AccountIdentity,
         PushTokenStore,
         CatchUpSweeps,
+        FirstSync,
         SessionSignal {
         private val prefs: SharedPreferences =
             context.getSharedPreferences("dielys-session", Context.MODE_PRIVATE)
@@ -107,6 +120,10 @@ class SessionStore
         private val session = MutableStateFlow(prefs.getString(KEY_REFRESH_TOKEN, null) != null)
 
         override val signedIn: StateFlow<Boolean> = session.asStateFlow()
+
+        private val pulled = MutableStateFlow(prefs.contains(KEY_LAST_FULL_CATCH_UP))
+
+        override val listsPulled: StateFlow<Boolean> = pulled.asStateFlow()
 
         @get:Synchronized
         override val deviceId: String
@@ -163,6 +180,7 @@ class SessionStore
                     edit.putLong(KEY_LAST_FULL_CATCH_UP, value)
                 }
                 edit.apply()
+                pulled.value = value != null
             }
 
         /**
@@ -188,6 +206,7 @@ class SessionStore
                 .remove(KEY_LAST_FULL_CATCH_UP)
                 .apply()
             session.value = false
+            pulled.value = false
         }
 
         private companion object {

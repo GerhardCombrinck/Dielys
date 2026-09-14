@@ -67,6 +67,7 @@
     <string name="untitled_list">Lenaane le le se nang setlhogo</string>
     <string name="empty_lists_title">Ga go na manaane gonne jaana</string>
     <string name="empty_lists_subtitle">Dira le lengwe la dijo, ditiro tsa legae, kgotsa sengwe le sengwe se o se abelanang.</string>
+    <string name="lists_syncing_slow">Go tsaya lobaka lo loleele go feta ka metlha. Manane a gago a tla bonala fa go na le kgokagano — o sa ntse o ka dira le lesha.</string>
     <string name="create_first_list">Tlhama lenaane la gago la ntlha</string>
 
     <string name="share_failed_title">Go paletswe go abelana</string>

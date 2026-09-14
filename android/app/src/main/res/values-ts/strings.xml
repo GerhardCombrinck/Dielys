@@ -67,6 +67,7 @@
     <string name="untitled_list">Nxaxamelo lowu nga riki na nhlokomhaka</string>
     <string name="empty_lists_title">A ku na minxaxamelo sweswi</string>
     <string name="empty_lists_subtitle">Endla wun\'wana wa swakudya, mintirho ya le kaya, kumbe nchumu wihi na wihi lowu u wu avelanaka.</string>
+    <string name="lists_syncing_slow">Swi teka nkarhi wo leha ku tlula tolovelo. Minxaxamelo ya wena yi ta humelela loko ku ri ni xikombiso — u nga ha endla lowuntshwa.</string>
     <string name="create_first_list">Tumbuluxa nxaxamelo wa wena wo sungula</string>
 
     <string name="share_failed_title">Swi tsandzekile ku avelana</string>

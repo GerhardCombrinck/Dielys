@@ -71,6 +71,7 @@
     <string name="untitled_list">Naamlose lys</string>
     <string name="empty_lists_title">Nog geen lyste nie</string>
     <string name="empty_lists_subtitle">Maak een vir kruideniersware, takies, of enigiets wat jy deel.</string>
+    <string name="lists_syncing_slow">Dit neem langer as gewoonlik. Jou lyste sal verskyn sodra daar sein is — jy kan steeds \'n nuwe een maak.</string>
     <string name="create_first_list">Skep jou eerste lys</string>
 
     <!-- Sharing a list. -->

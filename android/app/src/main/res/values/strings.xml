@@ -82,6 +82,7 @@
     <string name="untitled_list">Untitled list</string>
     <string name="empty_lists_title">No lists yet</string>
     <string name="empty_lists_subtitle">Make one for groceries, chores, or anything you\'re sharing.</string>
+    <string name="lists_syncing_slow">Taking longer than usual. Your lists will show up once there is signal — you can still make a new one.</string>
     <string name="create_first_list">Create your first list</string>
 
     <!-- Sharing a list (four dialogs — see ShareDialogs.kt). -->

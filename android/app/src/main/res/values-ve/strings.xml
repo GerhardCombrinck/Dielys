@@ -67,6 +67,7 @@
     <string name="untitled_list">Mutevhe u si na thoho</string>
     <string name="empty_lists_title">A hu na mitevhe zwino</string>
     <string name="empty_lists_subtitle">Itani muthihi wa zwiliwa, mishumo ya hayani, kana tshinwe na tshinwe tshine na tshi kovhekana.</string>
+    <string name="lists_syncing_slow">Zwi khou dzhia tshifhinga tshilapfu u fhira zwa misi. Mitevhe yaṋu i ḓo bvelela musi hu na siginala — ni kha ḓi kona u ita muswa.</string>
     <string name="create_first_list">Sikani mutevhe wanu wa u thoma</string>
 
     <string name="share_failed_title">Zwo kundelwa u kovhekana</string>

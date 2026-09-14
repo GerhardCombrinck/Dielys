@@ -67,6 +67,7 @@
     <string name="untitled_list">Lenane le se nang sehlooho</string>
     <string name="empty_lists_title">Ha ho manane hajwale</string>
     <string name="empty_lists_subtitle">Etsa le leng bakeng sa dijo, mesebetsi ya lapeng, kapa eng kapa eng eo o e arolelanang.</string>
+    <string name="lists_syncing_slow">Ho nka nako e telele ho feta ka tlwaelo. Manane a hao a tla hlaha ha ho na le letshwao — o ntse o ka etsa le letjha.</string>
     <string name="create_first_list">Theha lenane la hao la pele</string>
 
     <string name="share_failed_title">E hlolehile ho arolelana</string>

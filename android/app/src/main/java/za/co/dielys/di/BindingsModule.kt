@@ -10,6 +10,7 @@ import za.co.dielys.data.local.AndroidStringProvider
 import za.co.dielys.data.local.CatchUpSweeps
 import za.co.dielys.data.local.DeviceIdentity
 import za.co.dielys.data.local.DoneSectionPrefs
+import za.co.dielys.data.local.FirstSync
 import za.co.dielys.data.local.LocalePrefs
 import za.co.dielys.data.local.NewTaskPlacement
 import za.co.dielys.data.local.PushTokenStore
@@ -81,6 +82,11 @@ abstract class BindingsModule {
     @Binds
     @Singleton
     abstract fun catchUpSweeps(impl: SessionStore): CatchUpSweeps
+
+    /** The same moment as [CatchUpSweeps], watched by the lists screen (#66). */
+    @Binds
+    @Singleton
+    abstract fun firstSync(impl: SessionStore): FirstSync
 
     /**
      * Third face, watched rather than read. Deliberately not bound to

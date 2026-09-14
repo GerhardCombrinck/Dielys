@@ -68,6 +68,7 @@
     <string name="untitled_list">Irhelo elinganabizo</string>
     <string name="empty_lists_title">Akunamarhelo okwanje</string>
     <string name="empty_lists_subtitle">Yenza elinye lokudla, imisebenzi yekhaya, namkha nanyana yini oyabelana ngayo.</string>
+    <string name="lists_syncing_slow">Kuthatha isikhathi eside kunokujayelekileko. Amarhelo wakho azokuvela nakunesiginali — ungakghona ukwenza elitjha.</string>
     <string name="create_first_list">Yenza irhelo lakho lokuthoma</string>
 
     <string name="share_failed_title">Ayikghonanga ukwabelana</string>

@@ -67,6 +67,7 @@
     <string name="untitled_list">Luhlu lolungenasihloko</string>
     <string name="empty_lists_title">Kute tinhlu njengamanje</string>
     <string name="empty_lists_subtitle">Yenta lolunye lwekudla, imisebenti yasekhaya, nobe nanoma yini loyabelana ngayo.</string>
+    <string name="lists_syncing_slow">Kutsatsa sikhatsi lesidze kunakujwayelekile. Luhlu lwakho lutawuvela nakunesiginali — usengakhona kwenta lolusha.</string>
     <string name="create_first_list">Yenta luhlu lwakho lwekucala</string>
 
     <string name="share_failed_title">Ayikhonanga kwabelana</string>
