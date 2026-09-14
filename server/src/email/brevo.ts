@@ -53,6 +53,7 @@ export async function sendMagicLinkEmail(
   sender: EmailSender,
   to: string,
   link: string,
+  code: string,
   ttlMinutes: number,
 ): Promise<SendResult> {
   let response: Response;
@@ -68,13 +69,13 @@ export async function sendMagicLinkEmail(
         sender: { email: sender.email, name: sender.name },
         to: [{ email: to }],
         subject: "Sign in to Die Lys",
-        textContent: `Tap this link on your phone to sign in to Die Lys:\n\n${link}\n\nIt expires in ${ttlMinutes} minutes and works once. If you did not request this, ignore this email.`,
+        textContent: `Tap this link on your phone to sign in to Die Lys:\n\n${link}\n\nOr type this code in the app: ${code}\n\nThey expire in ${ttlMinutes} minutes and work once. If you did not request this, ignore this email.`,
         htmlContent: renderEmailHtml({
           heading: "Sign in to Die Lys",
-          bodyHtml: `<p style="margin:0 0 8px;">Tap the button below on your phone to sign in.</p>`,
+          bodyHtml: `<p style="margin:0 0 8px;">Tap the button below on your phone to sign in.</p><p style="margin:16px 0 4px;">Reading this somewhere else? Type this code in the app:</p><p style="margin:0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:26px;font-weight:700;letter-spacing:0.12em;">${escapeHtml(code)}</p>`,
           buttonText: "Sign in",
           buttonUrl: link,
-          footerNote: `This link expires in ${ttlMinutes} minutes and works once. If you did not request this, you can ignore this email.`,
+          footerNote: `The link and code expire in ${ttlMinutes} minutes and work once. If you did not request this, you can ignore this email.`,
         }),
       }),
     });

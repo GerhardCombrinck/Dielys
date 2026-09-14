@@ -123,4 +123,9 @@
     <string name="confirm_delete_account_body">Akhawunti ya wena, ni nxaxamelo wihi na wihi lowu u nga ri eka wona u ri wexe, swi susiwa eka riqingho leri ni le ka sevha ya hina. Minxaxamelo leyi u yi avelanaka yi sala ni van\'wana; lowu nga wa wena wu ya eka loyi a nga eka wona nkarhi wo leha. A swi vuyi.</string>
     <string name="action_delete_account">Susa akhawunti</string>
     <string name="error_delete_account_failed">Swi tsandzekile ku susa akhawunti ya wena: %1$s. A ku na lexi cinciweke.</string>
+
+    <string name="auth_code_prompt">U hlaya imeyili kun\'wana? Tsala khodi ya yona laha.</string>
+    <string name="label_code">Khodi</string>
+    <string name="auth_sign_in_with_code">Nghena hi khodi</string>
+    <string name="error_magic_code_invalid">Khodi yoleyo a yi lulamanga kumbe nkarhi wa yona wu hundzile. Languta imeyili, kumbe u rhumela xihlanganisi xintshwa.</string>
 </resources>

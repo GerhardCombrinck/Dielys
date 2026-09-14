@@ -8,6 +8,7 @@ import za.co.dielys.data.remote.ApiException
 import za.co.dielys.data.remote.AuthApi
 import za.co.dielys.data.remote.ErrorCode
 import za.co.dielys.data.remote.MIN_PASSWORD_LENGTH
+import za.co.dielys.data.remote.TokenPair
 import za.co.dielys.data.sync.SyncScheduler
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -284,8 +285,27 @@ class SessionRepository
          * already saved for it.
          */
         suspend fun redeemMagicLink(token: String): MagicLinkVerifyResult =
+            redeem { auth.verifyMagicLink(token, store.deviceId) }
+
+        /**
+         * The typed code from the same email (ADR 0008), for when the email was
+         * opened somewhere the link cannot reach this app. Wrong, spent and
+         * expired all come back as [MagicLinkVerifyResult.InvalidOrExpired], the
+         * same as a dead link. The email is saved on success, as [requestMagicLink]
+         * already did for the address the code was sent to.
+         */
+        suspend fun redeemMagicCode(
+            email: String,
+            code: String,
+        ): MagicLinkVerifyResult =
+            redeem {
+                auth.verifyMagicCode(email, code, store.deviceId).also { store.email = email }
+            }
+
+        /** The link and the code end the same way: a session, or a reason there is not one. */
+        private suspend fun redeem(verify: suspend () -> TokenPair): MagicLinkVerifyResult =
             try {
-                val pair = auth.verifyMagicLink(token, store.deviceId)
+                val pair = verify()
                 store.accessToken = pair.accessToken
                 store.refreshToken = pair.refreshToken
                 store.userId = pair.userId

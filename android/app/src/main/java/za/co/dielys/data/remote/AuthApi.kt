@@ -66,6 +66,17 @@ interface AuthApi {
     ): TokenPair
 
     /**
+     * `POST /auth/magic/verify-code` (ADR 0008). The code from the same email,
+     * for when the link cannot be tapped on this phone. Signs in exactly as
+     * [verifyMagicLink] does, and spends the link too.
+     */
+    suspend fun verifyMagicCode(
+        email: String,
+        code: String,
+        deviceId: String,
+    ): TokenPair
+
+    /**
      * `GET /auth/magic/status` (ADR 0005 follow-up). Unauthenticated, like the
      * rest of this interface's magic-link calls — polled by
      * [za.co.dielys.ui.auth.SessionViewModel] every few seconds while "Check

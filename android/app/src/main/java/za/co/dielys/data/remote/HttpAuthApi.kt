@@ -92,6 +92,20 @@ class HttpAuthApi
                 TokenPair.serializer(),
             )
 
+        override suspend fun verifyMagicCode(
+            email: String,
+            code: String,
+            deviceId: String,
+        ): TokenPair =
+            postJson(
+                listOf("auth", "magic", "verify-code"),
+                DielysJson.wire.encodeToString(
+                    VerifyMagicCodeRequest.serializer(),
+                    VerifyMagicCodeRequest(email, code, deviceId),
+                ),
+                TokenPair.serializer(),
+            )
+
         override suspend fun magicLinkStatus(requestId: String): MagicLinkStatusResponse =
             withContext(Dispatchers.IO) {
                 val url =

@@ -27,6 +27,7 @@ import {
   validateRequestAccountDeletionRequest,
   validateRequestMagicLinkRequest,
   validateSetListPositionRequest,
+  validateVerifyMagicCodeRequest,
   validateVerifyMagicLinkRequest,
 } from "./domain/validate.js";
 import { log } from "./lib/log.js";
@@ -80,6 +81,8 @@ export default {
           return await handleRequestMagicLink(request, env, now);
         case "/auth/magic/verify":
           return await handleVerifyMagicLink(request, env, now);
+        case "/auth/magic/verify-code":
+          return await handleVerifyMagicCode(request, env, now);
         case "/auth/magic/status":
           return await handleMagicLinkStatus(request, env, url, now);
         case "/magic":
@@ -310,6 +313,43 @@ async function handleVerifyMagicLink(request: Request, env: Env, now: number): P
   );
   if (!result.ok) {
     log("info", "worker.magiclink.verify.rejected", { code: result.code });
+    return errorResponse(result.code, magicVerifyStatus(result.code));
+  }
+
+  return Response.json(
+    await tokenPair(
+      result.value.userId,
+      parsed.value.deviceId,
+      result.value.refreshToken,
+      env,
+      now,
+    ),
+  );
+}
+
+/**
+ * `POST /auth/magic/verify-code` (ADR 0008) — the code from the same email,
+ * for when the link cannot be tapped on the phone. Signs in exactly as
+ * `/auth/magic/verify` does.
+ */
+async function handleVerifyMagicCode(request: Request, env: Env, now: number): Promise<Response> {
+  if (request.method !== "POST") return errorResponse("malformed", 405);
+
+  const body = await readJson(request);
+  if (body === null) return errorResponse("malformed", 400);
+
+  const parsed = validateVerifyMagicCodeRequest(body);
+  if (!parsed.ok) return errorResponse("malformed", 400);
+
+  const result = await usersRoom(env).verifyMagicCode(
+    parsed.value.email,
+    parsed.value.code,
+    parsed.value.deviceId,
+    await bucketKey(request, env),
+    now,
+  );
+  if (!result.ok) {
+    log("info", "worker.magiccode.verify.rejected", { code: result.code });
     return errorResponse(result.code, magicVerifyStatus(result.code));
   }
 

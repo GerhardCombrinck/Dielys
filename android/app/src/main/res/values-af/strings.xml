@@ -129,4 +129,9 @@
     <string name="confirm_delete_account_body">Jou rekening, en enige lys waarop net jy is, word van ons bediener af uitgevee, en alles word van hierdie foon af verwyder. Lyste wat jy deel, bly by die ander; een wat aan jou behoort, gaan na wie die langste daarop is. Jy kan dit nie terugkry nie.</string>
     <string name="action_delete_account">Skrap rekening</string>
     <string name="error_delete_account_failed">Kon nie jou rekening skrap nie: %1$s. Niks is verander nie.</string>
+
+    <string name="auth_code_prompt">Lees jy die e-pos elders? Tik die kode daaruit hier in.</string>
+    <string name="label_code">Kode</string>
+    <string name="auth_sign_in_with_code">Meld aan met kode</string>
+    <string name="error_magic_code_invalid">Daardie kode is verkeerd of het verval. Kyk weer na die e-pos, of stuur \'n nuwe skakel.</string>
 </resources>

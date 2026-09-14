@@ -286,3 +286,25 @@ export interface RequestAccountDeletionResponse {
 export interface ConfirmAccountDeletionRequest {
   token: string;
 }
+
+/**
+ * Characters in the code mailed beside every magic link (ADR 0008), before
+ * the display dash: `XXXX-XXXX`. Crockford base32, so 40 bits.
+ */
+export const MAGIC_CODE_LENGTH = 8;
+
+/**
+ * `POST /auth/magic/verify-code` (ADR 0008). The typed alternative to tapping
+ * the link: the same email, the code from it, and this device. Unlike
+ * `VerifyMagicLinkRequest` the email is needed — a code is short enough to
+ * collide across addresses, so it is looked up under the address it was sent
+ * to. Answers a `TokenPair`, exactly as the link does.
+ *
+ * `code` is forgiving on the wire: case, spaces and dashes are ignored, and
+ * `O`, `I`, `L` are read as `0`, `1`, `1`.
+ */
+export interface VerifyMagicCodeRequest {
+  email: string;
+  code: string;
+  deviceId: string;
+}

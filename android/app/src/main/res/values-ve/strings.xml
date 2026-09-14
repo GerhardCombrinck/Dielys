@@ -123,4 +123,9 @@
     <string name="confirm_delete_account_body">Akhaunthu yaṋu, na mutevhe muṅwe na muṅwe une na vha khawo ni noṱhe, zwi a thuthiwa kha ulu lutingo na kha sevha yashu. Mitevhe ine na i kovhekana i sala na vhaṅwe; une wa vha waṋu u ya kha ane a vha khawo tshifhinga tshilapfu. A zwi vhuyi.</string>
     <string name="action_delete_account">Thutha akhaunthu</string>
     <string name="error_delete_account_failed">Zwo kundelwa u thutha akhaunthu yaṋu: %1$s. A hu na zwo shandukaho.</string>
+
+    <string name="auth_code_prompt">Ni khou vhala imeili huṅwe? Ṅwalani khoudu yayo fhano.</string>
+    <string name="label_code">Khoudu</string>
+    <string name="auth_sign_in_with_code">Dzhenani nga khoudu</string>
+    <string name="error_magic_code_invalid">Iyo khoudu a yo ngo luga kana tshifhinga tshayo tsho fhela. Sedzani imeili, kana ni rumele vhukwamani vhuswa.</string>
 </resources>

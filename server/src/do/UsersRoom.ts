@@ -1,6 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import type { AuthErrorCode, ListMember, Membership, MembershipRole } from "@dielys/protocol";
 import { INVITE_TOKEN_TTL_SECONDS, signInviteToken } from "../auth/jwt.js";
+import { generateMagicCode, hashMagicCode } from "../auth/magiccode.js";
 import {
   generateRefreshToken,
   hashPassword,
@@ -25,6 +26,7 @@ import {
   REGISTER_GLOBAL,
   REGISTER_PER_CLIENT,
 } from "../auth/ratelimit.js";
+import { formatMagicCode, normalizeMagicCode } from "../domain/magiccode.js";
 import {
   type EmailSender,
   isEmailDelivered,
@@ -61,6 +63,7 @@ import {
   deleteRefreshTokensForUser,
   deleteStaleRateLimits,
   deleteUser,
+  incrementMagicCodeAttempts,
   insertAccountDeletionRequest,
   insertMagicLink,
   insertMembership,
@@ -73,6 +76,7 @@ import {
   selectListMembers,
   selectLongestOtherMember,
   selectMagicLink,
+  selectMagicLinkByEmail,
   selectMagicLinkByRequestId,
   selectMembership,
   selectMemberships,
@@ -95,6 +99,12 @@ export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
  * message, short enough that a link sitting unread in an inbox stops being
  * useful quickly. */
 export const MAGIC_LINK_TTL_MS = 15 * 60 * 1000;
+
+/** Wrong codes a link survives (ADR 0008). The fifth burns it. */
+export const MAX_MAGIC_CODE_ATTEMPTS = 5;
+
+/** A review code shorter than this leaves the review account switched off. */
+const MIN_REVIEW_CODE_LENGTH = 12;
 
 /** How long a mailed account deletion link lasts — the same 15 minutes as a
  * magic link, which is what the privacy policy promises for both. */
@@ -310,6 +320,17 @@ export class UsersRoom extends DurableObject {
       return { ok: false, code: "rate-limited" };
     }
 
+    // The review account is not a real inbox (ADR 0008): mail to it would only
+    // bounce. It signs in with REVIEW_CODE, so there is nothing to send — but
+    // the answer looks like every other.
+    if (this.reviewAccount()?.email === normalized) {
+      log("info", "usersroom.magiclink.review-account", {});
+      return {
+        ok: true,
+        value: { expiresIn: MAGIC_LINK_TTL_MS / 1000, requestId: generateRefreshToken() },
+      };
+    }
+
     const sender = this.email();
     if (sender === null) {
       log("error", "usersroom.magiclink.unconfigured", {});
@@ -317,12 +338,14 @@ export class UsersRoom extends DurableObject {
     }
 
     const token = generateRefreshToken();
+    const code = generateMagicCode();
     const link = magicLinkUrl(this.env.APP_BASE_URL, token);
     const result = await sendMagicLinkEmail(
       this.env.BREVO_API_KEY,
       sender,
       normalized,
       link,
+      formatMagicCode(code),
       MAGIC_LINK_TTL_MS / 60_000,
     );
     if (!result.sent) return { ok: false, code: "internal" };
@@ -337,6 +360,7 @@ export class UsersRoom extends DurableObject {
     // show is not worth spending a write on, and it would just sit there
     // until deleteExpiredMagicLinks caught up with it.
     const tokenHash = await hashRefreshToken(token);
+    const codeHash = await hashMagicCode(code, tokenHash, this.env.JWT_SIGNING_KEY);
     this.ctx.storage.transactionSync(() => {
       deleteMagicLinksForEmail(this.sql, normalized);
       insertMagicLink(this.sql, {
@@ -346,6 +370,8 @@ export class UsersRoom extends DurableObject {
         createdAt: new Date(now).toISOString(),
         requestId,
         messageId: result.messageId,
+        codeHash,
+        codeAttempts: 0,
       });
       deleteExpiredMagicLinks(this.sql, new Date(now).toISOString());
     });
@@ -471,16 +497,94 @@ export class UsersRoom extends DurableObject {
       return { ok: false, code: "token-expired" };
     }
 
-    let user = selectUserByEmail(this.sql, row.email);
+    return this.signInByEmail(row.email, deviceId, now);
+  }
+
+  /**
+   * The typed code from the same email (ADR 0008). Finds the outstanding link
+   * for [email] and checks the code against it; a right code spends the row
+   * exactly as tapping the link would. A wrong one counts, and the fifth burns
+   * the link — so what an attacker gets is bounded by how often a new link can
+   * be asked for, not by how fast they can type.
+   *
+   * The review account's fixed code is checked first and only for its own
+   * address; any other code for that address falls through to the ordinary
+   * path, attempts and all.
+   */
+  async verifyMagicCode(
+    email: string,
+    code: string,
+    deviceId: string,
+    clientKey: string,
+    now: number,
+  ): Promise<UsersResult<Session>> {
+    if (!this.consume(MAGIC_VERIFY_PER_CLIENT, clientKey, now)) {
+      return { ok: false, code: "rate-limited" };
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+    const typed = normalizeMagicCode(code);
+
+    const review = this.reviewAccount();
+    if (review !== null && review.email === normalizedEmail && review.code === typed) {
+      log("info", "usersroom.magiccode.review-account", {});
+      return this.signInByEmail(normalizedEmail, deviceId, now);
+    }
+
+    const row = selectMagicLinkByEmail(this.sql, normalizedEmail);
+    if (row === null || row.codeHash === null) return { ok: false, code: "invalid-token" };
+
+    if (Date.parse(row.expiresAt) <= now) {
+      this.ctx.storage.transactionSync(() => deleteMagicLink(this.sql, row.tokenHash));
+      return { ok: false, code: "token-expired" };
+    }
+
+    const typedHash = await hashMagicCode(typed, row.tokenHash, this.env.JWT_SIGNING_KEY);
+    if (typedHash !== row.codeHash) {
+      const burned = this.ctx.storage.transactionSync(() => {
+        const attempts = incrementMagicCodeAttempts(this.sql, row.tokenHash);
+        if (attempts < MAX_MAGIC_CODE_ATTEMPTS) return false;
+        deleteMagicLink(this.sql, row.tokenHash);
+        return true;
+      });
+      log("info", "usersroom.magiccode.wrong", { burned });
+      return { ok: false, code: "invalid-token" };
+    }
+
+    this.ctx.storage.transactionSync(() => deleteMagicLink(this.sql, row.tokenHash));
+    return this.signInByEmail(row.email, deviceId, now);
+  }
+
+  /** Signs in as the account for an address whose inbox has just been proved,
+   * creating it the first time — shared by the link, the code, and the review
+   * account. */
+  private async signInByEmail(
+    email: string,
+    deviceId: string,
+    now: number,
+  ): Promise<UsersResult<Session>> {
+    let user = selectUserByEmail(this.sql, email);
     if (user === null) {
-      const created = await this.createPasswordlessUser(row.email, now);
+      const created = await this.createPasswordlessUser(email, now);
       if (!created.ok) return created;
-      user = selectUserByEmail(this.sql, row.email);
+      user = selectUserByEmail(this.sql, email);
     }
     // Unreachable except by a storage bug: just written or just read above.
     if (user === null) return { ok: false, code: "not-found" };
 
     return { ok: true, value: await this.issueSession(user.id, deviceId, now) };
+  }
+
+  /** The Play review account, when both secrets are set and the code is long
+   * enough to be worth trusting (ADR 0008); null otherwise. Read per call —
+   * two string reads are not worth caching and would outlive a rotated secret. */
+  private reviewAccount(): { email: string; code: string } | null {
+    const email = this.env.REVIEW_EMAIL;
+    const code = this.env.REVIEW_CODE;
+    if (typeof email !== "string" || typeof code !== "string") return null;
+    const normalizedCode = normalizeMagicCode(code);
+    if (email.trim().length === 0 || normalizedCode.length < MIN_REVIEW_CODE_LENGTH) return null;
+    return { email: normalizeEmail(email), code: normalizedCode };
   }
 
   /** See the note on [verifyMagicLink] for why the password is random rather

@@ -123,4 +123,9 @@
     <string name="confirm_delete_account_body">I-akhawunti yakho, kanye nanobe ngabe nguluphi luhlu lokukuwe wedvwa kulo, kususwa kulelicingo nakusesiva setfu. Luhlu lolwabelana ngalo luhlala nalabanye; lolwakho luya kulowo lobekadze kulo sikhatsi lesidze. Ungeke uyibuyise.</string>
     <string name="action_delete_account">Susa i-akhawunti</string>
     <string name="error_delete_account_failed">Ayikhonanga kususa i-akhawunti yakho: %1$s. Kute lokutjintjile.</string>
+
+    <string name="auth_code_prompt">Ufundza i-imeyili kulenye indzawo? Bhala ikhodi lekuyo lapha.</string>
+    <string name="label_code">Ikhodi</string>
+    <string name="auth_sign_in_with_code">Ngena ngekhodi</string>
+    <string name="error_magic_code_invalid">Leyo khodi ayilungi noma sewuphelelwe sikhatsi. Hlola i-imeyili, noma utfumele luchumano lolusha.</string>
 </resources>

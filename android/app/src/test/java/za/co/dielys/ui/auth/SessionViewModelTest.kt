@@ -153,6 +153,48 @@ class SessionViewModelTest {
         }
 
     @Test
+    fun `the code from the email signs in under the address it was sent to`() =
+        runTest(dispatcher) {
+            submit("friend@example.test")
+            phone.mailedCodeIs("friend@example.test", "K7QM-3XPD")
+
+            viewModel.onCode("K7QM-3XPD")
+            viewModel.submitCode()
+
+            assertTrue(viewModel.signedIn.value)
+            assertEquals("friend@example.test", phone.sessions.email)
+            assertEquals(1, phone.scheduler.requests)
+        }
+
+    @Test
+    fun `a wrong code says so, keeps the screen, and does not sign in`() =
+        runTest(dispatcher) {
+            submit("friend@example.test")
+            phone.mailedCodeIs("friend@example.test", "K7QM-3XPD")
+
+            viewModel.onCode("AAAA-BBBB")
+            viewModel.submitCode()
+
+            assertFalse(viewModel.signedIn.value)
+            assertTrue(viewModel.form.value.linkSent)
+            assertEquals(
+                "That code is wrong or has expired. Check the email, or send a new link.",
+                viewModel.form.value.problem,
+            )
+        }
+
+    @Test
+    fun `a new link clears a half-typed code`() =
+        runTest(dispatcher) {
+            submit("friend@example.test")
+            viewModel.onCode("K7QM")
+
+            viewModel.submit()
+
+            assertEquals("", viewModel.form.value.code)
+        }
+
+    @Test
     fun `an unrelated link is ignored`() =
         runTest(dispatcher) {
             phone.magicLinks.offer("dielys://invite?t=header.payload.signature")

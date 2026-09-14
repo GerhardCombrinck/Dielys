@@ -144,4 +144,10 @@
     <string name="confirm_delete_account_body">Your account, and any list only you are on, are erased from our server, and everything is cleared off this phone. Lists you share stay with the others; one you own passes to whoever has been on it longest. There is no getting it back.</string>
     <string name="action_delete_account">Delete account</string>
     <string name="error_delete_account_failed">Could not delete your account: %1$s. Nothing was changed.</string>
+
+    <!-- The typed code beside the magic link (ADR 0008). -->
+    <string name="auth_code_prompt">Reading the email somewhere else? Type the code from it here.</string>
+    <string name="label_code">Code</string>
+    <string name="auth_sign_in_with_code">Sign in with code</string>
+    <string name="error_magic_code_invalid">That code is wrong or has expired. Check the email, or send a new link.</string>
 </resources>

@@ -490,18 +490,26 @@ export interface MagicLinkRow {
   /** Brevo's id for the send, looked up against its event-report API.
    * Null when Brevo accepted the send without handing one back. */
   messageId: string | null;
+  /** Keyed hash of the code mailed with the link (ADR 0008). Null on a row
+   * from before 0009_magic_link_codes, which cannot be redeemed by code. */
+  codeHash: string | null;
+  /** Wrong codes tried against this row so far. */
+  codeAttempts: number;
 }
 
 export function insertMagicLink(sql: SqlStorage, row: MagicLinkRow): void {
   sql.exec(
-    `INSERT INTO magic_links (token_hash, email, expires_at, created_at, request_id, message_id)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO magic_links
+       (token_hash, email, expires_at, created_at, request_id, message_id, code_hash, code_attempts)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     row.tokenHash,
     row.email,
     row.expiresAt,
     row.createdAt,
     row.requestId,
     row.messageId,
+    row.codeHash,
+    row.codeAttempts,
   );
 }
 
@@ -513,11 +521,7 @@ export function deleteMagicLinksForEmail(sql: SqlStorage, email: string): void {
 
 export function selectMagicLink(sql: SqlStorage, tokenHash: string): MagicLinkRow | null {
   const rows = [
-    ...sql.exec(
-      `SELECT token_hash, email, expires_at, created_at, request_id, message_id
-       FROM magic_links WHERE token_hash = ?`,
-      tokenHash,
-    ),
+    ...sql.exec(`SELECT ${MAGIC_LINK_COLUMNS} FROM magic_links WHERE token_hash = ?`, tokenHash),
   ];
   return rowToMagicLink(rows[0]);
 }
@@ -528,14 +532,34 @@ export function selectMagicLinkByRequestId(
   requestId: string,
 ): MagicLinkRow | null {
   const rows = [
-    ...sql.exec(
-      `SELECT token_hash, email, expires_at, created_at, request_id, message_id
-       FROM magic_links WHERE request_id = ?`,
-      requestId,
-    ),
+    ...sql.exec(`SELECT ${MAGIC_LINK_COLUMNS} FROM magic_links WHERE request_id = ?`, requestId),
   ];
   return rowToMagicLink(rows[0]);
 }
+
+/** The outstanding link for one address — there is at most one, since a new
+ * request replaces the old (ADR 0005). How a typed code finds its row. */
+export function selectMagicLinkByEmail(sql: SqlStorage, email: string): MagicLinkRow | null {
+  const rows = [
+    ...sql.exec(`SELECT ${MAGIC_LINK_COLUMNS} FROM magic_links WHERE email = ?`, email),
+  ];
+  return rowToMagicLink(rows[0]);
+}
+
+/** One more wrong code against a link; answers the new count. */
+export function incrementMagicCodeAttempts(sql: SqlStorage, tokenHash: string): number {
+  const rows = [
+    ...sql.exec(
+      `UPDATE magic_links SET code_attempts = code_attempts + 1 WHERE token_hash = ?
+       RETURNING code_attempts`,
+      tokenHash,
+    ),
+  ];
+  return Number(rows[0]?.code_attempts ?? 0);
+}
+
+const MAGIC_LINK_COLUMNS =
+  "token_hash, email, expires_at, created_at, request_id, message_id, code_hash, code_attempts";
 
 function rowToMagicLink(row: Record<string, SqlStorageValue> | undefined): MagicLinkRow | null {
   if (row === undefined) return null;
@@ -546,6 +570,8 @@ function rowToMagicLink(row: Record<string, SqlStorageValue> | undefined): Magic
     createdAt: String(row.created_at),
     requestId: row.request_id === null ? null : String(row.request_id),
     messageId: row.message_id === null ? null : String(row.message_id),
+    codeHash: row.code_hash === null || row.code_hash === undefined ? null : String(row.code_hash),
+    codeAttempts: Number(row.code_attempts ?? 0),
   };
 }
 

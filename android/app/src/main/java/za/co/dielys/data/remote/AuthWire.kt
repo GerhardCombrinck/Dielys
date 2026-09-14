@@ -77,6 +77,18 @@ data class VerifyMagicLinkRequest(
     val deviceId: String,
 )
 
+/**
+ * `POST /auth/magic/verify-code` (ADR 0008). The typed code from the same
+ * email, under the address it was sent to. Sent as typed: the server ignores
+ * case, spaces and dashes itself.
+ */
+@Serializable
+data class VerifyMagicCodeRequest(
+    val email: String,
+    val code: String,
+    val deviceId: String,
+)
+
 @Serializable
 data class TokenPair(
     val accessToken: String,

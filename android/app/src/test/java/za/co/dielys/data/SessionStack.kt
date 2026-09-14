@@ -70,6 +70,14 @@ class SessionStack(
         auth.delivered = true
     }
 
+    /** The code the email for [email] carried — the right one to type (ADR 0008). */
+    fun mailedCodeIs(
+        email: String,
+        code: String,
+    ) {
+        auth.magicCodes[email] = code
+    }
+
     /** Every requestId `magicLinkStatus` was polled with, in order. */
     val statusChecks: List<String> get() = auth.statusChecks
 }

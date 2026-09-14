@@ -123,4 +123,9 @@
     <string name="confirm_delete_account_body">Akhaonto ya gago, le lenaane lengwe le lengwe le o leng mo go lone o le esi, di phimolwa mo mogaleng ono le mo seveng ya rona. Maenaane a o a abelanang a sala le ba bangwe; le e leng la gago le fetela kwa go yo o nnileng mo go lone lobaka lo loleele. Ga e boe.</string>
     <string name="action_delete_account">Phimola akhaonto</string>
     <string name="error_delete_account_failed">Go paletswe go phimola akhaonto ya gago: %1$s. Ga go sepe se se fetogileng.</string>
+
+    <string name="auth_code_prompt">O bala imeile kwa lefelong le lengwe? Kwala khoutu ya yone fano.</string>
+    <string name="label_code">Khoutu</string>
+    <string name="auth_sign_in_with_code">Tsena ka khoutu</string>
+    <string name="error_magic_code_invalid">Khoutu eo e phoso kgotsa nako ya yone e fetile. Leba imeile, kgotsa o romele kgolagano e ntšhwa.</string>
 </resources>

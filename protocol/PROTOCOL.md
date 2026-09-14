@@ -98,6 +98,7 @@ rules are CODE_STANDARD.md L1–L3.
 |---|---|---|---|
 | POST | `/auth/login` | none | `LoginRequest` → `TokenPair` |
 | POST | `/auth/refresh` | none | `RefreshRequest` → `TokenPair`, rotating the refresh token |
+| POST | `/auth/magic/verify-code` | none | `VerifyMagicCodeRequest` → `TokenPair`. See "Signing in with the code" |
 | GET | `/auth/memberships` | access token | Lists the caller can reach, in the caller's own order |
 | POST | `/auth/memberships/position` | access token | `SetListPositionRequest` → `SetListPositionResponse` |
 | POST | `/lists/{listId}` | access token | Claim a client-generated list id as owner |
@@ -165,6 +166,17 @@ recorded head can lag the room it describes. So:
 
 Additive: an older client ignores the field, and an older server's answer has no field, which a
 client treats as `null`.
+
+### Signing in with the code
+
+Every magic-link email carries an 8-character code (`MAGIC_CODE_LENGTH`) beside the link, shown
+as `XXXX-XXXX` — `docs/adr/0008-sign-in-code.md`. It is Crockford base32, and the server reads
+it forgivingly: case, spaces and dashes are ignored, and `O`, `I`, `L` count as `0`, `1`, `1`.
+
+`POST /auth/magic/verify-code` with the email the link was sent to, the code, and the device id
+does what tapping the link does: creates the account on first use and answers a `TokenPair`.
+Code and link share one use — redeeming either spends both. A wrong code answers
+`invalid-token`; the fifth wrong code for a link burns it. Past its 15 minutes, `token-expired`.
 
 ### Deleting an account
 

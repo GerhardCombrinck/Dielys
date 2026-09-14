@@ -123,4 +123,9 @@
     <string name="confirm_delete_account_body">Akhaonto ya hao, le lenane lefe kapa lefe leo o leng ho lona o le mong, di hlakolwa fonong ena le ho seva ya rona. Mananeo ao o a arolelanang a sala le ba bang; le leng la hao le fetela ho ya bileng ho lona nako e telele. Ha e khutle.</string>
     <string name="action_delete_account">Hlakola akhaonto</string>
     <string name="error_delete_account_failed">E hlolehile ho hlakola akhaonto ya hao: %1$s. Ha ho se fetohileng.</string>
+
+    <string name="auth_code_prompt">O bala imeile sebakeng se seng? Ngola khoutu ya yona mona.</string>
+    <string name="label_code">Khoutu</string>
+    <string name="auth_sign_in_with_code">Kena ka khoutu</string>
+    <string name="error_magic_code_invalid">Khoutu eo e fosahetse kapa e fetile nako. Sheba imeile, kapa o romele kgokahanyo e ntjha.</string>
 </resources>

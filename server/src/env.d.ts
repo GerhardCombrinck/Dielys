@@ -48,6 +48,15 @@ declare global {
        * rather than a committed `vars` value until then.
        */
       ANDROID_CERT_SHA256_FINGERPRINTS: string;
+      /**
+       * The Google Play review account (ADR 0008): this address signs in with
+       * [REVIEW_CODE] instead of a mailed code, and is never mailed. Both
+       * secrets, set only where Google reviews; either absent means no review
+       * account.
+       */
+      REVIEW_EMAIL?: string;
+      /** At least 12 characters, or the review account stays off. */
+      REVIEW_CODE?: string;
     }
   }
 

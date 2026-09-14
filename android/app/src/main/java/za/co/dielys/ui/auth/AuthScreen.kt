@@ -44,6 +44,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
@@ -64,13 +65,16 @@ private val BadgeNavyLight = Color(0xFF2E4372)
  * One field, one button (ADR 0005): there is no password and no separate
  * sign-up, since the server creates the account on first magic-link redeem.
  * Once a link is sent the field and button give way to a "check your email"
- * message, until the email changes again or the link is tapped.
+ * message, until the email changes again or the link is tapped — or the code
+ * from the same email is typed in (ADR 0008).
  */
 @Composable
 fun AuthScreen(
     state: AuthUiState,
     onEmail: (String) -> Unit,
     onSubmit: () -> Unit,
+    onCode: (String) -> Unit,
+    onSubmitCode: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val dark = isSystemInDarkTheme()
@@ -151,6 +155,8 @@ fun AuthScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(bottom = 16.dp),
                 )
+
+                CodeEntry(state = state, onCode = onCode, onSubmitCode = onSubmitCode)
 
                 if (state.delivered) {
                     Text(
@@ -246,6 +252,49 @@ fun AuthScreen(
                 )
             }
         }
+    }
+}
+
+/**
+ * The code from the email (ADR 0008), for somebody reading it on another
+ * device. Quieter than the sign-in button on the first screen: the link is
+ * still the ordinary way in, and this is the fallback beside it.
+ */
+@Composable
+private fun CodeEntry(
+    state: AuthUiState,
+    onCode: (String) -> Unit,
+    onSubmitCode: () -> Unit,
+) {
+    Text(
+        stringResource(R.string.auth_code_prompt),
+        style = MaterialTheme.typography.bodySmall,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.padding(bottom = 8.dp),
+    )
+    OutlinedTextField(
+        value = state.code,
+        onValueChange = onCode,
+        label = { Text(stringResource(R.string.label_code)) },
+        singleLine = true,
+        enabled = !state.busy,
+        keyboardOptions =
+            KeyboardOptions(
+                keyboardType = KeyboardType.Ascii,
+                capitalization = KeyboardCapitalization.Characters,
+                autoCorrectEnabled = false,
+                imeAction = ImeAction.Go,
+            ),
+        keyboardActions = KeyboardActions(onGo = { onSubmitCode() }),
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Button(
+        onClick = onSubmitCode,
+        enabled = state.canSubmitCode,
+        shape = PillShape,
+        modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 16.dp).height(48.dp),
+    ) {
+        Text(stringResource(R.string.auth_sign_in_with_code))
     }
 }
 

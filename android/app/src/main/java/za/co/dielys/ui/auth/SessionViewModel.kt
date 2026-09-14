@@ -38,8 +38,13 @@ data class AuthUiState(
     val delivered: Boolean = false,
     /** Shown under the button. Null while nothing has gone wrong yet. */
     val problem: String? = null,
+    /** The code typed from the email (ADR 0008), for when the link cannot be
+     * tapped on this phone. Kept as typed; the server reads it forgivingly. */
+    val code: String = "",
 ) {
     val canSubmit: Boolean get() = !busy && email.isNotBlank()
+
+    val canSubmitCode: Boolean get() = !busy && code.isNotBlank()
 }
 
 /**
@@ -94,7 +99,33 @@ class SessionViewModel
                     problem = null,
                     linkSent = false,
                     delivered = false,
+                    code = "",
                 )
+            }
+        }
+
+        fun onCode(value: String) {
+            _form.update { it.copy(code = value, problem = null) }
+        }
+
+        /** Signs in with the typed code, under the email the link was sent to. */
+        fun submitCode() {
+            val current = _form.value
+            if (!current.canSubmitCode) return
+            _form.update { it.copy(busy = true, problem = null) }
+
+            viewModelScope.launch {
+                when (val result = sessions.redeemMagicCode(current.email.trim(), current.code)) {
+                    MagicLinkVerifyResult.Success -> {
+                        deliveryPoll?.cancel()
+                        _form.value = AuthUiState()
+                        _signedIn.value = true
+                    }
+                    else ->
+                        _form.update {
+                            it.copy(busy = false, problem = result.explainCode(strings))
+                        }
+                }
             }
         }
 
@@ -102,7 +133,7 @@ class SessionViewModel
             val current = _form.value
             if (!current.canSubmit) return
             deliveryPoll?.cancel()
-            _form.update { it.copy(busy = true, problem = null, delivered = false) }
+            _form.update { it.copy(busy = true, problem = null, delivered = false, code = "") }
 
             viewModelScope.launch {
                 when (val result = sessions.requestMagicLink(current.email.trim())) {
@@ -186,6 +217,13 @@ private fun MagicLinkVerifyResult.explain(strings: StringProvider): String =
         MagicLinkVerifyResult.InvalidOrExpired -> strings.get(R.string.error_magic_link_invalid)
         MagicLinkVerifyResult.Offline -> strings.get(R.string.error_offline)
         is MagicLinkVerifyResult.ServerProblem -> strings.get(R.string.error_sign_in_failed, detail)
+    }
+
+/** The code's own wording for a dead code; the rest reads the same as a link. */
+private fun MagicLinkVerifyResult.explainCode(strings: StringProvider): String =
+    when (this) {
+        MagicLinkVerifyResult.InvalidOrExpired -> strings.get(R.string.error_magic_code_invalid)
+        else -> explain(strings)
     }
 
 /**

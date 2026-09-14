@@ -34,6 +34,7 @@ import {
   type RequestMagicLinkRequest,
   type SetListPositionRequest,
   type TaskPatch,
+  type VerifyMagicCodeRequest,
   type VerifyMagicLinkRequest,
 } from "@dielys/protocol";
 
@@ -325,6 +326,23 @@ export function validateConfirmAccountDeletionRequest(
     return fail("token");
   }
   return { ok: true, value: { token } };
+}
+
+/**
+ * `POST /auth/magic/verify-code` (ADR 0008). The code is only bounded here,
+ * not shaped: typed input keeps its dashes and spaces until
+ * `normalizeMagicCode`, and the review account's code is longer than a mailed
+ * one.
+ */
+export function validateVerifyMagicCodeRequest(input: unknown): Validated<VerifyMagicCodeRequest> {
+  if (!isRecord(input)) return fail("not an object");
+  if (!isEmail(input.email)) return fail("email");
+  const code = input.code;
+  if (typeof code !== "string" || code.trim().length === 0 || code.length > 64) {
+    return fail("code");
+  }
+  if (!isId(input.deviceId)) return fail("deviceId");
+  return { ok: true, value: { email: input.email, code, deviceId: input.deviceId } };
 }
 
 export function validateRefreshRequest(input: unknown): Validated<RefreshRequest> {

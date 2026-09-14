@@ -41,6 +41,8 @@ fun DielysApp() {
             state = form,
             onEmail = session::onEmail,
             onSubmit = session::submit,
+            onCode = session::onCode,
+            onSubmitCode = session::submitCode,
         )
         return
     }

@@ -34,6 +34,9 @@ export default defineConfig({
           EMAIL_FROM: "dielys@dielys.test",
           EMAIL_FROM_NAME: "Die Lys",
           ANDROID_CERT_SHA256_FINGERPRINTS: "",
+          // The Play review account (ADR 0008). A fixture, like everything here.
+          REVIEW_EMAIL: "play-review@dielys.test",
+          REVIEW_CODE: "REVIEW-CODE-FIXTURE-2026",
         },
       },
     }),

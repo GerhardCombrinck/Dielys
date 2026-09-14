@@ -123,4 +123,9 @@
     <string name="confirm_delete_account_body">I-akhawunti yakho, kunye naluphi na uluhlu okulo wedwa, zicinywa kule fowuni nakwiseva yethu. Uluhlu owabelana ngalo luhlala nabanye; olo lulolwakho luya kulowo ebekulo ixesha elide. Ayibuyi.</string>
     <string name="action_delete_account">Cima i-akhawunti</string>
     <string name="error_delete_account_failed">Ayikwazanga ukucima i-akhawunti yakho: %1$s. Akukho nto itshintshileyo.</string>
+
+    <string name="auth_code_prompt">Ufunda i-imeyile kwenye indawo? Chwetheza ikhowudi ekuyo apha.</string>
+    <string name="label_code">Ikhowudi</string>
+    <string name="auth_sign_in_with_code">Ngena ngekhowudi</string>
+    <string name="error_magic_code_invalid">Loo khowudi ayichanekanga okanye iphelelwe lixesha. Jonga i-imeyile, okanye uthumele ikhonkco elitsha.</string>
 </resources>
