@@ -952,11 +952,13 @@ private fun TaskRow(
         )
     }
 
-    // Tapping the title does nothing but acknowledge the tap — editing is a
-    // deliberate action off the options menu, not a side effect of trying to
-    // read a long line. The shared interaction source puts the ripple on the
-    // Row while the click target stays the Text, so it does not read as if
-    // only the words were hit.
+    // Tapping the title opens it for editing, the same as Edit on the options
+    // menu (#69). Editing happens in the bar now rather than in a dialog, so a
+    // stray tap costs an X rather than a wall over the list. A done row has no
+    // Edit to offer — the bar only edits active rows — so its tap stays a plain
+    // acknowledgement. The shared interaction source puts the ripple on the Row
+    // while the click target stays the Text, so it does not read as if only the
+    // words were hit.
     val press = remember { MutableInteractionSource() }
 
     Surface(
@@ -1009,7 +1011,9 @@ private fun TaskRow(
                         .clickable(
                             interactionSource = press,
                             indication = null,
-                            onClick = {},
+                            onClickLabel =
+                                if (task.done) null else stringResource(R.string.action_edit),
+                            onClick = { if (!task.done) onRename() },
                         ).padding(start = 8.dp, top = 16.dp, bottom = 16.dp)
                         .alpha(if (task.done) DONE_ALPHA else 1f),
             )

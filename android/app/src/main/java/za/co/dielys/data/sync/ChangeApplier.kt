@@ -117,10 +117,12 @@ class ChangeApplier
             when (change) {
                 is TaskChange -> db.tasks().upsert(change.entity.toEntity())
                 is ListChange -> {
-                    // `role` is local, from /auth/memberships, and is not part of
-                    // the changelog. Keep whatever is already known.
+                    // Role, order and member count come from /auth/memberships,
+                    // not the changelog. Keep whatever is already known — a
+                    // rename that dropped the order sent the list to the bottom
+                    // until the next membership fetch put it back (#68).
                     val existing = db.lists().find(change.entity.id)
-                    db.lists().upsert(change.entity.toEntity(existing?.role))
+                    db.lists().upsert(change.entity.toEntity(existing))
                 }
             }
         }
@@ -138,12 +140,15 @@ internal fun Task.toEntity(): TaskEntity =
         updatedAt = updatedAt,
     )
 
-internal fun TaskList.toEntity(role: String?): ListEntity =
+/** The server's list, over the membership fields this phone already holds for it. */
+internal fun TaskList.toEntity(existing: ListEntity?): ListEntity =
     ListEntity(
         id = id,
         title = title,
         backgroundPhotoUrl = backgroundPhotoUrl,
         deletedAt = deletedAt,
         updatedAt = updatedAt,
-        role = role,
+        role = existing?.role,
+        position = existing?.position,
+        memberCount = existing?.memberCount ?: 1,
     )

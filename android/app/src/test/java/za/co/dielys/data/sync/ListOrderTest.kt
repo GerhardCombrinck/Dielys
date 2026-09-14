@@ -10,8 +10,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import za.co.dielys.data.DeviceStack
+import za.co.dielys.data.local.ListEntity
+import za.co.dielys.data.remote.ListChange
 import za.co.dielys.data.remote.Membership
 import za.co.dielys.data.remote.MembershipRole
+import za.co.dielys.data.remote.TaskList
 
 /**
  * The order the lists appear in belongs to the account, not to the list
@@ -177,9 +180,50 @@ class ListOrderTest {
             )
         }
 
+    /**
+     * #68: the changelog does not carry the order, so a rename coming back from
+     * the server must not wipe it. It did, and the renamed list dropped to the
+     * bottom until the next membership fetch put it back.
+     */
+    @Test
+    fun `a list change from the server keeps this account's order and member count`() =
+        runTest {
+            val phone = device("device-a")
+            // Straight into Room, not through the outbox: a pending edit of its
+            // own would shadow the change below and nothing would be written.
+            val braai = "list-braai"
+            phone.db.lists().upsert(
+                ListEntity(
+                    id = braai,
+                    title = "Braai",
+                    role = "owner",
+                    position = "V",
+                    memberCount = 2,
+                ),
+            )
+
+            phone.applier.apply(
+                ListChange(
+                    seq = 1,
+                    listId = braai,
+                    idempotencyKey = "rename-echo",
+                    deviceId = "device-b",
+                    serverTimestamp = STAMP,
+                    entity = TaskList(id = braai, title = "Braaivleis", updatedAt = STAMP),
+                ),
+            )
+
+            val list = checkNotNull(phone.db.lists().find(braai))
+            assertEquals("Braaivleis", list.title)
+            assertEquals("V", list.position)
+            assertEquals(2, list.memberCount)
+            assertEquals("owner", list.role)
+        }
+
     private fun device(id: String): DeviceStack = DeviceStack(api, id).also { devices += it }
 
     private companion object {
         const val LIMIT = 50
+        const val STAMP = "2026-09-14T12:00:00.000Z"
     }
 }
