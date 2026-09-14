@@ -56,6 +56,20 @@ Start a new questionnaire.
 - **Violence, sexuality, language, controlled substances, gambling, horror:** No to every question.
 - **Does the app allow users to interact or exchange content with each other?** **Yes** — people
   share a list with others they invite by email, and everyone on it sees what the others add.
+- **Is shared, user-generated content the primary source of content in the app?** **No** — a
+  person's lists are private to them unless the owner invites specific people by email; there
+  is no feed, public profile or discovery. (Yes would bring in the UGC policy's expectations of
+  moderation and in-app reporting and blocking, which fit a social platform, not a shared
+  shopping list.)
+- Follow-ups to "users interact":
+  - **Public sharing of nudity / real-world graphic violence?** No / No — nothing is public, and
+    lists are text only.
+  - **Ability to block users or user-generated content?** No — an owner can remove a member, but
+    there is no block feature.
+  - **Ability to report users or user-generated content?** No
+  - **Chat moderation?** No — there is no chat.
+  - **Can interactions be limited to invited friends only?** **Yes** — they always are: a list is
+    only ever shared with people its owner invites by email.
 - **Does the app share the user's current physical location with other users?** No
 - **Does the app allow users to purchase digital goods?** No
 - **Is the app a web browser or search engine?** No
@@ -102,6 +116,7 @@ process data only on our behalf, which Play counts as service providers, not sha
 | Section | Data type | Collected | Required or optional | Processed ephemerally | Purposes |
 |---|---|---|---|---|---|
 | Personal info | **Email address** | Yes | Required | No | App functionality, Account management |
+| Personal info | **User IDs** (the account ID the server assigns) | Yes | Required | No | App functionality, Account management |
 | App activity | **Other user-generated content** (list names and items) | Yes | Required | No | App functionality |
 | Device or other IDs | **Device or other IDs** (random app-generated device ID; FCM registration token) | Yes | Required | No | App functionality |
 
@@ -143,7 +158,8 @@ foreground service type of its own; the base permission comes from AndroidX Work
 translation added under *Manage translations*.
 
 - **App category:** Productivity
-- **Tags:** To-do list, Shopping list, Productivity (pick the closest the Console offers)
+- **Tags:** Productivity, Notebook, Shopping, House & home, Tools (Play's fixed tag list has no
+  to-do or shopping-list tag)
 - **Contact:** support@invisionsoft.co.za, website https://dielys.com
 
 ### English (en-GB)
@@ -214,7 +230,11 @@ Geen advertensies nie. Geen naspeuring nie. Jou lyste is joune, en jy kan jou re
 Die Lys word in Suid-Afrika gemaak deur Invisionsoft.
 ```
 
-### Graphics (to make)
+### Graphics
+
+In [`graphics/`](graphics/): `make_graphics.py` draws the icon and both feature graphics,
+`frame_screenshots.py` frames phone captures into the `screenshot-<lang>-N.png` set. None of
+it is AI-generated imagery, so the store listing's AI asset declaration is **Don't label assets**.
 
 | Asset | Size | Notes |
 |---|---|---|
