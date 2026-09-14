@@ -164,7 +164,7 @@ dependencies {
     // caches it and CI does not fetch 90 MB on every build.
     testImplementation("org.robolectric:android-all-instrumented:14-robolectric-10818077-i7")
     testImplementation("androidx.test:core:1.6.1")
-    testImplementation("app.cash.turbine:turbine:1.1.0")
+    testImplementation("app.cash.turbine:turbine:1.2.1")
     testImplementation("androidx.room:room-testing:2.8.4")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     testImplementation("com.lemonappdev:konsist:0.17.3")
