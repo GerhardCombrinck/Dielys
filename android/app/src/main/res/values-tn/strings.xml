@@ -129,4 +129,5 @@
     <string name="label_code">Khoutu</string>
     <string name="auth_sign_in_with_code">Tsena ka khoutu</string>
     <string name="error_magic_code_invalid">Khoutu eo e phoso kgotsa nako ya yone e fetile. Leba imeile, kgotsa o romele kgolagano e ntšhwa.</string>
+    <string name="error_magic_code_locked">Dikhoutu di le dintsi thata tse di phoso. Tobetsa kgolagano mo imeileng go na le moo, kgotsa o leke gape kamoso.</string>
 </resources>

@@ -151,4 +151,5 @@
     <string name="label_code">Code</string>
     <string name="auth_sign_in_with_code">Sign in with code</string>
     <string name="error_magic_code_invalid">That code is wrong or has expired. Check the email, or send a new link.</string>
+    <string name="error_magic_code_locked">Too many wrong codes. Tap the link in the email instead, or try again tomorrow.</string>
 </resources>

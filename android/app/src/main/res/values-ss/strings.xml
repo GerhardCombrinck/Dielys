@@ -129,4 +129,5 @@
     <string name="label_code">Ikhodi</string>
     <string name="auth_sign_in_with_code">Ngena ngekhodi</string>
     <string name="error_magic_code_invalid">Leyo khodi ayilungi noma sewuphelelwe sikhatsi. Hlola i-imeyili, noma utfumele luchumano lolusha.</string>
+    <string name="error_magic_code_locked">Tikhodi letinyenti letingakalungi. Tsintsa luchumano ku-imeyili esikhundleni saloko, noma uzame futsi kusasa.</string>
 </resources>

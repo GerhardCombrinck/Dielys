@@ -129,4 +129,5 @@
     <string name="label_code">Khodi</string>
     <string name="auth_sign_in_with_code">Nghena hi khodi</string>
     <string name="error_magic_code_invalid">Khodi yoleyo a yi lulamanga kumbe nkarhi wa yona wu hundzile. Languta imeyili, kumbe u rhumela xihlanganisi xintshwa.</string>
+    <string name="error_magic_code_locked">Tikhodi to tala ngopfu leti nga lulamangiki. Ku ri na swona, thinta xihlanganisi eka imeyili, kumbe u ringeta nakambe mundzuku.</string>
 </resources>

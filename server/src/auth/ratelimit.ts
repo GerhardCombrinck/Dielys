@@ -74,14 +74,28 @@ export const MAGIC_REQUEST_PER_EMAIL: RateLimit = {
 };
 
 /**
- * Not a guessing defence — a magic-link token is 256 random bits, not a
- * 6-digit code — but cheap insurance against a client hammering the endpoint,
- * on the same shape as LOGIN_PER_CLIENT.
+ * Not a guessing defence — a magic-link token is 256 random bits, and codes
+ * have MAGIC_CODE_WRONG_PER_EMAIL — but cheap insurance against a client
+ * hammering the endpoint, on the same shape as LOGIN_PER_CLIENT.
  */
 export const MAGIC_VERIFY_PER_CLIENT: RateLimit = {
   action: "magic-verify",
   limit: 20,
   windowMs: 15 * MINUTE_MS,
+};
+
+/**
+ * Wrong sign-in codes for one address, across every link it has been sent
+ * (ADR 0008). This is the guessing defence: a code is six digits, and burning
+ * a link after five wrong tries only bounds guesses per link, while a new link
+ * can be asked for three times every 15 minutes. Ten a day puts a year of
+ * trying at under half a percent. Counts wrong codes only, so a person who
+ * typed theirs right is never nearer the limit for it.
+ */
+export const MAGIC_CODE_WRONG_PER_EMAIL: RateLimit = {
+  action: "magic-code-wrong-email",
+  limit: 10,
+  windowMs: DAY_MS,
 };
 
 /**

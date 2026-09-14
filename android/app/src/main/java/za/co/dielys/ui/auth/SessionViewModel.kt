@@ -39,13 +39,19 @@ data class AuthUiState(
     /** Shown under the button. Null while nothing has gone wrong yet. */
     val problem: String? = null,
     /** The code typed from the email (ADR 0008), for when the link cannot be
-     * tapped on this phone. Kept as typed; the server reads it forgivingly. */
+     * tapped on this phone. Digits only: [SessionViewModel.onCode] drops the
+     * rest, so a pasted `997 218` still reads as the code. */
     val code: String = "",
 ) {
     val canSubmit: Boolean get() = !busy && email.isNotBlank()
 
-    val canSubmitCode: Boolean get() = !busy && code.isNotBlank()
+    /** Not before the code is whole. Longer is allowed: the Play review
+     * account's fixed code is (ADR 0008). */
+    val canSubmitCode: Boolean get() = !busy && code.length >= MAGIC_CODE_LENGTH
 }
+
+/** Digits in a mailed code — `MAGIC_CODE_LENGTH` in protocol/src/auth.ts. */
+const val MAGIC_CODE_LENGTH = 6
 
 /**
  * Owns whether there is a session, which is the one thing that decides which half
@@ -105,7 +111,7 @@ class SessionViewModel
         }
 
         fun onCode(value: String) {
-            _form.update { it.copy(code = value, problem = null) }
+            _form.update { it.copy(code = value.filter(Char::isDigit), problem = null) }
         }
 
         /** Signs in with the typed code, under the email the link was sent to. */
@@ -216,6 +222,7 @@ private fun MagicLinkVerifyResult.explain(strings: StringProvider): String =
         MagicLinkVerifyResult.Success -> ""
         MagicLinkVerifyResult.InvalidOrExpired -> strings.get(R.string.error_magic_link_invalid)
         MagicLinkVerifyResult.Offline -> strings.get(R.string.error_offline)
+        MagicLinkVerifyResult.TooManyAttempts -> strings.get(R.string.error_too_many_attempts)
         is MagicLinkVerifyResult.ServerProblem -> strings.get(R.string.error_sign_in_failed, detail)
     }
 
@@ -223,6 +230,7 @@ private fun MagicLinkVerifyResult.explain(strings: StringProvider): String =
 private fun MagicLinkVerifyResult.explainCode(strings: StringProvider): String =
     when (this) {
         MagicLinkVerifyResult.InvalidOrExpired -> strings.get(R.string.error_magic_code_invalid)
+        MagicLinkVerifyResult.TooManyAttempts -> strings.get(R.string.error_magic_code_locked)
         else -> explain(strings)
     }
 

@@ -2,7 +2,7 @@ import { SELF } from "cloudflare:test";
 import type { TokenPair } from "@dielys/protocol";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { generateMagicCode } from "../src/auth/magiccode.js";
-import { MAGIC_CODE_ALPHABET, normalizeMagicCode } from "../src/domain/magiccode.js";
+import { normalizeMagicCode } from "../src/domain/magiccode.js";
 
 /**
  * The code mailed beside every magic link, and the Play review account
@@ -12,7 +12,7 @@ import { MAGIC_CODE_ALPHABET, normalizeMagicCode } from "../src/domain/magiccode
 
 const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
 const REVIEW_EMAIL = "play-review@dielys.test";
-const REVIEW_CODE = "REVIEW-CODE-FIXTURE-2026";
+const REVIEW_CODE = "202609141234";
 
 let seq = 0;
 function uniqueEmail(): string {
@@ -47,7 +47,7 @@ beforeEach(() => {
       htmlContent: string;
     };
     const token = /token=([^\s&]+)/.exec(body.textContent)?.[1];
-    const code = /code in the app: ([A-Z0-9-]+)/.exec(body.textContent)?.[1];
+    const code = /code in the app: ([0-9]+)/.exec(body.textContent)?.[1];
     if (token === undefined || code === undefined) throw new Error("email carried no link or code");
     mails.push({
       to: body.to[0]?.email as string,
@@ -74,16 +74,16 @@ async function requestCode(email: string): Promise<{ token: string; code: string
 const verifyCode = (email: string, code: string, deviceId = "device-a") =>
   post("/auth/magic/verify-code", { email, code, deviceId });
 
-/** A code from the same alphabet that is not [code]. */
-function wrongCode(code: string): string {
-  const first = code[0] === "A" ? "B" : "A";
+/** Six digits that are not [code]. */
+function wrongCode(code: string, nth = 0): string {
+  const first = (Number(code[0]) + 1 + (nth % 9)) % 10;
   return `${first}${code.slice(1)}`;
 }
 
 describe("the code in the email (ADR 0008)", () => {
-  it("is eight Crockford characters, shown with a dash, in both parts of the email", async () => {
+  it("is six digits, in both parts of the email", async () => {
     const { code } = await requestCode(uniqueEmail());
-    expect(code).toMatch(/^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/);
+    expect(code).toMatch(/^[0-9]{6}$/);
     expect(mails[0]?.html).toContain(code);
   });
 
@@ -102,10 +102,10 @@ describe("the code in the email (ADR 0008)", () => {
     expect(((await viaLink.json()) as TokenPair).userId).toBe(tokens.userId);
   });
 
-  it("forgives case, spaces and misread letters", async () => {
+  it("forgives spaces and dashes, and the address's case", async () => {
     const email = uniqueEmail();
     const { code } = await requestCode(email);
-    const typed = ` ${code.replace("-", " ").toLowerCase().replace(/0/g, "o").replace(/1/g, "l")} `;
+    const typed = ` ${code.slice(0, 3)} -${code.slice(3)} `;
 
     expect((await verifyCode(email.toUpperCase(), typed)).status).toBe(200);
   });
@@ -145,8 +145,46 @@ describe("the code in the email (ADR 0008)", () => {
     expect(link.status).toBe(401);
   });
 
+  it("stops taking codes for an address after ten wrong ones, across links", async () => {
+    const email = uniqueEmail();
+    let wrong = 0;
+    for (let link = 0; link < 3; link++) {
+      const { code } = await requestCode(email);
+      for (let i = 0; i < 4 && wrong < 10; i++, wrong++) {
+        expect((await verifyCode(email, wrongCode(code, i))).status).toBe(401);
+      }
+    }
+    expect(wrong).toBe(10);
+
+    // Now even the right code is refused, the same way a wrong one would be.
+    const { code, token } = mails.at(-1) as { code: string; token: string };
+    const locked = await verifyCode(email, code);
+    expect(locked.status).toBe(429);
+    expect(await locked.json()).toMatchObject({ code: "rate-limited" });
+
+    // The link in the same email is not a guess, and still works.
+    const link = await post("/auth/magic/verify", { token, deviceId: "d" });
+    expect(link.status).toBe(200);
+  });
+
+  it("does not count right codes towards that limit", async () => {
+    const email = uniqueEmail();
+    for (let i = 0; i < 2; i++) {
+      const { code } = await requestCode(email);
+      for (let j = 0; j < 3; j++) await verifyCode(email, wrongCode(code, j));
+      expect((await verifyCode(email, code)).status).toBe(200);
+    }
+    // Six wrong and two right. Had the right ones counted, the limit would be
+    // reached two codes sooner, and the ninth wrong code would be refused.
+    const { code } = await requestCode(email);
+    for (let j = 0; j < 4; j++) {
+      expect((await verifyCode(email, wrongCode(code, j))).status).toBe(401);
+    }
+    expect((await verifyCode(email, code)).status).toBe(429);
+  });
+
   it("rejects a malformed request", async () => {
-    expect((await verifyCode("not-an-email", "ABCD-1234")).status).toBe(400);
+    expect((await verifyCode("not-an-email", "123456")).status).toBe(400);
     expect((await verifyCode(uniqueEmail(), "  ")).status).toBe(400);
     expect((await verifyCode(uniqueEmail(), "A".repeat(65))).status).toBe(400);
   });
@@ -158,7 +196,10 @@ describe("the Play review account (ADR 0008)", () => {
     expect(asked.status).toBe(200);
     expect(mails).toHaveLength(0);
 
-    const first = await verifyCode(REVIEW_EMAIL, REVIEW_CODE.toLowerCase());
+    const first = await verifyCode(
+      REVIEW_EMAIL,
+      `${REVIEW_CODE.slice(0, 6)} ${REVIEW_CODE.slice(6)}`,
+    );
     expect(first.status).toBe(200);
     const again = await verifyCode(REVIEW_EMAIL, REVIEW_CODE, "device-b");
     expect(again.status).toBe(200);
@@ -174,24 +215,29 @@ describe("the Play review account (ADR 0008)", () => {
   });
 
   it("does not accept any other code for its address", async () => {
-    expect((await verifyCode(REVIEW_EMAIL, "ABCD-1234")).status).toBe(401);
+    expect((await verifyCode(REVIEW_EMAIL, "123456")).status).toBe(401);
   });
 });
 
 describe("minting and reading codes", () => {
-  it("mints codes only from the alphabet", () => {
+  it("mints six digits, leading zeros and all", () => {
     const seen = new Set<string>();
-    for (let i = 0; i < 200; i++) {
+    let leadingZero = false;
+    for (let i = 0; i < 2000; i++) {
       const code = generateMagicCode();
-      expect(code).toHaveLength(8);
-      for (const ch of code) expect(MAGIC_CODE_ALPHABET).toContain(ch);
+      expect(code).toMatch(/^[0-9]{6}$/);
+      if (code.startsWith("0")) leadingZero = true;
       seen.add(code);
     }
-    expect(seen.size).toBe(200);
+    // A million codes: 2000 draws repeat a few at most, and about 200 start
+    // with a zero, so neither of these is left to chance in any real sense.
+    expect(seen.size).toBeGreaterThan(1990);
+    expect(leadingZero).toBe(true);
   });
 
-  it("reads typed input the way the alphabet intends", () => {
-    expect(normalizeMagicCode(" ab cd-01il ")).toBe("ABCD0111");
-    expect(normalizeMagicCode("o0O")).toBe("000");
+  it("ignores spaces and dashes, and nothing else", () => {
+    expect(normalizeMagicCode(" 997 218 ")).toBe("997218");
+    expect(normalizeMagicCode("997-218")).toBe("997218");
+    expect(normalizeMagicCode("99721O")).toBe("99721O");
   });
 });

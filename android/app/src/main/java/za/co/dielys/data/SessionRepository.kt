@@ -99,6 +99,10 @@ sealed interface MagicLinkVerifyResult {
 
     data object Offline : MagicLinkVerifyResult
 
+    /** Too many wrong codes for this address today (ADR 0008). Only a typed
+     * code gets this; the link in the email still works. */
+    data object TooManyAttempts : MagicLinkVerifyResult
+
     data class ServerProblem(
         val detail: String,
     ) : MagicLinkVerifyResult
@@ -312,12 +316,11 @@ class SessionRepository
                 scheduler.requestSync()
                 MagicLinkVerifyResult.Success
             } catch (error: ApiException.Rejected) {
-                if (error.code == ErrorCode.INVALID_TOKEN ||
-                    error.code == ErrorCode.TOKEN_EXPIRED
-                ) {
-                    MagicLinkVerifyResult.InvalidOrExpired
-                } else {
-                    MagicLinkVerifyResult.ServerProblem(error.code ?: "rejected")
+                when (error.code) {
+                    ErrorCode.INVALID_TOKEN, ErrorCode.TOKEN_EXPIRED ->
+                        MagicLinkVerifyResult.InvalidOrExpired
+                    ErrorCode.RATE_LIMITED -> MagicLinkVerifyResult.TooManyAttempts
+                    else -> MagicLinkVerifyResult.ServerProblem(error.code ?: "rejected")
                 }
             } catch (_: ApiException.Unauthorized) {
                 MagicLinkVerifyResult.InvalidOrExpired

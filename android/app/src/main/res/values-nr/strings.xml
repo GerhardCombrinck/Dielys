@@ -130,4 +130,5 @@
     <string name="label_code">Ikhowudi</string>
     <string name="auth_sign_in_with_code">Ngena ngekhowudi</string>
     <string name="error_magic_code_invalid">Ikhowudi leyo ayikalungi namkha iphelelwe sikhathi. Hlola i-imeyili, namkha uthumele isixhumanisi esitjha.</string>
+    <string name="error_magic_code_locked">Iinkhowudi ezinengi ezingakalungi. Thinta isixhumanisi ku-imeyili kunalokho, namkha uzame godu kusasa.</string>
 </resources>

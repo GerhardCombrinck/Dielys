@@ -129,4 +129,5 @@
     <string name="label_code">Khoutu</string>
     <string name="auth_sign_in_with_code">Kena ka khoutu</string>
     <string name="error_magic_code_invalid">Khoutu eo e fosahetse kapa e fetile nako. Sheba imeile, kapa o romele kgokahanyo e ntjha.</string>
+    <string name="error_magic_code_locked">Dikhoutu tse ngata haholo tse fosahetseng. Tobetsa kgokahanyo e imeileng ho e na le hoo, kapa o leke hape hosane.</string>
 </resources>

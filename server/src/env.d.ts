@@ -55,7 +55,8 @@ declare global {
        * account.
        */
       REVIEW_EMAIL?: string;
-      /** At least 12 characters, or the review account stays off. */
+      /** At least 12 digits, or the review account stays off. Digits only: the
+       *  app types codes on a number pad (ADR 0008). */
       REVIEW_CODE?: string;
     }
   }

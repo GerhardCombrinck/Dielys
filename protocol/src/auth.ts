@@ -288,10 +288,10 @@ export interface ConfirmAccountDeletionRequest {
 }
 
 /**
- * Characters in the code mailed beside every magic link (ADR 0008), before
- * the display dash: `XXXX-XXXX`. Crockford base32, so 40 bits.
+ * Digits in the code mailed beside every magic link (ADR 0008): `997218`.
+ * About 20 bits, which is why wrong codes are also limited per address.
  */
-export const MAGIC_CODE_LENGTH = 8;
+export const MAGIC_CODE_LENGTH = 6;
 
 /**
  * `POST /auth/magic/verify-code` (ADR 0008). The typed alternative to tapping
@@ -300,8 +300,9 @@ export const MAGIC_CODE_LENGTH = 8;
  * collide across addresses, so it is looked up under the address it was sent
  * to. Answers a `TokenPair`, exactly as the link does.
  *
- * `code` is forgiving on the wire: case, spaces and dashes are ignored, and
- * `O`, `I`, `L` are read as `0`, `1`, `1`.
+ * `code` is forgiving on the wire: spaces and dashes are ignored. Too many
+ * wrong codes for one address in a day answers `rate-limited`, even for the
+ * right code.
  */
 export interface VerifyMagicCodeRequest {
   email: string;

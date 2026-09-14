@@ -44,7 +44,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
@@ -280,8 +279,7 @@ private fun CodeEntry(
         enabled = !state.busy,
         keyboardOptions =
             KeyboardOptions(
-                keyboardType = KeyboardType.Ascii,
-                capitalization = KeyboardCapitalization.Characters,
+                keyboardType = KeyboardType.NumberPassword,
                 autoCorrectEnabled = false,
                 imeAction = ImeAction.Go,
             ),

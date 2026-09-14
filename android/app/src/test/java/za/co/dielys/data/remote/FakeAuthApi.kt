@@ -101,12 +101,16 @@ class FakeAuthApi : AuthApi {
      * it; the right code signs in, anything else is `invalid-token`. */
     val magicCodes: MutableMap<String, String> = mutableMapOf()
 
+    /** Stands for the address having used up its wrong codes for the day. */
+    var codesLocked: Boolean = false
+
     override suspend fun verifyMagicCode(
         email: String,
         code: String,
         deviceId: String,
     ): TokenPair {
         gate()
+        if (codesLocked) throw ApiException.Rejected(429, ErrorCode.RATE_LIMITED)
         if (magicCodes[email] != code) throw ApiException.Rejected(401, ErrorCode.INVALID_TOKEN)
         magicCodes.remove(email)
         accounts.putIfAbsent(email, "unusable-random-password")

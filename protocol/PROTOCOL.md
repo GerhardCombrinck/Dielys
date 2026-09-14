@@ -169,14 +169,15 @@ client treats as `null`.
 
 ### Signing in with the code
 
-Every magic-link email carries an 8-character code (`MAGIC_CODE_LENGTH`) beside the link, shown
-as `XXXX-XXXX` — `docs/adr/0008-sign-in-code.md`. It is Crockford base32, and the server reads
-it forgivingly: case, spaces and dashes are ignored, and `O`, `I`, `L` count as `0`, `1`, `1`.
+Every magic-link email carries a 6-digit code (`MAGIC_CODE_LENGTH`) beside the link —
+`docs/adr/0008-sign-in-code.md`. The server ignores spaces and dashes in what was typed.
 
 `POST /auth/magic/verify-code` with the email the link was sent to, the code, and the device id
 does what tapping the link does: creates the account on first use and answers a `TokenPair`.
 Code and link share one use — redeeming either spends both. A wrong code answers
 `invalid-token`; the fifth wrong code for a link burns it. Past its 15 minutes, `token-expired`.
+After 10 wrong codes for one address in a day, every code for that address answers
+`rate-limited` until the day is out — the link in the email still works.
 
 ### Deleting an account
 

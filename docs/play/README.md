@@ -28,7 +28,7 @@ setup checklist on the app's Dashboard).
 
 - **Name:** Review account
 - **Username / email:** the value of the prod `REVIEW_EMAIL` secret
-- **Password:** the value of the prod `REVIEW_CODE` secret
+- **Password:** the value of the prod `REVIEW_CODE` secret (digits only, at least 12)
 - **Any other information required to access your app:**
 
   > Die Lys signs in without a password. To sign in as the review account:

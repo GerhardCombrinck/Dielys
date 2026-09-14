@@ -78,6 +78,11 @@ class SessionStack(
         auth.magicCodes[email] = code
     }
 
+    /** The server refusing every code for the address today (ADR 0008). */
+    fun lockCodes() {
+        auth.codesLocked = true
+    }
+
     /** Every requestId `magicLinkStatus` was polled with, in order. */
     val statusChecks: List<String> get() = auth.statusChecks
 }

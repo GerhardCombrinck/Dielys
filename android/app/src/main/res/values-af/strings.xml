@@ -135,4 +135,5 @@
     <string name="label_code">Kode</string>
     <string name="auth_sign_in_with_code">Meld aan met kode</string>
     <string name="error_magic_code_invalid">Daardie kode is verkeerd of het verval. Kyk weer na die e-pos, of stuur \'n nuwe skakel.</string>
+    <string name="error_magic_code_locked">Te veel verkeerde kodes. Tik eerder op die skakel in die e-pos, of probeer môre weer.</string>
 </resources>

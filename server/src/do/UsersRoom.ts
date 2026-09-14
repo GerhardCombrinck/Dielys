@@ -18,6 +18,7 @@ import {
   INVITE_EMAIL_PER_LIST,
   INVITE_EMAIL_PER_RECIPIENT,
   LOGIN_PER_CLIENT,
+  MAGIC_CODE_WRONG_PER_EMAIL,
   MAGIC_REQUEST_PER_CLIENT,
   MAGIC_REQUEST_PER_EMAIL,
   MAGIC_STATUS_PER_CLIENT,
@@ -26,7 +27,7 @@ import {
   REGISTER_GLOBAL,
   REGISTER_PER_CLIENT,
 } from "../auth/ratelimit.js";
-import { formatMagicCode, normalizeMagicCode } from "../domain/magiccode.js";
+import { normalizeMagicCode } from "../domain/magiccode.js";
 import {
   type EmailSender,
   isEmailDelivered,
@@ -345,7 +346,7 @@ export class UsersRoom extends DurableObject {
       sender,
       normalized,
       link,
-      formatMagicCode(code),
+      code,
       MAGIC_LINK_TTL_MS / 60_000,
     );
     if (!result.sent) return { ok: false, code: "internal" };
@@ -503,9 +504,10 @@ export class UsersRoom extends DurableObject {
   /**
    * The typed code from the same email (ADR 0008). Finds the outstanding link
    * for [email] and checks the code against it; a right code spends the row
-   * exactly as tapping the link would. A wrong one counts, and the fifth burns
-   * the link — so what an attacker gets is bounded by how often a new link can
-   * be asked for, not by how fast they can type.
+   * exactly as tapping the link would. A wrong one counts twice: towards
+   * burning the link on the fifth, and towards the address's daily allowance
+   * of wrong codes, which is what actually bounds a guesser — a new link, with
+   * five fresh tries, can be asked for every few minutes.
    *
    * The review account's fixed code is checked first and only for its own
    * address; any other code for that address falls through to the ordinary
@@ -531,6 +533,15 @@ export class UsersRoom extends DurableObject {
       return this.signInByEmail(normalizedEmail, deviceId, now);
     }
 
+    // Checked before the code is: once the allowance is spent, the right code
+    // is refused too, or a guesser would learn which guess was right from the
+    // one answer that differed. The link in the email still works.
+    const wrongBucket = await emailKey(normalizedEmail, this.env.JWT_SIGNING_KEY);
+    if (this.exhausted(MAGIC_CODE_WRONG_PER_EMAIL, wrongBucket, now)) {
+      log("warn", "usersroom.magiccode.locked", {});
+      return { ok: false, code: "rate-limited" };
+    }
+
     const row = selectMagicLinkByEmail(this.sql, normalizedEmail);
     if (row === null || row.codeHash === null) return { ok: false, code: "invalid-token" };
 
@@ -547,6 +558,7 @@ export class UsersRoom extends DurableObject {
         deleteMagicLink(this.sql, row.tokenHash);
         return true;
       });
+      this.consume(MAGIC_CODE_WRONG_PER_EMAIL, wrongBucket, now);
       log("info", "usersroom.magiccode.wrong", { burned });
       return { ok: false, code: "invalid-token" };
     }
@@ -1085,6 +1097,16 @@ export class UsersRoom extends DurableObject {
    * An attempt over the limit still increments, so hammering keeps the window
    * shut rather than rolling it — which is the point of refusing.
    */
+  /** Whether [limit] is already used up for [key], without counting this ask
+   * against it — for limits that count only failures, which are consumed after
+   * the outcome is known. Dev is never limited, as in [consume]. */
+  private exhausted(limit: RateLimit, key: string, now: number): boolean {
+    if (this.env.ENVIRONMENT === "dev") return false;
+    const current = selectRateLimit(this.sql, bucketFor(limit, key));
+    if (current === null || now - current.windowStartedAt >= limit.windowMs) return false;
+    return current.count >= limit.limit;
+  }
+
   private consume(limit: RateLimit, clientKey: string, now: number): boolean {
     // Dev deployment only (env.ENVIRONMENT, wrangler.jsonc) — prod stays limited.
     if (this.env.ENVIRONMENT === "dev") return true;

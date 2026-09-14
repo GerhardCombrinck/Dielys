@@ -156,9 +156,10 @@ class SessionViewModelTest {
     fun `the code from the email signs in under the address it was sent to`() =
         runTest(dispatcher) {
             submit("friend@example.test")
-            phone.mailedCodeIs("friend@example.test", "K7QM-3XPD")
+            phone.mailedCodeIs("friend@example.test", "997218")
 
-            viewModel.onCode("K7QM-3XPD")
+            // Pasted from the email with a space in it, which is not part of it.
+            viewModel.onCode("997 218")
             viewModel.submitCode()
 
             assertTrue(viewModel.signedIn.value)
@@ -170,9 +171,9 @@ class SessionViewModelTest {
     fun `a wrong code says so, keeps the screen, and does not sign in`() =
         runTest(dispatcher) {
             submit("friend@example.test")
-            phone.mailedCodeIs("friend@example.test", "K7QM-3XPD")
+            phone.mailedCodeIs("friend@example.test", "997218")
 
-            viewModel.onCode("AAAA-BBBB")
+            viewModel.onCode("123456")
             viewModel.submitCode()
 
             assertFalse(viewModel.signedIn.value)
@@ -187,11 +188,41 @@ class SessionViewModelTest {
     fun `a new link clears a half-typed code`() =
         runTest(dispatcher) {
             submit("friend@example.test")
-            viewModel.onCode("K7QM")
+            viewModel.onCode("9972")
 
             viewModel.submit()
 
             assertEquals("", viewModel.form.value.code)
+        }
+
+    @Test
+    fun `a code is not sent until all six digits are in`() =
+        runTest(dispatcher) {
+            submit("friend@example.test")
+
+            viewModel.onCode("99721")
+            assertFalse(viewModel.form.value.canSubmitCode)
+            viewModel.onCode("997218")
+            assertTrue(viewModel.form.value.canSubmitCode)
+        }
+
+    /** ADR 0008: after too many wrong codes for an address, the server refuses
+     * every code for a while — the link in the email is the way in. */
+    @Test
+    fun `too many wrong codes points back at the link`() =
+        runTest(dispatcher) {
+            submit("friend@example.test")
+            phone.mailedCodeIs("friend@example.test", "997218")
+            phone.lockCodes()
+
+            viewModel.onCode("997218")
+            viewModel.submitCode()
+
+            assertFalse(viewModel.signedIn.value)
+            assertEquals(
+                "Too many wrong codes. Tap the link in the email instead, or try again tomorrow.",
+                viewModel.form.value.problem,
+            )
         }
 
     @Test
