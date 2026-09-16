@@ -1,0 +1,100 @@
+/* Navy/Sand/Amber, ported from android/.../ui/theme/Theme.kt so the web
+   client is recognisably the same app. Not user-configurable (same reasoning
+   as the Android client skipping dynamic/Material You color: two people on
+   the same household list should see the same app, not two different ones
+   shaped by device theme extraction). */
+
+:root {
+  --navy: #1b2a4a;
+  --navy-light: #2e4372;
+  --navy-deep: #0e1728;
+  --sand: #f6f4ef;
+  --amber: #e8a33d;
+  --rust: #b3261e;
+
+  --color-primary: var(--navy);
+  --color-on-primary: #ffffff;
+  --color-primary-container: var(--navy-light);
+  --color-on-primary-container: #ffffff;
+  --color-secondary: var(--amber);
+  --color-on-secondary: var(--navy-deep);
+  --color-background: var(--sand);
+  --color-on-background: var(--navy-deep);
+  --color-surface: #ffffff;
+  --color-on-surface: var(--navy-deep);
+  --color-error: var(--rust);
+  --color-border: rgba(14, 23, 40, 0.12);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary: #9cb6e8;
+    --color-on-primary: var(--navy-deep);
+    --color-primary-container: var(--navy-light);
+    --color-on-primary-container: #ffffff;
+    --color-secondary: var(--amber);
+    --color-on-secondary: var(--navy-deep);
+    --color-background: var(--navy-deep);
+    --color-on-background: var(--sand);
+    --color-surface: var(--navy);
+    --color-on-surface: var(--sand);
+    --color-error: #f2b8b5;
+    --color-border: rgba(246, 244, 239, 0.14);
+
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--color-background);
+  color: var(--color-on-background);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.pill-button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.75rem 1.5rem;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pill-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.pill-button.secondary {
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-border);
+}
+
+.text-input {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  width: 100%;
+}
+
+.error-text {
+  color: var(--color-error);
+  font-size: 0.875rem;
+}
