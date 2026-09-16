@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Pre-Android 12 (API < 31) counterpart to data_extraction_rules.xml — same
+    exclusion, older syntax, needed because minSdk is 26.
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="dielys-session.xml" />
+</full-backup-content>

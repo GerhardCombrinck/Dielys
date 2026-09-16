@@ -24,6 +24,7 @@ import {
   MAGIC_STATUS_PER_CLIENT,
   MAGIC_VERIFY_PER_CLIENT,
   type RateLimit,
+  REFRESH_PER_CLIENT,
   REGISTER_GLOBAL,
   REGISTER_PER_CLIENT,
 } from "../auth/ratelimit.js";
@@ -628,8 +629,13 @@ export class UsersRoom extends DurableObject {
   async rotateRefreshToken(
     refreshToken: string,
     deviceId: string,
+    clientKey: string,
     now: number,
   ): Promise<UsersResult<Session>> {
+    if (!this.consume(REFRESH_PER_CLIENT, clientKey, now)) {
+      return { ok: false, code: "rate-limited" };
+    }
+
     const tokenHash = await hashRefreshToken(refreshToken);
     const row = selectRefreshToken(this.sql, tokenHash);
 

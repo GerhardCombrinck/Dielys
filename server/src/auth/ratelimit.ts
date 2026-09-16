@@ -41,11 +41,26 @@ export const REGISTER_GLOBAL: RateLimit = {
 
 /**
  * Far above a person retyping a password, far below anything worth calling an
- * online guessing attack. Refresh is not limited — it is not guessable.
+ * online guessing attack.
  */
 export const LOGIN_PER_CLIENT: RateLimit = {
   action: "login",
   limit: 10,
+  windowMs: 15 * MINUTE_MS,
+};
+
+/**
+ * Not a guessing defence — a refresh token is 256 random bits, and rotation
+ * plus reuse-detection already cover a stolen one. This is a volumetric
+ * backstop: `UsersRoom` is a singleton DO that single-threads every auth
+ * route, so an unauthenticated flood of garbage refresh tokens (one hash and
+ * one indexed lookup each, otherwise ungated) can queue up on that one object
+ * and degrade login, register and every other route behind it. Generous,
+ * because a real client refreshes far more often than it logs in.
+ */
+export const REFRESH_PER_CLIENT: RateLimit = {
+  action: "refresh",
+  limit: 60,
   windowMs: 15 * MINUTE_MS,
 };
 

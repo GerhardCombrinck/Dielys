@@ -189,6 +189,9 @@ export class ListRoom extends DurableObject {
     if (!SUPPORTED_PROTOCOL_VERSIONS.includes(mutation.value.protocolVersion)) {
       return jsonError("unsupported-protocol-version", 400, mutation.value.idempotencyKey);
     }
+    if (!this.bindListId(mutation.value.listId)) {
+      return jsonError("list-mismatch", 409, mutation.value.idempotencyKey);
+    }
 
     if (!mayApply(parseRole(new URL(request.url).searchParams.get("role")), mutation.value)) {
       return jsonError("forbidden", 403, mutation.value.idempotencyKey);

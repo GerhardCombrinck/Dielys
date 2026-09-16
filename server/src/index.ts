@@ -478,9 +478,10 @@ async function handleRefresh(request: Request, env: Env, now: number): Promise<R
   const result = await usersRoom(env).rotateRefreshToken(
     refresh.value.refreshToken,
     refresh.value.deviceId,
+    await bucketKey(request, env),
     now,
   );
-  if (!result.ok) return errorResponse(result.code, 401);
+  if (!result.ok) return errorResponse(result.code, result.code === "rate-limited" ? 429 : 401);
 
   return Response.json(
     await tokenPair(
