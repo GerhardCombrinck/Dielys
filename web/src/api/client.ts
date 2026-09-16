@@ -54,8 +54,27 @@ export function onTokensRefreshed(callback: (tokens: AuthTokens) => void): void 
  * Exported so `SessionContext` can also call this once at startup to turn a
  * `deviceId` + refresh token recovered from `localStorage` back into a
  * working access token — the same operation a 401 triggers mid-session.
+ *
+ * A refresh token is single-use (L1): presenting an already-rotated one is
+ * treated as theft and revokes every session for that user. Two callers
+ * racing each other — React's StrictMode double-invoking an effect in dev,
+ * or two requests each hitting a 401 at once — would otherwise both spend
+ * the same token and the loser would revoke the winner's brand new session.
+ * `refreshInFlight` makes every caller during one refresh share its result
+ * instead of racing.
  */
-export async function refreshTokens(): Promise<AuthTokens | null> {
+let refreshInFlight: Promise<AuthTokens | null> | null = null;
+
+export function refreshTokens(): Promise<AuthTokens | null> {
+  if (refreshInFlight === null) {
+    refreshInFlight = doRefresh().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+async function doRefresh(): Promise<AuthTokens | null> {
   if (tokens === null) return null;
   const body: RefreshRequest = { refreshToken: tokens.refreshToken, deviceId: tokens.deviceId };
   const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
