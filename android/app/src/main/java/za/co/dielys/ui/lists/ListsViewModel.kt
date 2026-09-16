@@ -150,11 +150,10 @@ class ListsViewModel
             combine(
                 repo.observeLists(),
                 repo.observeItemCounts(),
-                accents.observeAll(),
                 firstSync.listsPulled,
-            ) { lists, counts, accents, pulled ->
+            ) { lists, counts, pulled ->
                 val byListId = counts.associate { it.listId to it.count }
-                val (arrived, announced) = lists.partition { it.hasArrived() }
+                val (arrived, announced) = lists.partition { it.list.hasArrived() }
                 // Still waiting while a list is announced and not named, even
                 // once the sync has finished: Room tells this flow about the rows
                 // a moment after the sync says it wrote them, and in that moment
@@ -162,7 +161,7 @@ class ListsViewModel
                 if (arrived.isEmpty() && (!pulled || announced.isNotEmpty())) {
                     null
                 } else {
-                    arrived.map { ListRow(it, byListId[it.id] ?: 0, accents[it.id]) }
+                    arrived.map { ListRow(it.list, byListId[it.list.id] ?: 0, it.accent) }
                 }
             }.asState(null)
 

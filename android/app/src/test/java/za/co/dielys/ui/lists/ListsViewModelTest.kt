@@ -2,7 +2,6 @@ package za.co.dielys.ui.lists
 
 import androidx.lifecycle.viewModelScope
 import androidx.test.core.app.ApplicationProvider
-import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -86,8 +85,11 @@ class ListsViewModelTest {
                 assertEquals(emptyList<String>(), awaitItem()?.map { it.list.title })
                 viewModel.create("  Groceries  ")
 
-                val shown = awaitColoured()
+                // Already wearing its colour: the row and the colour are one
+                // transaction and one query, never a row and then a colour (#57).
+                val shown = awaitItem().orEmpty()
                 assertEquals(listOf("Groceries"), shown.map { it.list.title })
+                assertNotNull(shown.single().accent)
                 // No server timestamp yet: the row is an optimistic local write,
                 // which is what the screen labels "Not synced yet".
                 assertEquals(null, shown.single().list.updatedAt)
@@ -200,7 +202,9 @@ class ListsViewModelTest {
             viewModel.lists.test {
                 assertNull(awaitItem())
                 viewModel.create("Groceries")
-                assertEquals(listOf("Groceries"), awaitColoured().map { it.list.title })
+                val shown = awaitItem().orEmpty()
+                assertEquals(listOf("Groceries"), shown.map { it.list.title })
+                assertNotNull(shown.single().accent)
             }
         }
 
@@ -428,18 +432,6 @@ class ListsViewModelTest {
         id: String,
         title: String,
     ): ListEntity = ListEntity(id = id, title = title, role = "owner")
-
-    /**
-     * The rows once every one has its colour. A new list and its colour are one
-     * transaction, but [ListsViewModel.lists] reads them through separate Room
-     * queries, so the row can arrive a moment before the colour does: sometimes
-     * one emission, sometimes two (#57).
-     */
-    private suspend fun ReceiveTurbine<List<ListRow>?>.awaitColoured(): List<ListRow> {
-        var rows = awaitItem().orEmpty()
-        while (rows.any { it.accent == null }) rows = awaitItem().orEmpty()
-        return rows
-    }
 
     private companion object {
         const val LIMIT = 20
