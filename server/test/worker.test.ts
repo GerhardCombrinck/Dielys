@@ -68,6 +68,25 @@ describe("Worker routing", () => {
   });
 });
 
+describe("CORS — the browser client is cross-origin from this Worker", () => {
+  it("answers a preflight without reaching a route handler", async () => {
+    const response = await SELF.fetch("https://dielys.test/auth/login", { method: "OPTIONS" });
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    expect(response.headers.get("access-control-allow-methods")).toContain("POST");
+    expect(response.headers.get("access-control-allow-headers")).toContain("authorization");
+  });
+
+  it("carries CORS headers on a normal response too, success or error", async () => {
+    const ok = await SELF.fetch("https://dielys.test/health");
+    expect(ok.headers.get("access-control-allow-origin")).toBe("*");
+
+    const denied = await SELF.fetch("https://dielys.test/lists/list-1/changes");
+    expect(denied.status).toBe(401);
+    expect(denied.headers.get("access-control-allow-origin")).toBe("*");
+  });
+});
+
 describe("signing key guard (I1)", () => {
   it("serves health but refuses everything else when the key is unusable", async () => {
     // The tests run with a real key bound, so this checks the predicate that
