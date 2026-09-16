@@ -1,12 +1,14 @@
-import { SELF } from "cloudflare:test";
+import { env, SELF } from "cloudflare:test";
 import type {
   AcceptInviteResponse,
   CreateInviteResponse,
   ListMembersResponse,
   RemoveMemberResponse,
   TokenPair,
+  WsTicketResponse,
 } from "@dielys/protocol";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { usersRoom } from "../src/do/rooms.js";
 
 /**
  * The whole auth path through the real Worker and real UsersRoom (H1).
@@ -496,6 +498,123 @@ describe("list access (L3)", () => {
     const listId = crypto.randomUUID();
     expect((await get(`/lists/${listId}/changes?since=0`)).status).toBe(401);
     expect((await get(`/lists/${listId}/changes?since=0`, "forged.token.here")).status).toBe(401);
+  });
+});
+
+describe("WebSocket ticket auth (ADR 0009)", () => {
+  async function ownerWithList() {
+    const email = uniqueEmail();
+    await createUser(email);
+    const tokens = await login(email, "device-a");
+    const listId = crypto.randomUUID();
+    await post(`/lists/${listId}`, {}, tokens.accessToken);
+    return { tokens, listId };
+  }
+
+  async function mintTicket(token?: string, address?: string): Promise<Response> {
+    return post("/auth/ws-ticket", {}, token, address);
+  }
+
+  /** The upgrade itself, through the real Worker routing — a browser cannot
+   * set Authorization on this one request, which is the whole reason a
+   * ticket exists. */
+  function upgrade(listId: string, query: string, headers: Record<string, string> = {}) {
+    return SELF.fetch(`https://dielys.test/lists/${listId}/ws?${query}`, {
+      headers: { Upgrade: "websocket", ...headers },
+    });
+  }
+
+  function acceptAndClose(response: Response) {
+    const ws = response.webSocket as WebSocket;
+    ws.accept();
+    ws.close();
+  }
+
+  it("mints a ticket and opens a socket with no Authorization header at all", async () => {
+    const { tokens, listId } = await ownerWithList();
+    const minted = await mintTicket(tokens.accessToken);
+    expect(minted.status).toBe(200);
+    const { ticket, expiresIn } = (await minted.json()) as WsTicketResponse;
+    expect(expiresIn).toBe(60);
+
+    const response = await upgrade(listId, `ticket=${ticket}`);
+    expect(response.status).toBe(101);
+    acceptAndClose(response);
+  });
+
+  it("cannot be redeemed a second time", async () => {
+    const { tokens, listId } = await ownerWithList();
+    const { ticket } = (await (await mintTicket(tokens.accessToken)).json()) as WsTicketResponse;
+
+    acceptAndClose(await upgrade(listId, `ticket=${ticket}`));
+
+    const replay = await upgrade(listId, `ticket=${ticket}`);
+    expect(replay.status).toBe(401);
+  });
+
+  it("refuses a ticket nobody minted", async () => {
+    const { listId } = await ownerWithList();
+    const response = await upgrade(listId, "ticket=not-a-ticket-anyone-minted");
+    expect(response.status).toBe(401);
+  });
+
+  it("still enforces membership — a ticket does not bypass L3", async () => {
+    const strangerEmail = uniqueEmail();
+    await createUser(strangerEmail);
+    const stranger = await login(strangerEmail, "device-b");
+    const { listId } = await ownerWithList();
+
+    const { ticket } = (await (await mintTicket(stranger.accessToken)).json()) as WsTicketResponse;
+    const response = await upgrade(listId, `ticket=${ticket}`);
+    // 403, not 404, same as every other list route (L3).
+    expect(response.status).toBe(403);
+  });
+
+  it("a bearer header on the upgrade still works, unchanged (Android's path)", async () => {
+    const { tokens, listId } = await ownerWithList();
+    const response = await upgrade(listId, "deviceId=device-a", {
+      Authorization: `Bearer ${tokens.accessToken}`,
+    });
+    expect(response.status).toBe(101);
+    acceptAndClose(response);
+  });
+
+  it("a mismatched ?deviceId= on the URL does not break or get trusted over the ticket", async () => {
+    const { tokens, listId } = await ownerWithList();
+    const { ticket } = (await (await mintTicket(tokens.accessToken)).json()) as WsTicketResponse;
+
+    // The Worker overwrites ?deviceId= with the ticket's bound value before
+    // forwarding, the same way it already overwrites ?role= (ADR 0006) — a
+    // claimed device on the URL is not the one that reaches the DO.
+    const response = await upgrade(listId, `ticket=${ticket}&deviceId=someone-elses-device`);
+    expect(response.status).toBe(101);
+    acceptAndClose(response);
+  });
+
+  it("expires — checked directly, since a real 60s wait does not belong in a test", async () => {
+    const users = usersRoom(env);
+    const minted = await users.mintWsTicket("user-x", "device-x", "client-x", 1_000);
+    expect(minted.ok).toBe(true);
+    if (!minted.ok) return;
+
+    const redeemed = await users.redeemWsTicket(minted.value.ticket, 1_000 + 61_000);
+    expect(redeemed).toEqual({ ok: false, code: "token-expired" });
+  });
+
+  it("mint requires a token", async () => {
+    expect((await mintTicket()).status).toBe(401);
+  });
+
+  it("is rate-limited as a volumetric backstop, not a guessing defence", async () => {
+    const { tokens } = await ownerWithList();
+    const client = "198.51.100.88";
+
+    for (let i = 0; i < 60; i += 1) {
+      expect((await mintTicket(tokens.accessToken, client)).status).toBe(200);
+    }
+    const refused = await mintTicket(tokens.accessToken, client);
+    expect(refused.status).toBe(429);
+    expect(await refused.json()).toMatchObject({ code: "rate-limited" });
   });
 });
 

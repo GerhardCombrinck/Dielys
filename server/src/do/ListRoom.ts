@@ -288,7 +288,12 @@ export class ListRoom extends DurableObject {
     // Nothing to persist — the cursor lives on the client (F5.8) and
     // hibernation handles the socket itself.
     log("debug", "listroom.ws.close", { code });
-    ws.close(code === 1006 ? 1000 : code);
+    // 1005 ("no status received") and 1006 (abnormal closure) are reserved:
+    // the runtime reports them, but the WebSocket spec forbids sending them
+    // back out, and workerd throws rather than silently ignoring it. A plain
+    // `ws.close()` with no arguments — routine from a browser — reports as
+    // 1005, so this is not just a 1006 edge case.
+    ws.close(code === 1005 || code === 1006 ? 1000 : code);
   }
 
   private onHello(ws: WebSocket, raw: unknown): void {
