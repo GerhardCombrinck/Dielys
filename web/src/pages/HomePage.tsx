@@ -3,17 +3,21 @@
  * Fed by `sync/useListsOverview.ts` — a fresh `/auth/memberships` plus one
  * catch-up per list, since there is no local database to read instead.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ApiError } from "../api/client.js";
 import { useSession } from "../auth/SessionContext.js";
 import { ACCENT_COUNT, accentColor } from "../domain/accents.js";
+import { takePendingInvite } from "../domain/pendingInvite.js";
 import { navigate } from "../router.js";
 import { type ListRow, useListsOverview } from "../sync/useListsOverview.js";
+import { useSharing } from "../sync/useSharing.js";
 import { dropNeighbors } from "../ui/reorder.js";
+import { InviteDialog, MembersDialog } from "./SharingDialogs.js";
 
 export function HomePage() {
   const session = useSession();
   const overview = useListsOverview(session.deviceId);
+  const sharing = useSharing(session.status === "signed-in" ? session.userId : "");
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -21,6 +25,15 @@ export function HomePage() {
   const [creating, setCreating] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // An invite tapped while signed out is stashed (domain/pendingInvite.ts)
+  // and resumed once this screen is reached signed in — the same moment
+  // Android's `acceptInvitation()` resumes a tapped link that arrived before
+  // sign-in finished.
+  useEffect(() => {
+    const token = takePendingInvite();
+    if (token !== null) navigate(`/invite?t=${encodeURIComponent(token)}`);
+  }, []);
 
   if (session.status !== "signed-in") return null;
 
@@ -53,6 +66,18 @@ export function HomePage() {
           ? "Only the owner can delete this list."
           : "Could not delete the list.",
       );
+    }
+  }
+
+  async function handleLeave(row: ListRow): Promise<void> {
+    setMenuFor(null);
+    const title = row.title ?? "this list";
+    if (!window.confirm(`Leave "${title}"? You will need a new invite to see it again.`)) return;
+    try {
+      await sharing.leave(row.membership.listId);
+      overview.refresh();
+    } catch {
+      setError("Could not leave the list. Check your connection and try again.");
     }
   }
 
@@ -143,6 +168,17 @@ export function HomePage() {
               </button>
             )}
 
+            {row.membership.memberCount > 1 && (
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="Shared list members"
+                onClick={() => void sharing.openMembers(row.membership.listId)}
+              >
+                👥
+              </button>
+            )}
+
             <button
               type="button"
               className="icon-button"
@@ -188,13 +224,33 @@ export function HomePage() {
                       />
                     ))}
                   </div>
+                  {/* L3: only the owner may invite, so a list somebody else shared
+                      does not offer it rather than offering it and being refused. */}
                   {row.membership.role === "owner" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sharing.openInvite(row.membership.listId, row.title ?? "Untitled list");
+                        setMenuFor(null);
+                      }}
+                    >
+                      Share
+                    </button>
+                  )}
+                  {/* One or the other, never both (ADR 0006): a delete takes the
+                      list off every member's phone, so it is the owner's to make;
+                      anybody else can still get it off their own, by leaving. */}
+                  {row.membership.role === "owner" ? (
                     <button
                       type="button"
                       className="menu-danger"
                       onClick={() => void handleDelete(row)}
                     >
                       Delete
+                    </button>
+                  ) : (
+                    <button type="button" onClick={() => void handleLeave(row)}>
+                      Leave
                     </button>
                   )}
                 </div>
@@ -203,6 +259,24 @@ export function HomePage() {
           </li>
         ))}
       </ul>
+
+      {sharing.members !== null && (
+        <MembersDialog
+          state={sharing.members}
+          onRemove={(listId, userId) =>
+            void sharing.removeMember(listId, userId).then(() => overview.refresh())
+          }
+          onDismiss={sharing.dismissMembers}
+        />
+      )}
+
+      {sharing.invite !== null && (
+        <InviteDialog
+          state={sharing.invite}
+          onSend={sharing.sendInvite}
+          onDismiss={sharing.dismissInvite}
+        />
+      )}
     </div>
   );
 }
