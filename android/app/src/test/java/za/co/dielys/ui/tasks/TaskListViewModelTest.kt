@@ -1,10 +1,8 @@
 package za.co.dielys.ui.tasks
 
-import androidx.lifecycle.viewModelScope
 import app.cash.turbine.test
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -61,10 +59,6 @@ class TaskListViewModelTest {
 
     @After
     fun tearDown() {
-        // See ListsViewModelTest.tearDown: cancel the WhileSubscribed collector
-        // before closing the database, so it can't still be racing Room's
-        // InvalidationTracker against `phone.close()`.
-        viewModel.viewModelScope.cancel()
         phone.close()
         Dispatchers.resetMain()
     }

@@ -1,11 +1,9 @@
 package za.co.dielys.ui.lists
 
-import androidx.lifecycle.viewModelScope
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -58,15 +56,6 @@ class ListsViewModelTest {
 
     @After
     fun tearDown() {
-        // `lists` and `pending` are kept alive for KEEP_ALIVE_MILLIS after their
-        // last collector, via `WhileSubscribed`. Left running, that collector is
-        // still registered against Room's `InvalidationTracker` when `phone.close()`
-        // runs below, racing the database close against whatever background
-        // thread Room's query executor delivers the next invalidation on — the
-        // source of this suite's flaky `SQLiteConnectionPool` leaks and
-        // uncaught-exception failures. Cancelling the scope first unregisters it
-        // synchronously, so nothing is left to race.
-        viewModel.viewModelScope.cancel()
         phone.close()
         Dispatchers.resetMain()
     }
