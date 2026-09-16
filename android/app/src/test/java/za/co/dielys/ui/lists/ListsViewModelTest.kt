@@ -1,10 +1,15 @@
 package za.co.dielys.ui.lists
 
+import androidx.lifecycle.viewModelScope
 import androidx.test.core.app.ApplicationProvider
+import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -56,6 +61,15 @@ class ListsViewModelTest {
 
     @After
     fun tearDown() {
+        // Everything the view model started is over before the database closes and
+        // `Dispatchers.Main` is put back. A join still waiting on Room would
+        // otherwise resume from Room's own thread after that, into whatever the
+        // next test has made Main — which fails that test instead of this one.
+        // Cancelling is not enough: the waiter still has to come back to notice.
+        runBlocking {
+            viewModel.viewModelScope.coroutineContext.job
+                .cancelAndJoin()
+        }
         phone.close()
         Dispatchers.resetMain()
     }
@@ -72,7 +86,7 @@ class ListsViewModelTest {
                 assertEquals(emptyList<String>(), awaitItem()?.map { it.list.title })
                 viewModel.create("  Groceries  ")
 
-                val shown = awaitItem().orEmpty()
+                val shown = awaitColoured()
                 assertEquals(listOf("Groceries"), shown.map { it.list.title })
                 // No server timestamp yet: the row is an optimistic local write,
                 // which is what the screen labels "Not synced yet".
@@ -186,7 +200,7 @@ class ListsViewModelTest {
             viewModel.lists.test {
                 assertNull(awaitItem())
                 viewModel.create("Groceries")
-                assertEquals(listOf("Groceries"), awaitItem()?.map { it.list.title })
+                assertEquals(listOf("Groceries"), awaitColoured().map { it.list.title })
             }
         }
 
@@ -414,6 +428,18 @@ class ListsViewModelTest {
         id: String,
         title: String,
     ): ListEntity = ListEntity(id = id, title = title, role = "owner")
+
+    /**
+     * The rows once every one has its colour. A new list and its colour are one
+     * transaction, but [ListsViewModel.lists] reads them through separate Room
+     * queries, so the row can arrive a moment before the colour does: sometimes
+     * one emission, sometimes two (#57).
+     */
+    private suspend fun ReceiveTurbine<List<ListRow>?>.awaitColoured(): List<ListRow> {
+        var rows = awaitItem().orEmpty()
+        while (rows.any { it.accent == null }) rows = awaitItem().orEmpty()
+        return rows
+    }
 
     private companion object {
         const val LIMIT = 20
