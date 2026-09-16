@@ -189,6 +189,16 @@ cd android
 ./gradlew assembleDebug
 ```
 
+**Web:**
+
+```bash
+cd web
+npm ci
+npm run dev   # Vite, http://localhost:5173, pointed at the server above
+```
+
+See `web/README.md` and `web/AGENTS.md` for more.
+
 ### Project Layout
 
 | Path        | What                                                      |
@@ -196,7 +206,7 @@ cd android
 | `server/`   | Cloudflare Workers + Durable Objects backend (TypeScript)  |
 | `protocol/` | The wire contract — types and fixtures shared by both sides |
 | `android/`  | Kotlin + Compose + Room Android client                     |
-| `web/`      | Deferred web client — not yet built (priority 3)           |
+| `web/`      | React + Vite + TypeScript web client, online-first          |
 | `docs/`     | Coding standard, ADRs, sync design                          |
 | `scripts/`  | One-off and maintenance scripts                              |
 

@@ -42,7 +42,7 @@ per-commit. Everything below is decided once, here, before the first line of pro
 | Server     | `server/`   | TypeScript — Cloudflare Workers + DO  | 1        |
 | Protocol   | `protocol/` | TypeScript types + JSON fixtures      | 1        |
 | Android    | `android/`  | Kotlin — Jetpack Compose + Room       | 1        |
-| Web client | `web/`      | TypeScript — deferred, not yet built  | 3        |
+| Web client | `web/`      | TypeScript — React + Vite, online-first | 3      |
 
 **Out of scope:** iOS. The protocol MUST NOT acquire Android-specific assumptions that would
 block an iOS client later, but no iOS code is written or maintained.
