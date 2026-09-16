@@ -8,7 +8,7 @@
 #
 #   scripts/verify.sh              # everything
 #   scripts/verify.sh protocol     # one component
-#   scripts/verify.sh server android
+#   scripts/verify.sh server android web
 #   FAST=1 scripts/verify.sh       # skip android (the slow one)
 #   CLEAN=1 scripts/verify.sh      # reinstall node deps from the lockfile
 #   DIELYS_TEST_TIMEOUT=300 ...    # seconds one node test leg may take (default 45)
@@ -142,23 +142,23 @@ verify_android() {
 TARGETS=$*
 if [ -z "$TARGETS" ]; then
   if [ "${FAST:-0}" = "1" ]; then
-    TARGETS="protocol server"
+    TARGETS="protocol server web"
   else
-    TARGETS="protocol server android"
+    TARGETS="protocol server web android"
   fi
 fi
 
 START=$(date +%s)
 for target in $TARGETS; do
   case "$target" in
-    protocol | server)
+    protocol | server | web)
       run "$target" verify_node_component "$target" || true
       ;;
     android)
       run "android" verify_android || true
       ;;
     *)
-      printf '%sunknown target:%s %s (expected protocol, server or android)\n' \
+      printf '%sunknown target:%s %s (expected protocol, server, web or android)\n' \
         "$RED" "$RESET" "$target"
       exit 2
       ;;
