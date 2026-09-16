@@ -44,139 +44,169 @@ const MEMBERS_ROUTE = /^\/lists\/([^/]+)\/members$/;
 /** `/lists/{listId}/members/{userId}` — take one person off it (#60). */
 const MEMBER_ROUTE = /^\/lists\/([^/]+)\/members\/([^/]+)$/;
 
+/**
+ * Bearer-token auth (L1), not cookies — nothing here is sent automatically by
+ * a browser the way a cookie is, so a page on another origin gains nothing
+ * from a permissive origin that it would not already need the token itself
+ * to get. `web/` is not hosted from the same origin as this Worker (and its
+ * production hosting is not decided yet), so every origin is allowed rather
+ * than guessing one.
+ */
+const CORS_HEADERS: Record<string, string> = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
+  "access-control-allow-headers": "authorization, content-type",
+};
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-    // D3: one clock reading per request, passed down.
-    const now = Date.now();
-
-    try {
-      if (url.pathname === "/health") {
-        return Response.json({ ok: true, environment: env.ENVIRONMENT });
-      }
-
-      // Served ahead of the signing-key gate below: Android's App Link
-      // verifier fetches this before anyone has a session, and it carries no
-      // user content (ADR 0005) — there is nothing for the gate to protect.
-      if (url.pathname === "/.well-known/assetlinks.json") {
-        return Response.json(androidAssetLinks(env));
-      }
-
-      // Fail closed on a missing or weak signing key. Without this the Worker
-      // would sign and verify tokens with the literal string "undefined" —
-      // valid-looking sessions anyone could forge. A deployment that has not
-      // had `wrangler secret put JWT_SIGNING_KEY` run against it must serve
-      // nothing but /health.
-      if (!isUsableSigningKey(env.JWT_SIGNING_KEY)) {
-        log("error", "worker.signing-key.unusable", { path: url.pathname });
-        return errorResponse("internal", 503);
-      }
-
-      switch (url.pathname) {
-        case "/auth/register":
-          return await handleRegister(request, env, now);
-        case "/auth/login":
-          return await handleLogin(request, env, now);
-        case "/auth/magic/request":
-          return await handleRequestMagicLink(request, env, now);
-        case "/auth/magic/verify":
-          return await handleVerifyMagicLink(request, env, now);
-        case "/auth/magic/verify-code":
-          return await handleVerifyMagicCode(request, env, now);
-        case "/auth/magic/status":
-          return await handleMagicLinkStatus(request, env, url, now);
-        case "/magic":
-          return magicLinkFallbackPage();
-        case "/invite":
-          return inviteLinkFallbackPage();
-        case "/auth/refresh":
-          return await handleRefresh(request, env, now);
-        case "/auth/memberships":
-          return await handleMemberships(request, env);
-        case "/auth/memberships/position":
-          return await handleSetListPosition(request, env);
-        case "/auth/ws-ticket":
-          return await handleMintWsTicket(request, env, now);
-        case "/devices/token":
-          return await handleRegisterDevice(request, env, now);
-        case "/admin/users":
-          return await handleCreateUser(request, env, now);
-        case "/invites/accept":
-          return await handleAcceptInvite(request, env, now);
-        case "/account":
-          return await handleDeleteAccount(request, env);
-        case "/account/deletion/request":
-          return await handleRequestAccountDeletion(request, env, url, now);
-        case "/account/deletion/confirm":
-          return await handleConfirmAccountDeletion(request, env, now);
-      }
-
-      const invite = INVITE_ROUTE.exec(url.pathname);
-      if (invite !== null) {
-        return await handleCreateInvite(request, env, decodeURIComponent(invite[1] as string), now);
-      }
-
-      // Both ahead of LIST_ROUTE, which only knows ws/changes/mutate and would
-      // answer these with a 404 before they were ever tried.
-      const members = MEMBERS_ROUTE.exec(url.pathname);
-      if (members !== null) {
-        return await handleListMembers(request, env, decodeURIComponent(members[1] as string));
-      }
-
-      const member = MEMBER_ROUTE.exec(url.pathname);
-      if (member !== null) {
-        return await handleRemoveMember(
-          request,
-          env,
-          decodeURIComponent(member[1] as string),
-          decodeURIComponent(member[2] as string),
-        );
-      }
-
-      const claim = LIST_ROOT_ROUTE.exec(url.pathname);
-      if (claim !== null) {
-        return await handleClaimList(request, env, decodeURIComponent(claim[1] as string), now);
-      }
-
-      const route = LIST_ROUTE.exec(url.pathname);
-      if (route === null) return errorResponse("malformed", 404);
-
-      // Checked by the regex: groups 1 and 2 exist whenever it matches.
-      const listId = decodeURIComponent(route[1] as string);
-      const action = route[2] as string;
-
-      const auth = await authorizeListAccess(
-        request,
-        env,
-        listId,
-        action === "ws" ? { url, now } : undefined,
-      );
-      if (!auth.ok) {
-        log("info", "worker.denied", { listId, action, code: auth.code });
-        return errorResponse(auth.code, auth.status);
-      }
-
-      const stub = listRoom(env, listId);
-      return await stub.fetch(
-        doRequest(
-          request,
-          url,
-          listId,
-          action,
-          auth.value.membership.role,
-          // A ticket's bound device id is trustworthy; a client-supplied
-          // ?deviceId= alongside a bearer token is not cross-checked against
-          // the token today and this does not change that (out of scope).
-          auth.value.viaTicket ? auth.value.principal.deviceId : undefined,
-        ),
-      );
-    } catch (error) {
-      // D4: never leak a stack or an internal message to a client.
-      log("error", "worker.unhandled", { path: url.pathname, error: String(error) });
-      return errorResponse("internal", 500);
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
+
+    const response = await handle(request, env);
+    // A WebSocket upgrade (101) carries a `webSocket` the runtime attaches to
+    // this exact Response object — reconstructing it to add headers would
+    // lose that. CORS does not apply to the upgrade itself in any case.
+    if (response.status === 101) return response;
+
+    const headers = new Headers(response.headers);
+    for (const [key, value] of Object.entries(CORS_HEADERS)) headers.set(key, value);
+    return new Response(response.body, { status: response.status, headers });
   },
 } satisfies ExportedHandler<Env>;
+
+async function handle(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  // D3: one clock reading per request, passed down.
+  const now = Date.now();
+
+  try {
+    if (url.pathname === "/health") {
+      return Response.json({ ok: true, environment: env.ENVIRONMENT });
+    }
+
+    // Served ahead of the signing-key gate below: Android's App Link
+    // verifier fetches this before anyone has a session, and it carries no
+    // user content (ADR 0005) — there is nothing for the gate to protect.
+    if (url.pathname === "/.well-known/assetlinks.json") {
+      return Response.json(androidAssetLinks(env));
+    }
+
+    // Fail closed on a missing or weak signing key. Without this the Worker
+    // would sign and verify tokens with the literal string "undefined" —
+    // valid-looking sessions anyone could forge. A deployment that has not
+    // had `wrangler secret put JWT_SIGNING_KEY` run against it must serve
+    // nothing but /health.
+    if (!isUsableSigningKey(env.JWT_SIGNING_KEY)) {
+      log("error", "worker.signing-key.unusable", { path: url.pathname });
+      return errorResponse("internal", 503);
+    }
+
+    switch (url.pathname) {
+      case "/auth/register":
+        return await handleRegister(request, env, now);
+      case "/auth/login":
+        return await handleLogin(request, env, now);
+      case "/auth/magic/request":
+        return await handleRequestMagicLink(request, env, now);
+      case "/auth/magic/verify":
+        return await handleVerifyMagicLink(request, env, now);
+      case "/auth/magic/verify-code":
+        return await handleVerifyMagicCode(request, env, now);
+      case "/auth/magic/status":
+        return await handleMagicLinkStatus(request, env, url, now);
+      case "/magic":
+        return magicLinkFallbackPage();
+      case "/invite":
+        return inviteLinkFallbackPage();
+      case "/auth/refresh":
+        return await handleRefresh(request, env, now);
+      case "/auth/memberships":
+        return await handleMemberships(request, env);
+      case "/auth/memberships/position":
+        return await handleSetListPosition(request, env);
+      case "/auth/ws-ticket":
+        return await handleMintWsTicket(request, env, now);
+      case "/devices/token":
+        return await handleRegisterDevice(request, env, now);
+      case "/admin/users":
+        return await handleCreateUser(request, env, now);
+      case "/invites/accept":
+        return await handleAcceptInvite(request, env, now);
+      case "/account":
+        return await handleDeleteAccount(request, env);
+      case "/account/deletion/request":
+        return await handleRequestAccountDeletion(request, env, url, now);
+      case "/account/deletion/confirm":
+        return await handleConfirmAccountDeletion(request, env, now);
+    }
+
+    const invite = INVITE_ROUTE.exec(url.pathname);
+    if (invite !== null) {
+      return await handleCreateInvite(request, env, decodeURIComponent(invite[1] as string), now);
+    }
+
+    // Both ahead of LIST_ROUTE, which only knows ws/changes/mutate and would
+    // answer these with a 404 before they were ever tried.
+    const members = MEMBERS_ROUTE.exec(url.pathname);
+    if (members !== null) {
+      return await handleListMembers(request, env, decodeURIComponent(members[1] as string));
+    }
+
+    const member = MEMBER_ROUTE.exec(url.pathname);
+    if (member !== null) {
+      return await handleRemoveMember(
+        request,
+        env,
+        decodeURIComponent(member[1] as string),
+        decodeURIComponent(member[2] as string),
+      );
+    }
+
+    const claim = LIST_ROOT_ROUTE.exec(url.pathname);
+    if (claim !== null) {
+      return await handleClaimList(request, env, decodeURIComponent(claim[1] as string), now);
+    }
+
+    const route = LIST_ROUTE.exec(url.pathname);
+    if (route === null) return errorResponse("malformed", 404);
+
+    // Checked by the regex: groups 1 and 2 exist whenever it matches.
+    const listId = decodeURIComponent(route[1] as string);
+    const action = route[2] as string;
+
+    const auth = await authorizeListAccess(
+      request,
+      env,
+      listId,
+      action === "ws" ? { url, now } : undefined,
+    );
+    if (!auth.ok) {
+      log("info", "worker.denied", { listId, action, code: auth.code });
+      return errorResponse(auth.code, auth.status);
+    }
+
+    const stub = listRoom(env, listId);
+    return await stub.fetch(
+      doRequest(
+        request,
+        url,
+        listId,
+        action,
+        auth.value.membership.role,
+        // A ticket's bound device id is trustworthy; a client-supplied
+        // ?deviceId= alongside a bearer token is not cross-checked against
+        // the token today and this does not change that (out of scope).
+        auth.value.viaTicket ? auth.value.principal.deviceId : undefined,
+      ),
+    );
+  } catch (error) {
+    // D4: never leak a stack or an internal message to a client.
+    log("error", "worker.unhandled", { path: url.pathname, error: String(error) });
+    return errorResponse("internal", 500);
+  }
+}
 
 // --- auth routes ----------------------------------------------------------
 

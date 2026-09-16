@@ -576,6 +576,11 @@ describe("WebSocket ticket auth (ADR 0009)", () => {
       Authorization: `Bearer ${tokens.accessToken}`,
     });
     expect(response.status).toBe(101);
+    // The Worker's CORS wrapper (worker.test.ts) must not reconstruct a 101
+    // response — doing so would lose the `webSocket` the runtime attached to
+    // it. No CORS header is the proof it took the short-circuit, not the
+    // rebuild path every other response goes through.
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
     acceptAndClose(response);
   });
 
