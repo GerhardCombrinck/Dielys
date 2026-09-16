@@ -48,9 +48,9 @@ const MEMBER_ROUTE = /^\/lists\/([^/]+)\/members\/([^/]+)$/;
  * Bearer-token auth (L1), not cookies — nothing here is sent automatically by
  * a browser the way a cookie is, so a page on another origin gains nothing
  * from a permissive origin that it would not already need the token itself
- * to get. `web/` is not hosted from the same origin as this Worker (and its
- * production hosting is not decided yet), so every origin is allowed rather
- * than guessing one.
+ * to get. A deployed `web/` is same-origin with this Worker (both served
+ * from here — see scripts/build-web-public.sh), but `npm run dev`'s Vite
+ * server (localhost:5173) is not, and needs this to reach a real deployment.
  */
 const CORS_HEADERS: Record<string, string> = {
   "access-control-allow-origin": "*",
@@ -117,9 +117,9 @@ async function handle(request: Request, env: Env): Promise<Response> {
       case "/auth/magic/status":
         return await handleMagicLinkStatus(request, env, url, now);
       case "/magic":
-        return magicLinkFallbackPage();
+        return await spaShell(env, request);
       case "/invite":
-        return inviteLinkFallbackPage();
+        return await spaShell(env, request);
       case "/auth/refresh":
         return await handleRefresh(request, env, now);
       case "/auth/memberships":
@@ -166,11 +166,22 @@ async function handle(request: Request, env: Env): Promise<Response> {
 
     const claim = LIST_ROOT_ROUTE.exec(url.pathname);
     if (claim !== null) {
+      // GET here is a browser opening a list, `web/`'s own ListPage.tsx
+      // route — the Worker action of the same shape (claim/invite by QR
+      // code) is POST-only (handleClaimList).
+      if (request.method === "GET") return await spaShell(env, request);
       return await handleClaimList(request, env, decodeURIComponent(claim[1] as string), now);
     }
 
     const route = LIST_ROUTE.exec(url.pathname);
-    if (route === null) return errorResponse("malformed", 404);
+    if (route === null) {
+      // Anything else a browser GETs — /settings, a nonsense path — is the
+      // web client's own job to make sense of (or fall back to, per
+      // App.tsx's default route). Not GET means whatever reached here is not
+      // a browser navigation and 404 is the honest answer.
+      if (request.method === "GET") return await spaShell(env, request);
+      return errorResponse("malformed", 404);
+    }
 
     // Checked by the regex: groups 1 and 2 exist whenever it matches.
     const listId = decodeURIComponent(route[1] as string);
@@ -488,33 +499,17 @@ function androidAssetLinks(env: Env): unknown[] {
 }
 
 /**
- * `GET /magic` (ADR 0005). Reached only when the App Link did not open the
- * app directly — Android has not verified the domain yet, or the link was
- * opened somewhere without Dielys installed. A minimal page beats a bare 404;
- * it carries no token handling of its own, since the token in the query
- * string is only useful to the app's own `/auth/magic/verify` call.
+ * The web client's shell for a browser GET this Worker does not otherwise
+ * recognise: `/magic`, `/invite` (also reached from Android's App Link
+ * fallback — the domain not yet verified, or opened without Dielys
+ * installed), `/settings`, `/lists/{id}`, and anything else that falls
+ * through every route below. `server/wrangler.jsonc`'s assets layer already
+ * tried a matching static file before the Worker ran at all (F1's routing
+ * comment there); this is `web/dist/index.html`, and `web/src/router.tsx`
+ * takes it from here.
  */
-function magicLinkFallbackPage(): Response {
-  return htmlPage("<p>Open this link on your phone with Die Lys installed.</p>");
-}
-
-/**
- * `GET /invite` (L3), the same App Link fallback as `/magic` above for a
- * tapped invite link: reached only when Android has not verified the domain
- * yet, or the link was opened somewhere without Dielys installed. The invite
- * token in the query string is a bearer credential (L3) with nothing for this
- * page to do with it — only the app's own `JoinDialog`/accept flow redeems it.
- */
-function inviteLinkFallbackPage(): Response {
-  return htmlPage("<p>Open this link on your phone with Die Lys installed to join the list.</p>");
-}
-
-function htmlPage(body: string): Response {
-  return new Response(
-    `<!doctype html><html><head><meta charset="utf-8"><title>Die Lys</title></head>` +
-      `<body>${body}</body></html>`,
-    { status: 200, headers: { "content-type": "text/html; charset=utf-8" } },
-  );
+async function spaShell(env: Env, request: Request): Promise<Response> {
+  return env.ASSETS.fetch(new URL("/index.html", request.url));
 }
 
 async function handleRefresh(request: Request, env: Env, now: number): Promise<Response> {

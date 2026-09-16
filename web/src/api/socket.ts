@@ -68,7 +68,14 @@ export class ListSocket {
     }
     if (this.stopped) return;
 
-    const url = new URL(`${API_BASE_URL}/lists/${encodeURIComponent(this.listId)}/ws`);
+    // A base is required even though API_BASE_URL is normally absolute
+    // already (local dev's http://localhost:8787) — production serves
+    // web/ and the API from the same origin (VITE_API_BASE_URL is empty
+    // there), and `new URL` rejects a relative string with no base.
+    const url = new URL(
+      `${API_BASE_URL}/lists/${encodeURIComponent(this.listId)}/ws`,
+      window.location.origin,
+    );
     url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
     url.searchParams.set("ticket", ticket);
 

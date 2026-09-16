@@ -16,9 +16,17 @@ describe("Worker routing", () => {
     expect(await response.json()).toMatchObject({ ok: true });
   });
 
-  it("404s a path that is not a route", async () => {
-    const response = await SELF.fetch("https://dielys.test/whatever");
+  it("404s a non-GET request to a path that is not a route", async () => {
+    const response = await SELF.fetch("https://dielys.test/whatever", { method: "POST" });
     expect(response.status).toBe(404);
+  });
+
+  // A GET to the same shape of path is a browser navigation, so it gets
+  // web/'s SPA shell instead of a 404 — see pages.test.ts for that behavior.
+  it("serves the SPA shell for a GET to a path that is not a route", async () => {
+    const response = await SELF.fetch("https://dielys.test/whatever");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/html");
   });
 
   for (const path of ["ws", "changes", "mutate"]) {

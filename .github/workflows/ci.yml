@@ -47,6 +47,9 @@ jobs:
       - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: npm ci
         working-directory: server
+      # server/public/ (this Worker's static assets) is web/'s build merged
+      # with server/public-static/ — the tests below serve and assert on it.
+      - run: sh scripts/build-web-public.sh
       - run: npx biome ci .
         working-directory: server
       - run: npx tsc --noEmit

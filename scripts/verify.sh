@@ -81,6 +81,13 @@ ensure_node_deps() {
 verify_node_component() {
   name=$1
   dir="$REPO_ROOT/$name"
+  # server/'s tests exercise server/public/, which is web/'s build merged
+  # with server/public-static/ (scripts/build-web-public.sh) — it has to
+  # exist, and be current, before server's own steps below run.
+  if [ "$name" = "server" ]; then
+    step "server: build web into public"
+    sh "$REPO_ROOT/scripts/build-web-public.sh" || return 1
+  fi
   ensure_node_deps "$dir"
   ok=0
   # Same three commands as the workflow, in the same order.

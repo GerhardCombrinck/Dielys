@@ -18,6 +18,10 @@ jobs:
       - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: npm ci
         working-directory: server
+      # server/public/ (deployed as this Worker's static assets, and what
+      # npm test below serves /, /magic, etc. from) is web/'s build merged
+      # with server/public-static/.
+      - run: sh scripts/build-web-public.sh
       - run: npm test
         working-directory: server
         timeout-minutes: 3
@@ -43,6 +47,9 @@ jobs:
       - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: npm ci
         working-directory: server
+      # See deploy-dev above: server/public/ is web/'s build merged with
+      # server/public-static/, and what gets deployed as static assets.
+      - run: sh scripts/build-web-public.sh
       - run: npm test
         working-directory: server
         timeout-minutes: 3

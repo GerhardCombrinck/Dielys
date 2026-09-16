@@ -95,10 +95,22 @@ never hands it back (a `TokenPair` carries only a user id), the same gap Android
 not user-configurable, on the same reasoning Android's theme gives for skipping dynamic/Material
 You color: two people on one household list should see the same app.
 
+## Deployment
+
+There is no separate hosting for `web/` — `scripts/build-web-public.sh` builds it and merges the
+output into `server/public/` (alongside `server/public-static/`, the Play-required pages that stay
+untouched — ADR 0007), and `server/`'s Worker deploy ships both together (`.github/workflows/
+deploy-server.yml`). Same-origin with the API in every real deployment, which is why
+`VITE_API_BASE_URL` builds empty there (`src/api/client.ts`) — only `npm run dev`'s Vite server
+needs it set to reach a deployed backend across origins. `server/src/index.ts` serves this SPA's
+shell (`env.ASSETS.fetch`) for any GET it does not otherwise recognise — `/magic`, `/invite`,
+`/settings`, `/lists/{id}`, anything — after the assets layer already tried a real static file
+first (`server/wrangler.jsonc`).
+
 ## Where to look next
 
 - Tracking issue: #74 — all six build phases are done (auth, scaffold, lists/tasks, sharing,
-  settings/account, this doc pass).
+  settings/account, this doc pass), deployed to dielys.com.
 - `docs/adr/0009-web-websocket-ticket-auth.md` — the WebSocket auth decision.
 - `docs/adr/0007-account-deletion.md` — why account deletion has two paths and erases rather
   than tombstones.
