@@ -67,6 +67,20 @@ export interface TokenPair {
 }
 
 /**
+ * `POST /auth/ws-ticket` (ADR 0009). No request type — the caller's own
+ * bearer token is the input, nothing else. A browser cannot set
+ * `Authorization` on a WebSocket upgrade the way every other request (and
+ * OkHttp's upgrade) can, so it exchanges its access token for one of these
+ * first and opens `GET /lists/{listId}/ws?ticket=...` instead.
+ */
+export interface WsTicketResponse {
+  ticket: string;
+  /** Seconds until the ticket expires — short, and it is single-use besides.
+   * Not a timestamp (F5.9). */
+  expiresIn: number;
+}
+
+/**
  * `email` scopes the invite (L3): only an account whose own email matches
  * this one, normalized, may accept it. `listTitle` is display text for the
  * invite email — `UsersRoom`, where invites are minted, never talks to

@@ -101,6 +101,7 @@ rules are CODE_STANDARD.md L1–L3.
 | POST | `/auth/magic/verify-code` | none | `VerifyMagicCodeRequest` → `TokenPair`. See "Signing in with the code" |
 | GET | `/auth/memberships` | access token | Lists the caller can reach, in the caller's own order |
 | POST | `/auth/memberships/position` | access token | `SetListPositionRequest` → `SetListPositionResponse` |
+| POST | `/auth/ws-ticket` | access token | No body → `WsTicketResponse`. See "Authenticating the WebSocket from a browser" |
 | POST | `/lists/{listId}` | access token | Claim a client-generated list id as owner |
 | POST | `/lists/{listId}/invite` | access token, owner | `CreateInviteRequest` → `CreateInviteResponse` |
 | POST | `/invites/accept` | access token | `AcceptInviteRequest` → `AcceptInviteResponse` |
@@ -113,8 +114,17 @@ Every request carries the access token as `Authorization: Bearer <jwt>` — **in
 WebSocket upgrade**. The token is on the upgrade request rather than in the `hello` message
 because L3 requires the *Worker* to authorize before anything reaches a `ListRoom`, and the
 Worker cannot see messages sent after the socket is established. OkHttp sets headers on an
-upgrade, so the Android client can do this; a browser could not, which is a problem `web/`
-will have to solve when it exists.
+upgrade, so the Android client can do this; a browser cannot.
+
+### Authenticating the WebSocket from a browser
+
+`docs/adr/0009-web-websocket-ticket-auth.md` has the full reasoning. In short: `POST
+/auth/ws-ticket` (bearer-required, no body) exchanges the caller's access token for a
+short-lived (60s), single-use `WsTicketResponse.ticket`. The browser opens `GET
+/lists/{listId}/ws?ticket=...` instead of setting a header; the Worker redeems it against
+`UsersRoom` and runs the same membership check either path takes (L3). `changes` and `mutate`
+never accept a ticket — a browser's `fetch` can set `Authorization` like any other client, so
+only the upgrade needed a second path.
 
 Errors carry a stable `code` (`AuthErrorCode`) and never a stack or an internal message (D4).
 `invalid-credentials` covers a wrong password, a wrong email, and an account that does not
