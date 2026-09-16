@@ -363,6 +363,67 @@ input {
   font-size: 0.85em;
 }
 
+.settings-section {
+  margin-top: 1.5rem;
+}
+
+.settings-section h2 {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+.settings-detail-label {
+  color: var(--color-secondary);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.settings-segmented {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.segmented-option {
+  flex: 1;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 0.6rem;
+  cursor: pointer;
+}
+
+.segmented-option.selected {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.settings-sign-out {
+  background: var(--color-error);
+  margin-top: 2rem;
+  width: 100%;
+}
+
+.settings-delete-account {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--color-error);
+}
+
+.settings-delete-account:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .done-section {
   margin-top: 1rem;
 }

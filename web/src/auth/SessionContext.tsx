@@ -13,16 +13,25 @@ import { type AuthTokens, onTokensRefreshed, refreshTokens, setAuthTokens } from
 import { deviceId } from "../domain/deviceId.js";
 
 const REFRESH_TOKEN_KEY = "dielys.refreshToken";
+// The server never hands the email back (a `TokenPair` carries only a user
+// id) — this is whatever was last typed into the sign-in form, best-effort,
+// same gap `android/.../data/local/SessionStore.kt`'s `email` has.
+const EMAIL_KEY = "dielys.email";
 
 type SessionState =
   | { status: "loading" }
   | { status: "signed-out" }
-  | { status: "signed-in"; userId: string };
+  | { status: "signed-in"; userId: string; email: string | null };
 
 type SessionContextValue = SessionState & {
   deviceId: string;
   signIn(pair: TokenPair): void;
   signOut(): void;
+  /** Called as soon as an email is typed into the sign-in form — before a
+   *  magic link is even sent, so it is already on hand by the time that
+   *  link is opened, in this tab or a new one (`localStorage` is per-origin,
+   *  not per-tab). */
+  rememberEmail(email: string): void;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -42,15 +51,25 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         deviceId: device,
         userId: pair.userId,
       });
-      setState({ status: "signed-in", userId: pair.userId });
+      setState({
+        status: "signed-in",
+        userId: pair.userId,
+        email: localStorage.getItem(EMAIL_KEY),
+      });
     },
     [device],
   );
 
   const signOut = useCallback(() => {
     localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(EMAIL_KEY);
     setAuthTokens(null);
     setState({ status: "signed-out" });
+  }, []);
+
+  const rememberEmail = useCallback((email: string) => {
+    localStorage.setItem(EMAIL_KEY, email);
+    setState((prev) => (prev.status === "signed-in" ? { ...prev, email } : prev));
   }, []);
 
   // Startup: a stored refresh token is turned back into a working session by
@@ -73,7 +92,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           return;
         }
         localStorage.setItem(REFRESH_TOKEN_KEY, refreshed.refreshToken);
-        setState({ status: "signed-in", userId: refreshed.userId });
+        setState({
+          status: "signed-in",
+          userId: refreshed.userId,
+          email: localStorage.getItem(EMAIL_KEY),
+        });
       })
       .catch(() => {
         if (!cancelled) setState({ status: "signed-out" });
@@ -90,7 +113,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <SessionContext.Provider value={{ ...state, deviceId: device, signIn, signOut }}>
+    <SessionContext.Provider value={{ ...state, deviceId: device, signIn, signOut, rememberEmail }}>
       {children}
     </SessionContext.Provider>
   );

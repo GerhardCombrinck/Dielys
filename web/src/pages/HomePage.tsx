@@ -95,8 +95,13 @@ export function HomePage() {
     <div className="page">
       <header className="page-header">
         <h1>Die Lys</h1>
-        <button className="pill-button secondary" type="button" onClick={session.signOut}>
-          Sign out
+        <button
+          className="icon-button"
+          type="button"
+          aria-label="Settings"
+          onClick={() => navigate("/settings")}
+        >
+          ⚙
         </button>
       </header>
 

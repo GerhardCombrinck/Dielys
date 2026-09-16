@@ -6,6 +6,7 @@
 import type { Task } from "@dielys/protocol";
 import { useState } from "react";
 import { useSession } from "../auth/SessionContext.js";
+import { getNewItemsOnTop } from "../domain/uiPrefs.js";
 import { navigate } from "../router.js";
 import { useTaskBoard } from "../sync/useTaskBoard.js";
 import { dropNeighbors } from "../ui/reorder.js";
@@ -46,7 +47,7 @@ export function ListPage({ listId }: { listId: string }) {
     if (title === "" || adding) return;
     setAdding(true);
     try {
-      await board.add(title, true);
+      await board.add(title, getNewItemsOnTop());
       setNewTitle("");
     } catch {
       setError("Could not add the task. Check your connection and try again.");

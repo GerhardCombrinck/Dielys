@@ -38,3 +38,9 @@ export function verifyMagicLink(token: string, deviceId: string): Promise<TokenP
 export function mintWsTicket(): Promise<WsTicketResponse> {
   return apiFetch("/auth/ws-ticket", { method: "POST" });
 }
+
+/** `DELETE /account` (ADR 0007) — erases the signed-in caller's own account.
+ * The access token names whose; there is nothing else to send. */
+export function deleteAccount(): Promise<void> {
+  return apiFetch("/account", { method: "DELETE" });
+}

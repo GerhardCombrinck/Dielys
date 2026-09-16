@@ -66,6 +66,10 @@ export function SignInPage() {
     setProblem(null);
     try {
       const response = await requestMagicLink(email_);
+      // Before the link even arrives: the server never hands the email back
+      // (session.rememberEmail), so this is the only chance to have it on
+      // hand for Settings later, and `/magic` may open in a new tab.
+      session.rememberEmail(email_);
       setRequestId(response.requestId);
       setDelivered(false);
       setSentAt(Date.now());
