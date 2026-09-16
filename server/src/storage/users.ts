@@ -161,6 +161,59 @@ export function deleteExpiredRefreshTokens(sql: SqlStorage, before: string): voi
   sql.exec("DELETE FROM refresh_tokens WHERE expires_at < ?", before);
 }
 
+export interface WsTicketRow {
+  ticketHash: string;
+  userId: string;
+  deviceId: string;
+  issuedAt: string;
+  expiresAt: string;
+  usedAt: string | null;
+}
+
+export function insertWsTicket(sql: SqlStorage, row: WsTicketRow): void {
+  sql.exec(
+    `INSERT INTO ws_tickets (ticket_hash, user_id, device_id, issued_at, expires_at, used_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    row.ticketHash,
+    row.userId,
+    row.deviceId,
+    row.issuedAt,
+    row.expiresAt,
+    row.usedAt,
+  );
+}
+
+export function selectWsTicket(sql: SqlStorage, ticketHash: string): WsTicketRow | null {
+  const rows = [
+    ...sql.exec(
+      `SELECT ticket_hash, user_id, device_id, issued_at, expires_at, used_at
+         FROM ws_tickets WHERE ticket_hash = ?`,
+      ticketHash,
+    ),
+  ];
+  const row = rows[0];
+  if (row === undefined) return null;
+  return {
+    ticketHash: String(row.ticket_hash),
+    userId: String(row.user_id),
+    deviceId: String(row.device_id),
+    issuedAt: String(row.issued_at),
+    expiresAt: String(row.expires_at),
+    usedAt: row.used_at === null ? null : String(row.used_at),
+  };
+}
+
+/** Marks a ticket spent. The row stays, on the same reasoning as a refresh
+ * token, though nothing currently reads a used row back. */
+export function markWsTicketUsed(sql: SqlStorage, ticketHash: string, usedAt: string): void {
+  sql.exec("UPDATE ws_tickets SET used_at = ? WHERE ticket_hash = ?", usedAt, ticketHash);
+}
+
+/** Housekeeping, same reasoning as [deleteExpiredRefreshTokens]. */
+export function deleteExpiredWsTickets(sql: SqlStorage, before: string): void {
+  sql.exec("DELETE FROM ws_tickets WHERE expires_at < ?", before);
+}
+
 export function insertMembership(
   sql: SqlStorage,
   userId: string,

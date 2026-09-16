@@ -21,6 +21,7 @@ import usersV6 from "../../migrations/users/0006_magic_link_delivery.sql";
 import usersV7 from "../../migrations/users/0007_list_heads.sql";
 import usersV8 from "../../migrations/users/0008_account_deletion_requests.sql";
 import usersV9 from "../../migrations/users/0009_magic_link_codes.sql";
+import usersV10 from "../../migrations/users/0010_ws_tickets.sql";
 
 export interface Migration {
   version: number;
@@ -44,6 +45,7 @@ export const USERS_MIGRATIONS: readonly Migration[] = [
   { version: 7, name: "0007_list_heads", sql: usersV7 },
   { version: 8, name: "0008_account_deletion_requests", sql: usersV8 },
   { version: 9, name: "0009_magic_link_codes", sql: usersV9 },
+  { version: 10, name: "0010_ws_tickets", sql: usersV10 },
 ];
 
 /**

@@ -107,6 +107,7 @@ Where Dielys is and what comes next. Short by design — the standard is in
   unresolved — the Workers and Durable Objects limits pages disagree — and settling it is one
   probe. If it does, `PASSWORD_ITERATIONS` goes to 600,000; the per-user column means
   existing accounts re-hash on next login rather than breaking.
-- **Web client** (`web/`) is priority 3 and unstarted. Note that the browser cannot set
-  headers on a WebSocket upgrade, which is how the Android client authenticates — that needs
-  an answer before `web/` is real.
+- **Web client** (`web/`) is in progress. The WebSocket-auth blocker — a browser cannot set
+  headers on the upgrade the way Android's OkHttp does — is answered by ADR 0009 (a one-time
+  ticket minted over `POST /auth/ws-ticket`). The client itself (React + Vite + TypeScript,
+  online-first, no offline replica) is being built next.

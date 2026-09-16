@@ -172,6 +172,18 @@ export const ACCOUNT_DELETION_CONFIRM_PER_CLIENT: RateLimit = {
   windowMs: 15 * MINUTE_MS,
 };
 
+/**
+ * A volumetric backstop on the same reasoning as REFRESH_PER_CLIENT, not a
+ * guessing defence — the caller is already bearer-authenticated, and the
+ * ticket itself is 256 random bits. Generous, because a client mints one on
+ * every socket (re)connect (ADR 0009).
+ */
+export const WS_TICKET_MINT_PER_CLIENT: RateLimit = {
+  action: "ws-ticket-mint",
+  limit: 60,
+  windowMs: 15 * MINUTE_MS,
+};
+
 /** How many characters of the HMAC end up in the key. 128 bits of it. */
 const KEY_CHARS = 22;
 

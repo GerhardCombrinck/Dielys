@@ -95,6 +95,8 @@ export default {
           return await handleMemberships(request, env);
         case "/auth/memberships/position":
           return await handleSetListPosition(request, env);
+        case "/auth/ws-ticket":
+          return await handleMintWsTicket(request, env, now);
         case "/devices/token":
           return await handleRegisterDevice(request, env, now);
         case "/admin/users":
@@ -143,14 +145,31 @@ export default {
       const listId = decodeURIComponent(route[1] as string);
       const action = route[2] as string;
 
-      const auth = await authorizeListAccess(request, env, listId);
+      const auth = await authorizeListAccess(
+        request,
+        env,
+        listId,
+        action === "ws" ? { url, now } : undefined,
+      );
       if (!auth.ok) {
         log("info", "worker.denied", { listId, action, code: auth.code });
         return errorResponse(auth.code, auth.status);
       }
 
       const stub = listRoom(env, listId);
-      return await stub.fetch(doRequest(request, url, listId, action, auth.value.membership.role));
+      return await stub.fetch(
+        doRequest(
+          request,
+          url,
+          listId,
+          action,
+          auth.value.membership.role,
+          // A ticket's bound device id is trustworthy; a client-supplied
+          // ?deviceId= alongside a bearer token is not cross-checked against
+          // the token today and this does not change that (out of scope).
+          auth.value.viaTicket ? auth.value.principal.deviceId : undefined,
+        ),
+      );
     } catch (error) {
       // D4: never leak a stack or an internal message to a client.
       log("error", "worker.unhandled", { path: url.pathname, error: String(error) });
@@ -531,6 +550,29 @@ async function handleSetListPosition(request: Request, env: Env): Promise<Respon
 }
 
 /**
+ * `POST /auth/ws-ticket` (ADR 0009). Mints the one-time credential a browser
+ * puts on `GET /lists/{listId}/ws?ticket=...`, since it cannot set
+ * `Authorization` on that upgrade the way every other route can. No body —
+ * the caller's own bearer token, and the device id inside it, are the input.
+ */
+async function handleMintWsTicket(request: Request, env: Env, now: number): Promise<Response> {
+  if (request.method !== "POST") return errorResponse("malformed", 405);
+
+  const auth = await authenticate(request, env);
+  if (!auth.ok) return errorResponse(auth.code, auth.status);
+
+  const result = await usersRoom(env).mintWsTicket(
+    auth.value.userId,
+    auth.value.deviceId,
+    await bucketKey(request, env),
+    now,
+  );
+  if (!result.ok) return errorResponse(result.code, result.code === "rate-limited" ? 429 : 400);
+
+  return Response.json(result.value);
+}
+
+/**
  * Account creation (L2). There is no public registration endpoint — this is
  * guarded by ADMIN_TOKEN and reached only by scripts/create-user.ts.
  */
@@ -879,11 +921,13 @@ function doRequest(
   listId: string,
   action: string,
   role: MembershipRole,
+  deviceId?: string,
 ): Request {
   const target = new URL(url);
   target.pathname = `/${action}`;
   target.searchParams.set("listId", listId);
   target.searchParams.set("role", role);
+  if (deviceId !== undefined) target.searchParams.set("deviceId", deviceId);
   return new Request(target, request);
 }
 
