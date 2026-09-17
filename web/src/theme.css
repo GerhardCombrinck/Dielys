@@ -564,6 +564,18 @@ input {
   box-shadow: inset 0 -2px 0 0 var(--color-accent-blue);
 }
 
+/* Same reasoning for a task row: the title button's own padding is
+   `.row-title`'s 12px 4px (see above), so the rename input has to carry
+   that same padding, with no border, to keep the row's height fixed. */
+.task-row .inline-edit.text-input {
+  padding: 12px 4px;
+  border: none;
+  border-radius: 6px;
+  font-size: 15.5px;
+  background: transparent;
+  box-shadow: inset 0 -2px 0 0 var(--color-accent-blue);
+}
+
 /* Icon buttons */
 
 .icon-button {
