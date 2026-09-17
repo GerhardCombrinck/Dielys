@@ -102,3 +102,21 @@ content (M1), so anything shown to the user is composed from Room after the
 sync it triggers. Registration is sent from `SyncEngine.sync()` rather than
 from wherever the token arrived, so it inherits the backoff instead of
 needing a retry path of its own.
+
+## R8 (release minification)
+
+`release` has `isMinifyEnabled = true` and `isShrinkResources = true`
+(`proguard-rules.pro`, issue #70). Room, WorkManager, Hilt, hilt-work, and
+kotlinx.serialization all ship their own consumer R8 rules, so `proguard-rules.pro`
+only adds a belt-and-braces keep for `data/remote`'s sealed wire hierarchies
+(`ChangeEnvelope`/`Mutation`/`ServerMessage` in `Wire.kt`) — nothing in the
+unit tests runs against a shrunk build, so a missing keep rule compiles fine
+and fails at runtime, most likely as a sync or sign-in that silently does
+nothing.
+
+`release-android.yml` attaches `mapping.txt` to the GitHub Release alongside
+the APK and bundle, so a crash can be retraced. There is no automated Play
+publish step in this repo (the `.aab` is uploaded to Play Console by hand) —
+that same `mapping.txt` needs uploading to Play Console's own "Deobfuscation
+files" section by hand too, alongside the bundle, or Play Console can't
+symbolicate crashes it collects from real installs.

@@ -102,7 +102,12 @@ android {
                 "SYNC_BASE_URL",
                 "\"https://dielys.com/\"",
             )
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
             // fallbackToDestructiveMigration() is forbidden in release builds — G2.
             if (releaseKeystorePath != null) {
                 signingConfig = signingConfigs.getByName("release")

@@ -51,9 +51,15 @@ jobs:
         if: always()
         run: rm -f "$RUNNER_TEMP/release.keystore" android/app/google-services.json
 
-      - name: Attach APK and bundle to GitHub Release
+      # The R8 mapping file, so a crash stack trace from a release build can be
+      # retraced back to real names and line numbers (issue #70). Play Console
+      # has its own "Deobfuscation files" upload per release — this same file
+      # still needs uploading there by hand alongside the .aab, since there is
+      # no automated Play publish step in this repo (see android/AGENTS.md).
+      - name: Attach APK, bundle, and mapping file to GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           files: |
             android/app/build/outputs/apk/release/*.apk
             android/app/build/outputs/bundle/release/*.aab
+            android/app/build/outputs/mapping/release/mapping.txt
