@@ -1,24 +1,39 @@
 /* Shared by every static page under server/public. The app's own palette
-   (android/.../ui/theme/Theme.kt): navy chrome, sand ground, amber accent. */
+   (android/.../ui/theme/Theme.kt): navy chrome, sand ground, amber accent.
+   Dark-mode values match design_handoff_web_auth (2026-09) exactly; the
+   light variant is a proportional derivation using the same shapes. */
 :root {
   --navy: #1b2a4a;
+  --navy-light: #2e4372;
   --navy-deep: #0e1728;
   --sand: #f6f4ef;
   --amber: #e8a33d;
+  --amber-button: #e2a44a;
+  --amber-button-hover: #d6963c;
+  --rust: #b3261e;
+  --rust-hover: #9c211a;
+
+  --bg: var(--sand);
   --ink: #1d2330;
   --muted: #5b6475;
   --rule: #e2ddd2;
   --card: #ffffff;
+  --field: #ffffff;
+  --link: var(--navy);
+  --link-hover: var(--navy-light);
   color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --sand: #11161f;
-    --ink: #e6e9ef;
-    --muted: #a3abba;
-    --rule: #263047;
-    --card: #182033;
+    --bg: var(--navy-deep);
+    --ink: var(--sand);
+    --muted: rgba(246, 244, 239, 0.7);
+    --rule: rgba(246, 244, 239, 0.12);
+    --card: var(--navy);
+    --field: var(--navy-deep);
+    --link: #9cb6e8;
+    --link-hover: #b9cdee;
   }
 }
 
@@ -28,7 +43,7 @@
 
 body {
   margin: 0;
-  background: var(--sand);
+  background: var(--bg);
   color: var(--ink);
   font:
     16px / 1.6 system-ui,
@@ -39,8 +54,7 @@ body {
 }
 
 header {
-  background: var(--navy);
-  color: #fff;
+  background: var(--card);
 }
 
 .bar {
@@ -67,34 +81,37 @@ header {
 .bar strong {
   font-size: 1.15rem;
   letter-spacing: 0.01em;
+  color: var(--ink);
 }
 
 main {
   max-width: 44rem;
   margin: 0 auto;
-  padding: 2rem 1.25rem 3rem;
+  padding: 2.5rem 1.25rem 3.5rem;
 }
 
 h1 {
-  font-size: 1.9rem;
+  font-size: 2rem;
+  font-weight: 700;
   line-height: 1.2;
   margin: 0 0 0.5rem;
+  letter-spacing: -0.01em;
 }
 h2 {
-  font-size: 1.2rem;
-  margin: 2.25rem 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 2.25rem 0 0.75rem;
 }
 p,
 li {
   max-width: 40rem;
 }
 a {
-  color: var(--navy);
+  color: var(--link);
+  text-decoration: underline;
 }
-@media (prefers-color-scheme: dark) {
-  a {
-    color: #9cb6e8;
-  }
+a:hover {
+  color: var(--link-hover);
 }
 
 .lede {
@@ -106,16 +123,16 @@ a {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--amber);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 0.85rem;
 }
 
 .card {
   background: var(--card);
-  border: 1px solid var(--rule);
-  border-radius: 12px;
-  padding: 1.25rem 1.5rem;
+  border-radius: 14px;
+  padding: 1.375rem 1.5rem;
   margin: 1.5rem 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 table {
@@ -127,11 +144,14 @@ th,
 td {
   text-align: left;
   vertical-align: top;
-  padding: 0.55rem 0.5rem;
+  padding: 0.65rem 0.75rem 0.65rem 0;
   border-bottom: 1px solid var(--rule);
 }
 th {
   font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 .scroll {
   overflow-x: auto;
@@ -141,6 +161,7 @@ footer {
   border-top: 1px solid var(--rule);
   color: var(--muted);
   font-size: 0.9rem;
+  margin-top: 2rem;
 }
 footer .bar {
   flex-wrap: wrap;
@@ -158,41 +179,55 @@ label {
 }
 .field {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.875rem;
 }
 input[type="email"] {
-  flex: 1 1 14rem;
-  min-width: 0;
+  width: 100%;
   font: inherit;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--rule);
-  border-radius: 8px;
-  background: var(--sand);
+  padding: 0.875rem 1rem;
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  border-radius: 12px;
+  background: var(--field);
   color: var(--ink);
+  outline: none;
+}
+input[type="email"]:focus {
+  border-color: var(--link);
 }
 button {
   font: inherit;
   font-weight: 600;
-  padding: 0.6rem 1.1rem;
+  padding: 0.875rem 1.375rem;
   border: 0;
-  border-radius: 8px;
-  background: var(--navy);
-  color: #fff;
+  border-radius: 999px;
+  background: var(--amber-button);
+  color: #ffffff;
   cursor: pointer;
 }
+.field button,
+button.wide {
+  width: 100%;
+  height: 50px;
+}
+button:hover:not(:disabled) {
+  background: var(--amber-button-hover);
+}
 button.danger {
-  background: #b3261e;
+  background: var(--rust);
+}
+button.danger:hover:not(:disabled) {
+  background: var(--rust-hover);
 }
 button:disabled {
   opacity: 0.6;
   cursor: default;
 }
 .status {
-  margin: 0.75rem 0 0;
+  margin: 0.875rem 0 0;
 }
 .status.error {
-  color: #b3261e;
+  color: var(--rust);
 }
 @media (prefers-color-scheme: dark) {
   .status.error {

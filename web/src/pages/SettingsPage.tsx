@@ -9,6 +9,7 @@ import { ApiError } from "../api/client.js";
 import { useSession } from "../auth/SessionContext.js";
 import { getNewItemsOnTop, setNewItemsOnTop } from "../domain/uiPrefs.js";
 import { navigate } from "../router.js";
+import { BackChevronIcon } from "../ui/icons.js";
 
 export function SettingsPage() {
   const session = useSession();
@@ -57,7 +58,7 @@ export function SettingsPage() {
           aria-label="Back to lists"
           onClick={() => navigate("/")}
         >
-          ←
+          <BackChevronIcon />
         </button>
         <h1>Settings</h1>
       </header>

@@ -5,12 +5,13 @@
  * separate step. The link itself is a real https://dielys.com/magic link on
  * the web, so tapping it in a mail client just opens MagicLinkPage — the
  * code field here is for someone who'd rather type six digits than switch
- * apps/tabs.
+ * apps/tabs. Visual design: design_handoff_web_auth/Auth.dc.html (2026-09).
  */
 import { type FormEvent, useEffect, useState } from "react";
 import { magicLinkStatus, requestMagicLink, verifyMagicCode } from "../api/auth.js";
 import { ApiError } from "../api/client.js";
 import { useSession } from "../auth/SessionContext.js";
+import { Spinner } from "../ui/icons.js";
 
 const POLL_INTERVAL_MS = 10_000;
 const MAX_POLL_ATTEMPTS = 18; // ~3 minutes, matching the Android client
@@ -26,7 +27,8 @@ export function SignInPage() {
   const [requestId, setRequestId] = useState<string | null>(null);
   const [delivered, setDelivered] = useState(false);
   const [sentAt, setSentAt] = useState<number | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busyEmail, setBusyEmail] = useState(false);
+  const [busyCode, setBusyCode] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
@@ -62,7 +64,7 @@ export function SignInPage() {
   }, [stage, requestId, delivered]);
 
   async function send(email_: string) {
-    setBusy(true);
+    setBusyEmail(true);
     setProblem(null);
     try {
       const response = await requestMagicLink(email_);
@@ -73,11 +75,12 @@ export function SignInPage() {
       setRequestId(response.requestId);
       setDelivered(false);
       setSentAt(Date.now());
+      setCode("");
       setStage("sent");
     } catch (error) {
       setProblem(describe(error));
     } finally {
-      setBusy(false);
+      setBusyEmail(false);
     }
   }
 
@@ -89,7 +92,8 @@ export function SignInPage() {
 
   async function submitCode(event: FormEvent) {
     event.preventDefault();
-    setBusy(true);
+    if (code.length !== 6) return;
+    setBusyCode(true);
     setProblem(null);
     try {
       const pair = await verifyMagicCode(email.trim(), code, session.deviceId);
@@ -97,7 +101,7 @@ export function SignInPage() {
     } catch (error) {
       setProblem(describe(error));
     } finally {
-      setBusy(false);
+      setBusyCode(false);
     }
   }
 
@@ -105,66 +109,113 @@ export function SignInPage() {
 
   return (
     <div className="auth-page">
-      <h1>Die Lys</h1>
-
-      {stage === "email" && (
-        <form onSubmit={submitEmail}>
-          <input
-            className="text-input"
-            type="email"
-            inputMode="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-          {problem !== null && <p className="error-text">{problem}</p>}
-          <button className="pill-button" type="submit" disabled={busy || email.trim() === ""}>
-            Email me a link
-          </button>
-        </form>
-      )}
-
-      {stage === "sent" && (
-        <div>
-          <p>
-            {delivered
-              ? `We've sent a link and a code to ${email}.`
-              : `Sending a link and a code to ${email}...`}
-          </p>
-          <form onSubmit={submitCode}>
-            <input
-              className="text-input"
-              inputMode="numeric"
-              placeholder="6-digit code"
-              value={code}
-              onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
-            />
-            {problem !== null && <p className="error-text">{problem}</p>}
-            <button className="pill-button" type="submit" disabled={busy || code.length !== 6}>
-              Sign in with code
-            </button>
-          </form>
-          <button
-            className="pill-button secondary"
-            type="button"
-            disabled={busy || cooldownRemaining > 0}
-            onClick={() => send(email)}
-          >
-            {cooldownRemaining > 0 ? `Resend in ${Math.ceil(cooldownRemaining / 1000)}s` : "Resend"}
-          </button>
-          <button
-            className="pill-button secondary"
-            type="button"
-            onClick={() => {
-              setStage("email");
-              setCode("");
-              setProblem(null);
-            }}
-          >
-            Use a different email
-          </button>
+      <div className="auth-card">
+        <div className="auth-header">
+          <div className="auth-badge">D</div>
+          <h1>Die Lys</h1>
+          <div className="auth-tagline">SIT DIT OP DIE LYS</div>
         </div>
-      )}
+
+        {stage === "email" && (
+          <div className="auth-stage">
+            <p className="auth-intro">
+              Sign in with your email — we'll mail you a link, no password to remember.
+            </p>
+            <form onSubmit={submitEmail}>
+              <input
+                className="text-input"
+                type="email"
+                inputMode="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                disabled={busyEmail}
+              />
+              {problem !== null && <p className="error-text">{problem}</p>}
+              <button
+                className="pill-button full-width"
+                type="submit"
+                style={{ marginTop: "1.25rem" }}
+                disabled={busyEmail || email.trim() === ""}
+              >
+                {busyEmail && <Spinner />}
+                <span>{busyEmail ? "Sending…" : "Email me a link"}</span>
+              </button>
+            </form>
+          </div>
+        )}
+
+        {stage === "sent" && (
+          <div className="auth-stage">
+            <h2>Check your email</h2>
+            <p className="auth-intro">
+              {delivered
+                ? `Delivered to ${email}. Open it on this device to continue.`
+                : `We sent a sign-in link to ${email}. It can take a few minutes to arrive — open it on this device to continue.`}
+            </p>
+
+            {delivered && (
+              <div className="auth-delivered">
+                <span className="check">✔</span>
+                <span>📧</span>
+              </div>
+            )}
+
+            <div className="auth-divider" />
+
+            <p className="auth-code-hint">
+              Reading the email somewhere else? Type the code from it here.
+            </p>
+            <form onSubmit={submitCode}>
+              <input
+                className="text-input code-input"
+                inputMode="numeric"
+                placeholder="6-digit code"
+                value={code}
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                disabled={busyCode}
+              />
+              {problem !== null && <p className="error-text">{problem}</p>}
+              <button
+                className="pill-button secondary full-width"
+                type="submit"
+                style={{ marginTop: "0.75rem" }}
+                disabled={busyCode || code.length !== 6}
+              >
+                {busyCode && <Spinner />}
+                <span>{busyCode ? "Signing in…" : "Sign in with code"}</span>
+              </button>
+            </form>
+
+            <div className="auth-links">
+              {!delivered && (
+                <button
+                  type="button"
+                  className="text-button link"
+                  disabled={busyEmail || cooldownRemaining > 0}
+                  style={cooldownRemaining > 0 ? { opacity: 0.5 } : undefined}
+                  onClick={() => send(email)}
+                >
+                  {cooldownRemaining > 0
+                    ? `Resend in ${Math.ceil(cooldownRemaining / 1000)}s`
+                    : "Resend link"}
+                </button>
+              )}
+              <button
+                type="button"
+                className="text-button muted"
+                onClick={() => {
+                  setStage("email");
+                  setCode("");
+                  setProblem(null);
+                }}
+              >
+                Use a different email
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

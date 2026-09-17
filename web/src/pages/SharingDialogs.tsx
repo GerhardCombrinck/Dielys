@@ -180,7 +180,7 @@ function ConfirmDialog({
           <button type="button" onClick={onDismiss}>
             Cancel
           </button>
-          <button className="pill-button menu-danger-fill" type="button" onClick={onConfirm}>
+          <button className="pill-button danger" type="button" onClick={onConfirm}>
             {confirm}
           </button>
         </div>
