@@ -233,12 +233,14 @@ neither is present. See `scripts/AGENTS.md`.
 ### Deploying
 
 Push to `main` auto-deploys `server/` to the `dev` Cloudflare environment
-(`dielys-dev`). Tagging `v*` deploys `prod` (`dielys-prod`, gated on a required
-reviewer) and builds a signed Android release APK attached to the GitHub Release.
+(`dielys-dev`). Web and Android ship on separate tags, so one doesn't force the
+other out: tagging `web-v*` deploys `prod` (`dielys-prod`, gated on a required
+reviewer), and tagging `android-v*` builds a signed Android release APK
+attached to the GitHub Release.
 
 ### Rolling Back
 
-Server: `wrangler rollback` from `server/`, or redeploy the previous `v*` tag through the
+Server: `wrangler rollback` from `server/`, or redeploy the previous `web-v*` tag through the
 `deploy-server.yml` workflow. Migrations are lazy per Durable Object and forward-only — rolling
 back code does not roll back schema (see [G1](docs/CODE_STANDARD.md#standard-g1)).
 

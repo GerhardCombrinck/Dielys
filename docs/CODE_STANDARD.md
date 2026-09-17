@@ -1005,7 +1005,11 @@ A PR that changes sync behaviour MUST state in **How to test** which of these it
 | Environment | Worker name       | Trigger                  | Protection             |
 |-------------|-------------------|--------------------------|------------------------|
 | `dev`       | `dielys-dev`   | push to `main`           | none — auto-deploys    |
-| `prod`      | `dielys-prod`  | tag `v*`                 | required reviewer      |
+| `prod`      | `dielys-prod`  | tag `web-v*`             | required reviewer      |
+
+`web-v*` is its own release train, independent of Android's `android-v*` ([J4](#standard-j4)) —
+tagging one never triggers the other's workflow, so a web-only fix doesn't force an Android
+release and vice versa.
 
 #### Rules
 
@@ -1108,7 +1112,9 @@ jobs:
 
 #### Rules
 
-- Tagging `v*` MUST build a signed release APK and attach it to a GitHub Release.
+- Tagging `android-v*` MUST build a signed release APK and attach it to a GitHub Release.
+  This is a separate tag prefix from `prod`'s `web-v*` ([J1](#standard-j1)) specifically so an
+  Android release can't be triggered by a web-only deploy or vice versa.
 - The signing keystore MUST come from a GitHub environment secret, base64-decoded at build
   time and never written to a path that a later step archives.
 - `versionCode` MUST increase monotonically. Derive it from the run number, not by hand.

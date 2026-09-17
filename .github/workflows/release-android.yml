@@ -1,7 +1,9 @@
 name: Release Android
 on:
   push:
-    tags: ['v*']
+    # android-v* only — web-v* (deploy-server.yml) is a separate release
+    # train, so tagging one never triggers the other's job.
+    tags: ['android-v*']
 
 jobs:
   build-signed-apk:
