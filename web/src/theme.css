@@ -861,8 +861,6 @@ input {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 24px;
-  font-weight: 700;
   background: rgba(var(--on-surface-rgb), 0.18);
 }
 

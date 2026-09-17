@@ -114,6 +114,20 @@ export function ChevronDownIcon({ rotated }: { rotated: boolean }) {
   );
 }
 
+/**
+ * The app's "D" mark, cropped from android's ic_launcher_foreground.xml
+ * (a stem + bulge drawn on a 108x108 canvas). The viewBox below frames just
+ * the glyph so it fills a small badge tightly, the way the Android add
+ * button crops and scales the same drawable inside its circle.
+ */
+export function LogoMarkIcon() {
+  return (
+    <svg width="26" height="26" viewBox="40 36 32 36" fill="currentColor" aria-hidden="true">
+      <path d="M45.5,40 h8 a11,11 0 0 1 0,28 h-8 z" />
+    </svg>
+  );
+}
+
 export function Spinner({ muted = false }: { muted?: boolean } = {}) {
   return <span className={muted ? "spinner spinner-muted" : "spinner"} aria-hidden="true" />;
 }

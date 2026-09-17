@@ -20,6 +20,7 @@ import {
   ChevronDownIcon,
   DotsVerticalIcon,
   GearIcon,
+  LogoMarkIcon,
   Spinner,
   StarIcon,
 } from "../ui/icons.js";
@@ -311,7 +312,7 @@ export function ListPage({ listId }: { listId: string }) {
           aria-label="Add item"
           disabled={adding || newTitle.trim() === ""}
         >
-          D
+          <LogoMarkIcon />
         </button>
       </form>
     </div>
