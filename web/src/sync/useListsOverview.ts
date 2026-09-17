@@ -14,13 +14,13 @@ import { ensureAccents, getAccent, setAccent as storeAccent } from "../domain/ac
 import { seedPositions } from "../domain/listOrder.js";
 import { between } from "../domain/position.js";
 import { uuid7 } from "../domain/uuid7.js";
-import { emptyListState, type ListState, liveTaskCount } from "./applyChange.js";
+import { activeTasks, emptyListState, type ListState } from "./applyChange.js";
 import { getBoardCache, getOverviewCache, reconcileList, setOverviewCache } from "./listCache.js";
 
 export interface ListRow {
   membership: Membership;
   title: string | null; // null until the changelog has answered at least once
-  itemCount: number;
+  itemCount: number; // open (not done, not deleted) tasks only — matches Daos.kt's count query
   accent: number;
 }
 
@@ -72,7 +72,7 @@ export function useListsOverview(deviceId: string): ListsOverview {
         return {
           membership,
           title: list !== null && list.deletedAt === null ? list.title : null,
-          itemCount: liveTaskCount(state),
+          itemCount: activeTasks(state).length,
           accent: getAccent(membership.listId) ?? 0,
         };
       }),

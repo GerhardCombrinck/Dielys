@@ -43,11 +43,3 @@ export function activeTasks(state: ListState): Task[] {
 export function doneTasks(state: ListState): Task[] {
   return sortTasks([...state.tasksById.values()].filter((t) => t.deletedAt === null && t.done));
 }
-
-export function liveTaskCount(state: ListState): number {
-  let count = 0;
-  for (const task of state.tasksById.values()) {
-    if (task.deletedAt === null) count += 1;
-  }
-  return count;
-}
