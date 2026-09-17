@@ -20,6 +20,7 @@ import {
   ChevronDownIcon,
   DotsVerticalIcon,
   GearIcon,
+  Spinner,
   StarIcon,
 } from "../ui/icons.js";
 import { dropNeighbors } from "../ui/reorder.js";
@@ -137,19 +138,17 @@ export function ListPage({ listId }: { listId: string }) {
         </button>
       </header>
 
-      {board.status !== "connected" && (
-        <p className="connection-banner">
-          {board.status === "connecting" ? "Connecting…" : "Reconnecting…"}
-        </p>
-      )}
-
       {error !== null && (
         <p className="error-text" role="alert">
           {error}
         </p>
       )}
 
-      {!board.loaded && <p>Loading…</p>}
+      {!board.loaded && (
+        <div className="page-spinner">
+          <Spinner muted />
+        </div>
+      )}
 
       {board.loaded && board.active.length === 0 && board.done.length === 0 && (
         <div className="empty-state">

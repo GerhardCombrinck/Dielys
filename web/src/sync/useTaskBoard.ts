@@ -21,7 +21,7 @@ import type {
 import { PROTOCOL_VERSION } from "@dielys/protocol";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { catchUp, mutate } from "../api/lists.js";
-import { type ConnectionStatus, ListSocket } from "../api/socket.js";
+import { ListSocket } from "../api/socket.js";
 import { between } from "../domain/position.js";
 import { spotUnderStarred } from "../domain/taskPlacement.js";
 import { uuid7 } from "../domain/uuid7.js";
@@ -39,14 +39,11 @@ import {
   updateBoardCache,
 } from "./listCache.js";
 
-export type { ConnectionStatus } from "../api/socket.js";
-
 export interface TaskBoard {
   list: TaskList | null;
   active: Task[];
   done: Task[];
   loaded: boolean;
-  status: ConnectionStatus;
   add(title: string, atTop: boolean): Promise<void>;
   setDone(task: Task, done: boolean): Promise<void>;
   setStarred(task: Task, starred: boolean): Promise<void>;
@@ -60,7 +57,6 @@ export interface TaskBoard {
 export function useTaskBoard(listId: string, deviceId: string): TaskBoard {
   const [state, setState] = useState<ListState>(emptyListState);
   const [loaded, setLoaded] = useState(false);
-  const [status, setStatus] = useState<ConnectionStatus>("connecting");
   const cursorRef = useRef(0);
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -100,7 +96,6 @@ export function useTaskBoard(listId: string, deviceId: string): TaskBoard {
       setLoaded(false);
       cursorRef.current = 0;
     }
-    setStatus("connecting");
 
     (async () => {
       if (cached !== null) {
@@ -128,9 +123,10 @@ export function useTaskBoard(listId: string, deviceId: string): TaskBoard {
     })();
 
     const socket = new ListSocket(listId, deviceId, () => cursorRef.current, {
-      onStatus: (s) => {
-        if (!cancelled) setStatus(s);
-      },
+      // Nothing renders connection status any more (it read as an irritating
+      // "Connecting…"/"Reconnecting…" chip even with data already on
+      // screen) — the socket still reconnects on its own, silently.
+      onStatus: () => {},
       onChange: (change) => {
         if (!cancelled) mergeChange(change);
       },
@@ -283,7 +279,6 @@ export function useTaskBoard(listId: string, deviceId: string): TaskBoard {
     active: activeTasks(state),
     done: doneTasks(state),
     loaded,
-    status,
     add,
     setDone,
     setStarred,

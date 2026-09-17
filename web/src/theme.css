@@ -116,6 +116,21 @@ input {
   flex-shrink: 0;
 }
 
+/* On the page background rather than a solid button — a themed, low-opacity
+   ring instead of the fixed white one above. */
+.spinner-muted {
+  width: 24px;
+  height: 24px;
+  border-color: rgba(var(--on-surface-rgb), 0.2);
+  border-top-color: var(--color-on-surface);
+}
+
+.page-spinner {
+  display: flex;
+  justify-content: center;
+  padding: 3.75rem 0;
+}
+
 /* Buttons */
 
 .pill-button {
@@ -404,15 +419,6 @@ input {
 
 .new-row .text-input {
   flex: 1;
-}
-
-.connection-banner {
-  background: var(--color-elevated);
-  color: var(--color-on-surface);
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  margin: 0 0 1rem;
 }
 
 .empty-state {

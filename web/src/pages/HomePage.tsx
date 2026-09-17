@@ -13,7 +13,7 @@ import { navigate } from "../router.js";
 import { prefetchList } from "../sync/listCache.js";
 import { type ListRow, useListsOverview } from "../sync/useListsOverview.js";
 import { useSharing } from "../sync/useSharing.js";
-import { GearIcon, PeopleIcon } from "../ui/icons.js";
+import { GearIcon, PeopleIcon, Spinner } from "../ui/icons.js";
 import { dropNeighbors } from "../ui/reorder.js";
 import { InviteDialog, MembersDialog } from "./SharingDialogs.js";
 
@@ -120,7 +120,11 @@ export function HomePage() {
         </p>
       )}
 
-      {rows === null && <p>Loading…</p>}
+      {rows === null && (
+        <div className="page-spinner">
+          <Spinner muted />
+        </div>
+      )}
       {rows !== null && rows.length === 0 && (
         <div className="empty-state">
           <div className="empty-state-title">No lists yet</div>

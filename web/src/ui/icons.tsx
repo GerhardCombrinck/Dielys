@@ -114,6 +114,6 @@ export function ChevronDownIcon({ rotated }: { rotated: boolean }) {
   );
 }
 
-export function Spinner() {
-  return <span className="spinner" aria-hidden="true" />;
+export function Spinner({ muted = false }: { muted?: boolean } = {}) {
+  return <span className={muted ? "spinner spinner-muted" : "spinner"} aria-hidden="true" />;
 }
