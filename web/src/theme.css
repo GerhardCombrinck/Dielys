@@ -549,6 +549,21 @@ input {
   padding: 0.5rem 0.625rem;
 }
 
+/* The list row's title button has no padding or border of its own (see
+   `.list-row .row-title` above) — the rename input has to match that exact
+   box model, or swapping it in mid-row changes the card's height. A border
+   would add back the height it just gave up, so the "editing" affordance is
+   an inset underline instead, which paints without taking layout space. */
+.list-row .inline-edit.text-input {
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  font-size: 15.5px;
+  font-weight: 500;
+  background: transparent;
+  box-shadow: inset 0 -2px 0 0 var(--color-accent-blue);
+}
+
 /* Icon buttons */
 
 .icon-button {
