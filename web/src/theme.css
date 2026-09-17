@@ -788,6 +788,10 @@ input {
   font-weight: 600;
 }
 
+.sync-interval-select {
+  margin-top: 0.75rem;
+}
+
 .settings-sign-out {
   background: var(--rust);
   margin-top: 2rem;

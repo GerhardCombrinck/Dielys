@@ -27,6 +27,7 @@ import {
   validateRequestAccountDeletionRequest,
   validateRequestMagicLinkRequest,
   validateSetListPositionRequest,
+  validateSyncSettingsPatch,
   validateVerifyMagicCodeRequest,
   validateVerifyMagicLinkRequest,
 } from "./domain/validate.js";
@@ -54,7 +55,7 @@ const MEMBER_ROUTE = /^\/lists\/([^/]+)\/members\/([^/]+)$/;
  */
 const CORS_HEADERS: Record<string, string> = {
   "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
+  "access-control-allow-methods": "GET, POST, PATCH, DELETE, OPTIONS",
   "access-control-allow-headers": "authorization, content-type",
 };
 
@@ -128,6 +129,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
         return await handleSetListPosition(request, env);
       case "/auth/ws-ticket":
         return await handleMintWsTicket(request, env, now);
+      case "/auth/sync-settings":
+        return await handleSyncSettings(request, env);
       case "/devices/token":
         return await handleRegisterDevice(request, env, now);
       case "/admin/users":
@@ -572,6 +575,37 @@ async function handleSetListPosition(request: Request, env: Env): Promise<Respon
   if (!result.ok) return errorResponse(result.code, 403);
 
   return Response.json(result.value);
+}
+
+/**
+ * `GET`/`PATCH /auth/sync-settings` (ADR 0010, PROTOCOL.md "Background sync
+ * setting"). One route for both methods, like the split `MEMBER_ROUTE`
+ * handlers below use — the path names the resource, the method names the
+ * verb.
+ */
+async function handleSyncSettings(request: Request, env: Env): Promise<Response> {
+  const auth = await authenticate(request, env);
+  if (!auth.ok) return errorResponse(auth.code, auth.status);
+
+  if (request.method === "GET") {
+    const result = await usersRoom(env).getSyncSettings(auth.value.userId);
+    if (!result.ok) return errorResponse(result.code, 404);
+    return Response.json(result.value);
+  }
+
+  if (request.method === "PATCH") {
+    const body = await readJson(request);
+    if (body === null) return errorResponse("malformed", 400);
+
+    const parsed = validateSyncSettingsPatch(body);
+    if (!parsed.ok) return errorResponse("malformed", 400);
+
+    const result = await usersRoom(env).setSyncSettings(auth.value.userId, parsed.value);
+    if (!result.ok) return errorResponse(result.code, 404);
+    return Response.json(result.value);
+  }
+
+  return errorResponse("malformed", 405);
 }
 
 /**

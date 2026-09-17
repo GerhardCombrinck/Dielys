@@ -94,6 +94,19 @@ interface SyncApi {
      * same backoff as everything else instead of being lost (M2).
      */
     suspend fun registerPushToken(fcmToken: String)
+
+    /**
+     * `GET /auth/sync-settings` (ADR 0010). The server's answer is this
+     * account's background-sync preference, regardless of which device (or
+     * `web/`) last set it.
+     */
+    suspend fun syncSettings(): SyncSettings
+
+    /**
+     * `PATCH /auth/sync-settings`. Like [setListPosition], no idempotency key:
+     * a retried identical patch is the same state, so F5.2 does not apply.
+     */
+    suspend fun setSyncSettings(patch: SyncSettingsPatch): SyncSettings
 }
 
 /**

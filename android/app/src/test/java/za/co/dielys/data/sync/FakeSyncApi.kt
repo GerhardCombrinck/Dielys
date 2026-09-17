@@ -16,6 +16,8 @@ import za.co.dielys.data.remote.MembershipRole
 import za.co.dielys.data.remote.Mutation
 import za.co.dielys.data.remote.MutationAck
 import za.co.dielys.data.remote.SyncApi
+import za.co.dielys.data.remote.SyncSettings
+import za.co.dielys.data.remote.SyncSettingsPatch
 import za.co.dielys.data.remote.Task
 import za.co.dielys.data.remote.TaskChange
 import za.co.dielys.data.remote.TaskList
@@ -201,6 +203,25 @@ class FakeSyncApi :
         gate()
         if (rejectPushToken) throw ApiException.Rejected(status = 400, code = ErrorCode.MALFORMED)
         pushTokens += fcmToken
+    }
+
+    /** What `GET /auth/sync-settings` answers before any patch is applied —
+     *  the same default the migration gives every real account. */
+    var syncSettings: SyncSettings = SyncSettings(enabled = true, intervalMinutes = 30)
+
+    override suspend fun syncSettings(): SyncSettings {
+        gate()
+        return syncSettings
+    }
+
+    override suspend fun setSyncSettings(patch: SyncSettingsPatch): SyncSettings {
+        gate()
+        syncSettings =
+            syncSettings.copy(
+                enabled = patch.enabled ?: syncSettings.enabled,
+                intervalMinutes = patch.intervalMinutes ?: syncSettings.intervalMinutes,
+            )
+        return syncSettings
     }
 
     override suspend fun listMembers(listId: String): List<ListMember> {

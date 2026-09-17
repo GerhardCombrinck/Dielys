@@ -102,6 +102,8 @@ rules are CODE_STANDARD.md L1–L3.
 | GET | `/auth/memberships` | access token | Lists the caller can reach, in the caller's own order |
 | POST | `/auth/memberships/position` | access token | `SetListPositionRequest` → `SetListPositionResponse` |
 | POST | `/auth/ws-ticket` | access token | No body → `WsTicketResponse`. See "Authenticating the WebSocket from a browser" |
+| GET | `/auth/sync-settings` | access token | No body → `SyncSettings`. See "Background sync setting" |
+| PATCH | `/auth/sync-settings` | access token | `SyncSettingsPatch` → `SyncSettings`. See "Background sync setting" |
 | POST | `/lists/{listId}` | access token | Claim a client-generated list id as owner |
 | POST | `/lists/{listId}/invite` | access token, owner | `CreateInviteRequest` → `CreateInviteResponse` |
 | POST | `/invites/accept` | access token | `AcceptInviteRequest` → `AcceptInviteResponse` |
@@ -158,6 +160,21 @@ list's changelog for the same reason — a `ListRoom` change is seen by everybod
 `POST /auth/memberships/position` sets one membership's key, computed client-side from the two
 neighbours it was dropped between. A membership with a null position sorts after every
 positioned one, by age, so a newly joined list lands at the bottom rather than in the middle.
+
+### Background sync setting
+
+`SyncSettings` (ADR 0010) is the first synced value that is not a list, a membership, or account
+identity — it governs a purely mobile behaviour (Android's periodic `WorkManager` catch-up, the
+floor under the socket and push when both miss) but is held in `UsersRoom` rather than local
+device storage, so it can be read and changed from `web/` even though `web/` never acts on it
+itself.
+
+It follows `Membership.position`'s pattern, not a list's changelog: one row per user, no seq, no
+idempotency key. `PATCH /auth/sync-settings` is last-write-wins on whichever field the caller
+supplies — a retried identical body is the same state, the same reasoning `SetListPositionRequest`
+gives for not needing F5.2. `intervalMinutes` is bounded to
+`[MIN_SYNC_INTERVAL_MINUTES, MAX_SYNC_INTERVAL_MINUTES]` at the boundary (F3); a value outside it
+is `malformed`, not silently clamped.
 
 ### Which lists have changed
 

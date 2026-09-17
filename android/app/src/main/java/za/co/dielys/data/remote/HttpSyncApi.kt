@@ -151,6 +151,24 @@ class HttpSyncApi
             request(url("lists", listId, "members", userId), body = null, method = "DELETE")
         }
 
+        override suspend fun syncSettings(): SyncSettings =
+            decode(
+                SyncSettings.serializer(),
+                request(url("auth", "sync-settings"), body = null),
+            )
+
+        override suspend fun setSyncSettings(patch: SyncSettingsPatch): SyncSettings =
+            decode(
+                SyncSettings.serializer(),
+                request(
+                    url("auth", "sync-settings"),
+                    DielysJson.outbound
+                        .encodeToString(SyncSettingsPatch.serializer(), patch)
+                        .toRequestBody(jsonMedia),
+                    method = "PATCH",
+                ),
+            )
+
         override suspend fun deleteAccount() {
             // 204 and no body: nothing to read, only whether it threw.
             request(url("account"), body = null, method = "DELETE")

@@ -6,10 +6,12 @@ import za.co.dielys.data.local.DielysDatabase
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.local.OutboxEntity
 import za.co.dielys.data.local.PushTokenStore
+import za.co.dielys.data.local.SyncPrefs
 import za.co.dielys.data.remote.ApiException
 import za.co.dielys.data.remote.DielysJson
 import za.co.dielys.data.remote.SetListPositionRequest
 import za.co.dielys.data.remote.SyncApi
+import za.co.dielys.data.remote.SyncSettingsPatch
 import za.co.dielys.domain.Clock
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -50,6 +52,7 @@ class SyncEngine
         private val push: PushTokenStore,
         private val sweeps: CatchUpSweeps,
         private val clock: Clock,
+        private val syncPrefs: SyncPrefs,
     ) {
         suspend fun sync(): SyncOutcome {
             val drained = drainOutbox()
@@ -61,7 +64,9 @@ class SyncEngine
                 }
             val caught = catchUpAll(heads)
             if (caught != SyncOutcome.Success) return caught
-            return registerPushToken()
+            val pushed = registerPushToken()
+            if (pushed != SyncOutcome.Success) return pushed
+            return syncSyncSettings()
         }
 
         /**
@@ -90,6 +95,49 @@ class SyncEngine
                 // outbox makes when it marks a row dead. Recorded as sent to stop
                 // asking on every sync; the next token FCM issues tries again.
                 push.pushTokenSent = token
+                SyncOutcome.Success
+            } catch (error: ApiException) {
+                error.toOutcome()
+            }
+        }
+
+        /**
+         * Reconciles this device's background-sync preference with the server
+         * (ADR 0010). [SyncPrefs.lastSyncedEnabled]/[SyncPrefs.lastSyncedIntervalMinutes]
+         * are what tells this apart from a plain pull: if the live values have
+         * moved since the last time this device and the server agreed, this
+         * device changed it and pushes; otherwise nothing moved here and this
+         * only checks whether another device (or `web/`) did, so a value set
+         * from `web/` reaches this phone within one sync run without ever
+         * clobbering an edit made in this app.
+         *
+         * Last, like [registerPushToken] — a device that cannot reconcile this
+         * one small preference is still fully caught up on every list, which
+         * matters more.
+         */
+        suspend fun syncSyncSettings(): SyncOutcome {
+            val localEnabled = syncPrefs.syncEnabled.value
+            val localMinutes = syncPrefs.syncIntervalMinutes.value
+            val lastEnabled = syncPrefs.lastSyncedEnabled
+            val lastMinutes = syncPrefs.lastSyncedIntervalMinutes
+            val changedHere =
+                lastEnabled != null && (lastEnabled != localEnabled || lastMinutes != localMinutes)
+
+            return try {
+                val settings =
+                    if (changedHere) {
+                        api.setSyncSettings(
+                            SyncSettingsPatch(
+                                enabled = localEnabled,
+                                intervalMinutes = localMinutes,
+                            ),
+                        )
+                    } else {
+                        api.syncSettings()
+                    }
+                syncPrefs.setSyncEnabled(settings.enabled)
+                syncPrefs.setSyncIntervalMinutes(settings.intervalMinutes)
+                syncPrefs.setLastSynced(settings.enabled, settings.intervalMinutes)
                 SyncOutcome.Success
             } catch (error: ApiException) {
                 error.toOutcome()

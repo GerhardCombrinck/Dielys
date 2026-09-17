@@ -59,6 +59,26 @@ interface SyncPrefs {
 
     fun setSyncIntervalMinutes(minutes: Long)
 
+    /**
+     * The `{enabled, intervalMinutes}` this device last confirmed with the
+     * server (ADR 0010), as opposed to [syncEnabled]/[syncIntervalMinutes]
+     * themselves, which are what `WorkManager` schedules from right now.
+     * [za.co.dielys.data.sync.SyncEngine] compares the live values against
+     * this snapshot to tell "changed here since we last agreed" (push wins)
+     * from "nothing moved locally, only check what the server has" (pull
+     * wins). Null means never synced — a fresh install, or an existing one
+     * from before this setting synced at all — so the first run always pulls
+     * rather than pushing this device's defaults over whatever another
+     * device (or `web/`) already set.
+     */
+    val lastSyncedEnabled: Boolean?
+    val lastSyncedIntervalMinutes: Long?
+
+    fun setLastSynced(
+        enabled: Boolean,
+        intervalMinutes: Long,
+    )
+
     companion object {
         /** `PeriodicWorkRequest` refuses anything shorter than this itself. */
         const val MIN_INTERVAL_MINUTES = 15L
@@ -170,6 +190,38 @@ class UiPrefs
             _syncIntervalMinutes.value = clamped
         }
 
+        override val lastSyncedEnabled: Boolean?
+            get() =
+                if (prefs.contains(KEY_LAST_SYNCED_ENABLED)) {
+                    prefs.getBoolean(KEY_LAST_SYNCED_ENABLED, true)
+                } else {
+                    null
+                }
+
+        override val lastSyncedIntervalMinutes: Long?
+            get() =
+                if (prefs.contains(KEY_LAST_SYNCED_INTERVAL_MINUTES)) {
+                    prefs.getLong(
+                        KEY_LAST_SYNCED_INTERVAL_MINUTES,
+                        SyncPrefs.DEFAULT_INTERVAL_MINUTES,
+                    )
+                } else {
+                    null
+                }
+
+        override fun setLastSynced(
+            enabled: Boolean,
+            intervalMinutes: Long,
+        ) {
+            // One `edit()` for both — a torn write here would make the next
+            // sync compare against a pair that never actually existed.
+            prefs
+                .edit()
+                .putBoolean(KEY_LAST_SYNCED_ENABLED, enabled)
+                .putLong(KEY_LAST_SYNCED_INTERVAL_MINUTES, intervalMinutes)
+                .apply()
+        }
+
         // Two stores, because two platforms. From API 33 the system owns this:
         // it persists the choice, applies it to the app's configuration, and
         // shows it under Settings > Apps > Language, so keeping a copy here
@@ -208,5 +260,8 @@ class UiPrefs
             const val KEY_DONE_EXPANDED_PREFIX = "done-expanded-"
             const val KEY_SYNC_ENABLED = "sync-enabled"
             const val KEY_SYNC_INTERVAL_MINUTES = "sync-interval-minutes"
+            const val KEY_LAST_SYNCED_ENABLED = "sync-settings-last-synced-enabled"
+            const val KEY_LAST_SYNCED_INTERVAL_MINUTES =
+                "sync-settings-last-synced-interval-minutes"
         }
     }

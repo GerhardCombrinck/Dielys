@@ -62,6 +62,16 @@ async function get(path: string, token?: string): Promise<Response> {
   return SELF.fetch(`https://dielys.test${path}`, { headers });
 }
 
+async function patch(path: string, body: unknown, token?: string): Promise<Response> {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (token !== undefined) headers.Authorization = `Bearer ${token}`;
+  return SELF.fetch(`https://dielys.test${path}`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify(body),
+  });
+}
+
 async function createUser(email: string): Promise<string> {
   const response = await post("/admin/users", { email, password: PASSWORD }, ADMIN);
   expect(response.status).toBe(201);
@@ -1151,6 +1161,70 @@ describe("memberships", () => {
     expect((await post("/auth/memberships/position", { listId: "x", position: "a0" })).status).toBe(
       401,
     );
+  });
+});
+
+describe("background sync setting (ADR 0010)", () => {
+  it("defaults to enabled, 30 minutes", async () => {
+    const email = uniqueEmail();
+    await createUser(email);
+    const tokens = await login(email);
+
+    const response = await get("/auth/sync-settings", tokens.accessToken);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ enabled: true, intervalMinutes: 30 });
+  });
+
+  it("applies only the fields a patch carries", async () => {
+    const email = uniqueEmail();
+    await createUser(email);
+    const tokens = await login(email);
+
+    const first = await patch("/auth/sync-settings", { intervalMinutes: 60 }, tokens.accessToken);
+    expect(first.status).toBe(200);
+    expect(await first.json()).toEqual({ enabled: true, intervalMinutes: 60 });
+
+    const second = await patch("/auth/sync-settings", { enabled: false }, tokens.accessToken);
+    expect(second.status).toBe(200);
+    // intervalMinutes from the first patch survives — this one never named it.
+    expect(await second.json()).toEqual({ enabled: false, intervalMinutes: 60 });
+
+    expect(await (await get("/auth/sync-settings", tokens.accessToken)).json()).toEqual({
+      enabled: false,
+      intervalMinutes: 60,
+    });
+  });
+
+  it("is one user's own — setting it does not touch another account's", async () => {
+    const ownerEmail = uniqueEmail();
+    const otherEmail = uniqueEmail();
+    await createUser(ownerEmail);
+    await createUser(otherEmail);
+    const owner = await login(ownerEmail);
+    const other = await login(otherEmail);
+
+    await patch("/auth/sync-settings", { enabled: false, intervalMinutes: 120 }, owner.accessToken);
+
+    expect(await (await get("/auth/sync-settings", other.accessToken)).json()).toEqual({
+      enabled: true,
+      intervalMinutes: 30,
+    });
+  });
+
+  it("rejects an interval outside the bound", async () => {
+    const email = uniqueEmail();
+    await createUser(email);
+    const tokens = await login(email);
+
+    for (const intervalMinutes of [0, 14, 10_081, 1.5]) {
+      const response = await patch("/auth/sync-settings", { intervalMinutes }, tokens.accessToken);
+      expect(response.status).toBe(400);
+    }
+  });
+
+  it("needs a token", async () => {
+    expect((await get("/auth/sync-settings")).status).toBe(401);
+    expect((await patch("/auth/sync-settings", { enabled: false })).status).toBe(401);
   });
 });
 

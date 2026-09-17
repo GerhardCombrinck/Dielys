@@ -1,5 +1,12 @@
 import { DurableObject } from "cloudflare:workers";
-import type { AuthErrorCode, ListMember, Membership, MembershipRole } from "@dielys/protocol";
+import type {
+  AuthErrorCode,
+  ListMember,
+  Membership,
+  MembershipRole,
+  SyncSettings,
+  SyncSettingsPatch,
+} from "@dielys/protocol";
 import { INVITE_TOKEN_TTL_SECONDS, signInviteToken } from "../auth/jwt.js";
 import { generateMagicCode, hashMagicCode } from "../auth/magiccode.js";
 import {
@@ -89,11 +96,13 @@ import {
   selectRateLimit,
   selectRefreshToken,
   selectRolesForUser,
+  selectSyncSettings,
   selectUserByEmail,
   selectUserById,
   selectWsTicket,
   updateMembershipPosition,
   updateMembershipRole,
+  updateSyncSettings,
   updateUserPassword,
   upsertDevice,
   upsertRateLimit,
@@ -970,6 +979,39 @@ export class UsersRoom extends DurableObject {
       return { ok: false, code: "forbidden" };
     }
     return { ok: true, value: { listId, position } };
+  }
+
+  /** The caller's background-sync setting (ADR 0010, PROTOCOL.md
+   *  "Background sync setting"). `not-found` for a userId that does not
+   *  exist — the access token was valid, so this would mean the account was
+   *  deleted mid-session, not a caller error. */
+  async getSyncSettings(userId: string): Promise<UsersResult<SyncSettings>> {
+    const settings = selectSyncSettings(this.sql, userId);
+    if (settings === null) return { ok: false, code: "not-found" };
+    return { ok: true, value: settings };
+  }
+
+  /**
+   * Applies whichever fields `patch` carries onto the caller's current
+   * setting and writes the result back whole — last-write-wins on a value
+   * only this user ever writes, the same reasoning [setListPosition] gives
+   * for skipping an idempotency key (F5.2 does not apply).
+   */
+  async setSyncSettings(
+    userId: string,
+    patch: SyncSettingsPatch,
+  ): Promise<UsersResult<SyncSettings>> {
+    const current = selectSyncSettings(this.sql, userId);
+    if (current === null) return { ok: false, code: "not-found" };
+
+    const next: SyncSettings = {
+      enabled: patch.enabled ?? current.enabled,
+      intervalMinutes: patch.intervalMinutes ?? current.intervalMinutes,
+    };
+    this.ctx.storage.transactionSync(() => {
+      updateSyncSettings(this.sql, userId, next);
+    });
+    return { ok: true, value: next };
   }
 
   /**

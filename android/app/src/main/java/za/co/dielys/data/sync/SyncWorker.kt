@@ -81,10 +81,19 @@ class WorkManagerSyncScheduler
             // into WorkManager directly) — this is what makes a changed toggle
             // or interval take effect immediately instead of waiting for the
             // next process start-up to read it.
+            //
+            // Also asks for an immediate drain, not just a rescheduled floor:
+            // SyncEngine.syncSyncSettings (ADR 0010) is what actually pushes
+            // the new value to the server, and that should not wait for the
+            // next periodic tick (which could be half an hour away, or never,
+            // if this same change just turned syncing off).
             scope.launch {
                 combine(syncPrefs.syncEnabled, syncPrefs.syncIntervalMinutes) { enabled, minutes ->
                     enabled to minutes
-                }.collect { schedulePeriodicSync() }
+                }.collect {
+                    schedulePeriodicSync()
+                    requestSync()
+                }
             }
         }
 

@@ -3,19 +3,70 @@
  * `android/.../ui/settings/SettingsScreen.kt`'s web counterpart. No language
  * picker (the web client has no localized strings to switch between yet).
  */
-import { useState } from "react";
-import { deleteAccount } from "../api/auth.js";
+import type { SyncSettings, SyncSettingsPatch } from "@dielys/protocol";
+import { useEffect, useState } from "react";
+import { deleteAccount, getSyncSettings, patchSyncSettings } from "../api/auth.js";
 import { ApiError } from "../api/client.js";
 import { useSession } from "../auth/SessionContext.js";
 import { getNewItemsOnTop, setNewItemsOnTop } from "../domain/uiPrefs.js";
 import { navigate } from "../router.js";
 import { BackChevronIcon } from "../ui/icons.js";
 
+/** A handful of common choices — Android's own picker is freeform, so
+ * whatever it last sent is added below if it is not already one of these
+ * (otherwise the select would silently jump to the nearest option). */
+const SYNC_INTERVAL_PRESETS_MINUTES = [15, 30, 60, 120, 360, 720, 1440];
+
+function syncIntervalOptions(current: number): number[] {
+  return [...new Set([...SYNC_INTERVAL_PRESETS_MINUTES, current])].sort((a, b) => a - b);
+}
+
+function formatSyncInterval(minutes: number): string {
+  if (minutes % 60 === 0) {
+    const hours = minutes / 60;
+    return `${hours} hour${hours === 1 ? "" : "s"}`;
+  }
+  return `${minutes} minutes`;
+}
+
 export function SettingsPage() {
   const session = useSession();
   const [newItemsOnTop, setNewItemsOnTopState] = useState(getNewItemsOnTop);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Mobile-only in effect (there is no background worker to schedule here),
+  // but held server-side (ADR 0010) so it can be read and changed from
+  // whichever client is at hand — this page never acts on it itself.
+  const [sync, setSync] = useState<SyncSettings | null>(null);
+  const [syncSaving, setSyncSaving] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSyncSettings()
+      .then((settings) => {
+        if (!cancelled) setSync(settings);
+      })
+      .catch(() => {
+        if (!cancelled) setSyncError("Could not load the background sync setting.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function updateSync(patch: SyncSettingsPatch): Promise<void> {
+    setSyncSaving(true);
+    setSyncError(null);
+    try {
+      setSync(await patchSyncSettings(patch));
+    } catch {
+      setSyncError("Could not save. Check your connection and try again.");
+    } finally {
+      setSyncSaving(false);
+    }
+  }
 
   if (session.status !== "signed-in") return null;
 
@@ -87,6 +138,51 @@ export function SettingsPage() {
             Bottom
           </button>
         </div>
+      </section>
+
+      <section className="settings-section">
+        <h2>Mobile background sync</h2>
+        {sync !== null && (
+          <>
+            <div className="settings-segmented">
+              <button
+                type="button"
+                className={sync.enabled ? "segmented-option selected" : "segmented-option"}
+                disabled={syncSaving}
+                onClick={() => void updateSync({ enabled: true })}
+              >
+                On
+              </button>
+              <button
+                type="button"
+                className={!sync.enabled ? "segmented-option selected" : "segmented-option"}
+                disabled={syncSaving}
+                onClick={() => void updateSync({ enabled: false })}
+              >
+                Off
+              </button>
+            </div>
+            {sync.enabled && (
+              <select
+                className="text-input sync-interval-select"
+                value={sync.intervalMinutes}
+                disabled={syncSaving}
+                onChange={(e) => void updateSync({ intervalMinutes: Number(e.target.value) })}
+              >
+                {syncIntervalOptions(sync.intervalMinutes).map((minutes) => (
+                  <option key={minutes} value={minutes}>
+                    Every {formatSyncInterval(minutes)}
+                  </option>
+                ))}
+              </select>
+            )}
+          </>
+        )}
+        {syncError !== null && (
+          <p className="error-text" role="alert">
+            {syncError}
+          </p>
+        )}
       </section>
 
       <button className="pill-button settings-sign-out" type="button" onClick={session.signOut}>

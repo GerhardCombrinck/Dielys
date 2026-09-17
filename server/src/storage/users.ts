@@ -3,7 +3,7 @@
  * reads and writes rows; it does not decide whether a password is right or
  * whether a token may be rotated.
  */
-import type { ListMember, Membership, MembershipRole } from "@dielys/protocol";
+import type { ListMember, Membership, MembershipRole, SyncSettings } from "@dielys/protocol";
 import type { PasswordHash } from "../auth/password.js";
 
 export interface UserRow {
@@ -84,6 +84,31 @@ export function deleteUser(sql: SqlStorage, userId: string): void {
 export function countUsers(sql: SqlStorage): number {
   const row = sql.exec("SELECT COUNT(*) AS n FROM users").one();
   return Number(row.n);
+}
+
+/** `null` for a user id that does not exist — the caller (`UsersRoom`) turns
+ * that into `not-found`; this layer just reports what it saw (D1). */
+export function selectSyncSettings(sql: SqlStorage, userId: string): SyncSettings | null {
+  const rows = [
+    ...sql.exec(`SELECT sync_enabled, sync_interval_minutes FROM users WHERE id = ?`, userId),
+  ];
+  const row = rows[0];
+  if (row === undefined) return null;
+  return {
+    enabled: Number(row.sync_enabled) !== 0,
+    intervalMinutes: Number(row.sync_interval_minutes),
+  };
+}
+
+/** Always writes both columns — the caller has already merged the patch onto
+ * the current row, so this is a plain overwrite, not a partial one. */
+export function updateSyncSettings(sql: SqlStorage, userId: string, settings: SyncSettings): void {
+  sql.exec(
+    `UPDATE users SET sync_enabled = ?, sync_interval_minutes = ? WHERE id = ?`,
+    settings.enabled ? 1 : 0,
+    settings.intervalMinutes,
+    userId,
+  );
 }
 
 function firstUser(cursor: SqlStorageCursor<Record<string, SqlStorageValue>>): UserRow | null {

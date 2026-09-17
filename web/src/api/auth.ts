@@ -6,6 +6,8 @@ import type {
   MagicLinkStatusResponse,
   RequestMagicLinkRequest,
   RequestMagicLinkResponse,
+  SyncSettings,
+  SyncSettingsPatch,
   TokenPair,
   VerifyMagicCodeRequest,
   VerifyMagicLinkRequest,
@@ -43,4 +45,17 @@ export function mintWsTicket(): Promise<WsTicketResponse> {
  * The access token names whose; there is nothing else to send. */
 export function deleteAccount(): Promise<void> {
   return apiFetch("/account", { method: "DELETE" });
+}
+
+/**
+ * `GET`/`PATCH /auth/sync-settings` (ADR 0010) — the account's background-sync
+ * preference. This client never acts on it (there is no background worker to
+ * schedule here), only reads and writes it so the phone can.
+ */
+export function getSyncSettings(): Promise<SyncSettings> {
+  return apiFetch("/auth/sync-settings");
+}
+
+export function patchSyncSettings(patch: SyncSettingsPatch): Promise<SyncSettings> {
+  return apiFetch("/auth/sync-settings", { method: "PATCH", body: patch });
 }

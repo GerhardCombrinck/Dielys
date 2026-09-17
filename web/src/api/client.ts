@@ -99,7 +99,7 @@ async function doRefresh(): Promise<AuthTokens | null> {
 }
 
 interface RequestOptions {
-  method?: "GET" | "POST" | "DELETE";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
   auth?: boolean; // default true
 }
