@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 18 72 72">
   <title>Die Lys</title>
-  <rect width="64" height="64" rx="16" fill="#2e4372"/>
-  <text x="32" y="45" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="36" font-weight="700" fill="#ffffff" text-anchor="middle">D</text>
+  <rect x="18" y="18" width="72" height="72" rx="18" fill="#1B2A4A"/>
+  <path fill="#ffffff" d="M45.5,40 h8 a11,11 0 0 1 0,28 h-8 z"/>
 </svg>
