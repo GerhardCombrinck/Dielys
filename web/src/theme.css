@@ -372,6 +372,12 @@ input {
   align-items: center;
   gap: 0.25rem;
   margin-bottom: 1.5rem;
+  /* The lists header carries a title + tagline, the item-list header just a
+     title next to a back button — left alone, the shorter one lets every row
+     below it sit higher on screen, so the eye re-locates the list on every
+     navigation instead of finding it in the same place. Matches the taller
+     of the two so both pages give the first row the same starting position. */
+  min-height: 55px;
 }
 
 .page-header-titles {
@@ -460,6 +466,11 @@ input {
   padding: 6px 8px 6px 4px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   position: relative;
+  /* A task row's own title button carries more built-in padding than a list
+     row's (stripped to 0 below), so left alone it renders a few px taller —
+     every row jumping half a card-height as you go from Lists into a list's
+     items. A shared floor keeps both the same regardless of that padding. */
+  min-height: 53px;
 }
 
 .list-row.drag-over {
@@ -475,6 +486,10 @@ input {
   background: none;
   border-radius: 0;
   padding: 2px 6px;
+  /* Deliberately more compact than an active row (see .list-row, .task-row's
+     shared min-height, which this opts back out of) — a done list can be
+     long, and it's not part of the height parity this fixes. */
+  min-height: 0;
 }
 
 .drag-handle {
@@ -523,6 +538,13 @@ input {
   font-weight: 500;
 }
 
+/* Stripped to 0 for the same reason as list-row's above — the button's own
+   padding, not this file's other spacing, was what made a task row taller
+   than a list row (see .list-row, .task-row's shared min-height). */
+.task-row .row-title {
+  padding: 0;
+}
+
 .done-title {
   text-decoration: line-through;
   cursor: default;
@@ -564,11 +586,12 @@ input {
   box-shadow: inset 0 -2px 0 0 var(--color-accent-blue);
 }
 
-/* Same reasoning for a task row: the title button's own padding is
-   `.row-title`'s 12px 4px (see above), so the rename input has to carry
-   that same padding, with no border, to keep the row's height fixed. */
+/* Same reasoning for a task row: `.task-row .row-title` is stripped to 0
+   padding too now (to fix the list/task row height mismatch — see
+   .list-row, .task-row's shared min-height), so the rename input matches
+   that, not the base .row-title padding it used to carry. */
 .task-row .inline-edit.text-input {
-  padding: 12px 4px;
+  padding: 0;
   border: none;
   border-radius: 6px;
   font-size: 15.5px;
