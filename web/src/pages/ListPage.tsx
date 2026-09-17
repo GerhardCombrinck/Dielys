@@ -12,6 +12,7 @@ import { useSession } from "../auth/SessionContext.js";
 import { getAccent } from "../domain/accentStore.js";
 import { accentColor, hashedAccent } from "../domain/accents.js";
 import { getNewItemsOnTop } from "../domain/uiPrefs.js";
+import { useI18n } from "../i18n/I18nContext.js";
 import { navigate } from "../router.js";
 import { useTaskBoard } from "../sync/useTaskBoard.js";
 import {
@@ -46,6 +47,7 @@ function writeDoneExpanded(listId: string, expanded: boolean): void {
 
 export function ListPage({ listId }: { listId: string }) {
   const session = useSession();
+  const { t } = useI18n();
   const board = useTaskBoard(listId, session.deviceId);
   const [newTitle, setNewTitle] = useState("");
   const [adding, setAdding] = useState(false);
@@ -68,7 +70,7 @@ export function ListPage({ listId }: { listId: string }) {
       await board.add(title, getNewItemsOnTop());
       setNewTitle("");
     } catch {
-      setError("Could not add the task. Check your connection and try again.");
+      setError(t("list.errorAdd"));
     } finally {
       setAdding(false);
     }
@@ -97,7 +99,7 @@ export function ListPage({ listId }: { listId: string }) {
         <button
           className="icon-button"
           type="button"
-          aria-label="Back to lists"
+          aria-label={t("list.backToLists")}
           onClick={() => navigate("/")}
         >
           <BackChevronIcon />
@@ -126,13 +128,13 @@ export function ListPage({ listId }: { listId: string }) {
               setEditingTitle(true);
             }}
           >
-            <h1>{board.list?.title ?? (board.loaded ? "Untitled list" : "…")}</h1>
+            <h1>{board.list?.title ?? (board.loaded ? t("list.untitled") : "…")}</h1>
           </button>
         )}
         <button
           type="button"
           className="icon-button"
-          aria-label="Settings"
+          aria-label={t("common.settings")}
           onClick={() => navigate("/settings")}
         >
           <GearIcon />
@@ -153,7 +155,7 @@ export function ListPage({ listId }: { listId: string }) {
 
       {board.loaded && board.active.length === 0 && board.done.length === 0 && (
         <div className="empty-state">
-          <div className="empty-state-body">Nothing on this list yet.</div>
+          <div className="empty-state-body">{t("list.emptyBody")}</div>
         </div>
       )}
 
@@ -174,7 +176,7 @@ export function ListPage({ listId }: { listId: string }) {
               <button
                 type="button"
                 className="icon-button checkbox"
-                aria-label={`Mark "${task.title}" done`}
+                aria-label={t("list.markDone", { title: task.title })}
                 onClick={() => void board.setDone(task, true)}
               >
                 <span className="checkbox-box" />
@@ -212,7 +214,7 @@ export function ListPage({ listId }: { listId: string }) {
               <button
                 type="button"
                 className={task.starred ? "icon-button starred" : "icon-button"}
-                aria-label={task.starred ? "Unstar" : "Star"}
+                aria-label={task.starred ? t("list.unstar") : t("list.star")}
                 style={task.starred ? undefined : { opacity: 0.5 }}
                 onClick={() => void board.setStarred(task, !task.starred)}
               >
@@ -222,7 +224,7 @@ export function ListPage({ listId }: { listId: string }) {
               <button
                 type="button"
                 className="icon-button"
-                aria-label="Task options"
+                aria-label={t("list.taskOptions")}
                 onClick={() => setMenuFor(menuFor === task.id ? null : task.id)}
               >
                 <DotsVerticalIcon />
@@ -233,7 +235,7 @@ export function ListPage({ listId }: { listId: string }) {
                   <button
                     type="button"
                     className="menu-overlay"
-                    aria-label="Close menu"
+                    aria-label={t("common.closeMenu")}
                     onClick={() => setMenuFor(null)}
                   />
                   <div className="menu-popover">
@@ -245,7 +247,7 @@ export function ListPage({ listId }: { listId: string }) {
                         setMenuFor(null);
                       }}
                     >
-                      Edit
+                      {t("common.edit")}
                     </button>
                     <button
                       type="button"
@@ -255,7 +257,7 @@ export function ListPage({ listId }: { listId: string }) {
                         void board.remove(task);
                       }}
                     >
-                      Delete
+                      {t("common.delete")}
                     </button>
                   </div>
                 </>
@@ -268,7 +270,7 @@ export function ListPage({ listId }: { listId: string }) {
       {board.done.length > 0 && (
         <div className="done-section">
           <button type="button" className="done-toggle" onClick={toggleDoneExpanded}>
-            <span>DONE ({board.done.length})</span>
+            <span>{t("list.doneCount", { n: board.done.length })}</span>
             <ChevronDownIcon rotated={doneExpanded} />
           </button>
           {doneExpanded && (
@@ -278,7 +280,7 @@ export function ListPage({ listId }: { listId: string }) {
                   <button
                     type="button"
                     className="icon-button checkbox"
-                    aria-label={`Mark "${task.title}" not done`}
+                    aria-label={t("list.markNotDone", { title: task.title })}
                     onClick={() => void board.setDone(task, false)}
                   >
                     <span className="checkbox-box checked">
@@ -302,14 +304,14 @@ export function ListPage({ listId }: { listId: string }) {
       >
         <input
           className="text-input"
-          placeholder="Add an item"
+          placeholder={t("list.addItemPlaceholder")}
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
         />
         <button
           className={newTitle.trim() === "" ? "add-bar-submit" : "add-bar-submit ready"}
           type="submit"
-          aria-label="Add item"
+          aria-label={t("list.addItem")}
           disabled={adding || newTitle.trim() === ""}
         >
           <LogoMarkIcon />

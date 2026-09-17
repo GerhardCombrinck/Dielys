@@ -11,6 +11,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { magicLinkStatus, requestMagicLink, verifyMagicCode } from "../api/auth.js";
 import { ApiError } from "../api/client.js";
 import { useSession } from "../auth/SessionContext.js";
+import { useI18n } from "../i18n/I18nContext.js";
 import { Spinner } from "../ui/icons.js";
 
 const POLL_INTERVAL_MS = 10_000;
@@ -21,6 +22,7 @@ type Stage = "email" | "sent";
 
 export function SignInPage() {
   const session = useSession();
+  const { t } = useI18n();
   const [stage, setStage] = useState<Stage>("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -78,7 +80,7 @@ export function SignInPage() {
       setCode("");
       setStage("sent");
     } catch (error) {
-      setProblem(describe(error));
+      setProblem(describe(error, t));
     } finally {
       setBusyEmail(false);
     }
@@ -99,7 +101,7 @@ export function SignInPage() {
       const pair = await verifyMagicCode(email.trim(), code, session.deviceId);
       session.signIn(pair);
     } catch (error) {
-      setProblem(describe(error));
+      setProblem(describe(error, t));
     } finally {
       setBusyCode(false);
     }
@@ -118,9 +120,7 @@ export function SignInPage() {
 
         {stage === "email" && (
           <div className="auth-stage">
-            <p className="auth-intro">
-              Sign in with your email — we'll mail you a link, no password to remember.
-            </p>
+            <p className="auth-intro">{t("signin.intro")}</p>
             <form onSubmit={submitEmail}>
               <input
                 className="text-input"
@@ -139,7 +139,7 @@ export function SignInPage() {
                 disabled={busyEmail || email.trim() === ""}
               >
                 {busyEmail && <Spinner />}
-                <span>{busyEmail ? "Sending…" : "Email me a link"}</span>
+                <span>{busyEmail ? t("signin.sending") : t("signin.emailMeALink")}</span>
               </button>
             </form>
           </div>
@@ -147,11 +147,9 @@ export function SignInPage() {
 
         {stage === "sent" && (
           <div className="auth-stage">
-            <h2>Check your email</h2>
+            <h2>{t("signin.checkEmailTitle")}</h2>
             <p className="auth-intro">
-              {delivered
-                ? `Delivered to ${email}. Open it on this device to continue.`
-                : `We sent a sign-in link to ${email}. It can take a few minutes to arrive — open it on this device to continue.`}
+              {delivered ? t("signin.delivered", { email }) : t("signin.sent", { email })}
             </p>
 
             {delivered && (
@@ -163,14 +161,12 @@ export function SignInPage() {
 
             <div className="auth-divider" />
 
-            <p className="auth-code-hint">
-              Reading the email somewhere else? Type the code from it here.
-            </p>
+            <p className="auth-code-hint">{t("signin.codeHint")}</p>
             <form onSubmit={submitCode}>
               <input
                 className="text-input code-input"
                 inputMode="numeric"
-                placeholder="6-digit code"
+                placeholder={t("signin.codePlaceholder")}
                 value={code}
                 onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
                 disabled={busyCode}
@@ -183,7 +179,7 @@ export function SignInPage() {
                 disabled={busyCode || code.length !== 6}
               >
                 {busyCode && <Spinner />}
-                <span>{busyCode ? "Signing in…" : "Sign in with code"}</span>
+                <span>{busyCode ? t("signin.signingIn") : t("signin.signInWithCode")}</span>
               </button>
             </form>
 
@@ -197,8 +193,8 @@ export function SignInPage() {
                   onClick={() => send(email)}
                 >
                   {cooldownRemaining > 0
-                    ? `Resend in ${Math.ceil(cooldownRemaining / 1000)}s`
-                    : "Resend link"}
+                    ? t("signin.resendIn", { s: Math.ceil(cooldownRemaining / 1000) })
+                    : t("signin.resendLink")}
                 </button>
               )}
               <button
@@ -210,7 +206,7 @@ export function SignInPage() {
                   setProblem(null);
                 }}
               >
-                Use a different email
+                {t("signin.useDifferentEmail")}
               </button>
             </div>
           </div>
@@ -220,12 +216,11 @@ export function SignInPage() {
   );
 }
 
-function describe(error: unknown): string {
+function describe(error: unknown, t: ReturnType<typeof useI18n>["t"]): string {
   if (error instanceof ApiError) {
-    if (error.code === "rate-limited") return "Too many attempts — try again later.";
-    if (error.code === "invalid-token")
-      return "That code didn't match. Check the email and try again.";
-    if (error.code === "token-expired") return "That code has expired — resend and try again.";
+    if (error.code === "rate-limited") return t("common.errorRateLimited");
+    if (error.code === "invalid-token") return t("signin.errorCodeInvalid");
+    if (error.code === "token-expired") return t("signin.errorCodeExpired");
   }
-  return "Something went wrong. Try again.";
+  return t("common.errorGeneric");
 }

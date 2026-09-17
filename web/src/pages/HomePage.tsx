@@ -9,6 +9,7 @@ import { ApiError } from "../api/client.js";
 import { useSession } from "../auth/SessionContext.js";
 import { ACCENT_COUNT, accentColor } from "../domain/accents.js";
 import { takePendingInvite } from "../domain/pendingInvite.js";
+import { useI18n } from "../i18n/I18nContext.js";
 import { navigate } from "../router.js";
 import { prefetchList } from "../sync/listCache.js";
 import { type ListRow, useListsOverview } from "../sync/useListsOverview.js";
@@ -21,6 +22,7 @@ type ConfirmTarget = { row: ListRow; kind: "delete" | "leave" };
 
 export function HomePage() {
   const session = useSession();
+  const { t } = useI18n();
   const overview = useListsOverview(session.deviceId);
   const sharing = useSharing(session.status === "signed-in" ? session.userId : "");
   const [menuFor, setMenuFor] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export function HomePage() {
       setNewTitle("");
       if (id !== "") navigate(`/lists/${encodeURIComponent(id)}`);
     } catch {
-      setError("Could not create the list. Check your connection and try again.");
+      setError(t("home.errorCreate"));
     } finally {
       setCreating(false);
     }
@@ -71,8 +73,8 @@ export function HomePage() {
       } catch (err) {
         setError(
           err instanceof ApiError && err.code === "forbidden"
-            ? "Only the owner can delete this list."
-            : "Could not delete the list.",
+            ? t("home.errorDeleteForbidden")
+            : t("home.errorDelete"),
         );
       }
     } else {
@@ -80,7 +82,7 @@ export function HomePage() {
         await sharing.leave(target.row.membership.listId);
         overview.refresh();
       } catch {
-        setError("Could not leave the list. Check your connection and try again.");
+        setError(t("home.errorLeave"));
       }
     }
   }
@@ -102,12 +104,12 @@ export function HomePage() {
       <header className="page-header">
         <div className="page-header-titles">
           <h1>Die Lys</h1>
-          <div className="page-tagline">Put it on the list</div>
+          <div className="page-tagline">{t("home.tagline")}</div>
         </div>
         <button
           className="icon-button"
           type="button"
-          aria-label="Settings"
+          aria-label={t("common.settings")}
           onClick={() => navigate("/settings")}
         >
           <GearIcon />
@@ -127,8 +129,8 @@ export function HomePage() {
       )}
       {rows !== null && rows.length === 0 && (
         <div className="empty-state">
-          <div className="empty-state-title">No lists yet</div>
-          <div className="empty-state-body">Make your first list below.</div>
+          <div className="empty-state-title">{t("home.emptyTitle")}</div>
+          <div className="empty-state-body">{t("home.emptyBody")}</div>
         </div>
       )}
 
@@ -192,7 +194,7 @@ export function HomePage() {
                 <button
                   type="button"
                   className="icon-button small"
-                  aria-label="Shared list members"
+                  aria-label={t("home.sharedMembers")}
                   onClick={() => void sharing.openMembers(row.membership.listId)}
                 >
                   <PeopleIcon />
@@ -204,7 +206,7 @@ export function HomePage() {
               <button
                 type="button"
                 className="icon-button small"
-                aria-label="List options"
+                aria-label={t("home.listOptions")}
                 onClick={() =>
                   setMenuFor(menuFor === row.membership.listId ? null : row.membership.listId)
                 }
@@ -217,7 +219,7 @@ export function HomePage() {
                   <button
                     type="button"
                     className="menu-overlay"
-                    aria-label="Close menu"
+                    aria-label={t("common.closeMenu")}
                     onClick={() => setMenuFor(null)}
                   />
                   <div className="menu-popover">
@@ -229,7 +231,7 @@ export function HomePage() {
                         setMenuFor(null);
                       }}
                     >
-                      Rename
+                      {t("common.rename")}
                     </button>
                     <div className="accent-row">
                       {Array.from({ length: ACCENT_COUNT }, (_, i) => (
@@ -237,7 +239,7 @@ export function HomePage() {
                           key={accentColor(i)}
                           type="button"
                           className="accent-swatch"
-                          aria-label={`Colour ${i + 1}`}
+                          aria-label={t("home.colourOption", { n: i + 1 })}
                           style={{ background: accentColor(i) }}
                           onClick={() => {
                             overview.setAccent(row.membership.listId, i);
@@ -252,11 +254,14 @@ export function HomePage() {
                       <button
                         type="button"
                         onClick={() => {
-                          sharing.openInvite(row.membership.listId, row.title ?? "Untitled list");
+                          sharing.openInvite(
+                            row.membership.listId,
+                            row.title ?? t("list.untitled"),
+                          );
                           setMenuFor(null);
                         }}
                       >
-                        Share
+                        {t("common.share")}
                       </button>
                     )}
                     {/* One or the other, never both (ADR 0006): a delete takes the
@@ -271,7 +276,7 @@ export function HomePage() {
                           setConfirmTarget({ row, kind: "delete" });
                         }}
                       >
-                        Delete
+                        {t("common.delete")}
                       </button>
                     ) : (
                       <button
@@ -281,7 +286,7 @@ export function HomePage() {
                           setConfirmTarget({ row, kind: "leave" });
                         }}
                       >
-                        Leave
+                        {t("common.leave")}
                       </button>
                     )}
                   </div>
@@ -301,12 +306,12 @@ export function HomePage() {
       >
         <input
           className="text-input"
-          placeholder="New list"
+          placeholder={t("home.newListPlaceholder")}
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
         />
         <button className="pill-button" type="submit" disabled={creating || newTitle.trim() === ""}>
-          Add
+          {t("home.add")}
         </button>
       </form>
 
@@ -315,24 +320,26 @@ export function HomePage() {
           <div className="dialog-box">
             <h2>
               {confirmTarget.kind === "delete"
-                ? `Delete "${confirmTarget.row.title ?? "this list"}"?`
-                : `Leave "${confirmTarget.row.title ?? "this list"}"?`}
+                ? t("home.deleteListTitle", {
+                    title: confirmTarget.row.title ?? t("home.untitledFallback"),
+                  })
+                : t("home.leaveListTitle", {
+                    title: confirmTarget.row.title ?? t("home.untitledFallback"),
+                  })}
             </h2>
             <p>
-              {confirmTarget.kind === "delete"
-                ? "This removes it for everyone on it. This can't be undone."
-                : "You will need a new invite to see it again."}
+              {confirmTarget.kind === "delete" ? t("home.deleteListBody") : t("common.leaveBody")}
             </p>
             <div className="dialog-actions">
               <button type="button" onClick={() => setConfirmTarget(null)}>
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 className="pill-button danger"
                 type="button"
                 onClick={() => void handleConfirm()}
               >
-                {confirmTarget.kind === "delete" ? "Delete" : "Leave"}
+                {confirmTarget.kind === "delete" ? t("common.delete") : t("common.leave")}
               </button>
             </div>
           </div>

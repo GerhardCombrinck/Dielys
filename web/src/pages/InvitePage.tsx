@@ -14,22 +14,20 @@ import { ApiError } from "../api/client.js";
 import { acceptInvite } from "../api/sharing.js";
 import { useSession } from "../auth/SessionContext.js";
 import { offerInvite } from "../domain/pendingInvite.js";
+import { useI18n } from "../i18n/I18nContext.js";
 import { navigate } from "../router.js";
 
-function describeJoinError(err: unknown): string {
+function describeJoinError(err: unknown, t: ReturnType<typeof useI18n>["t"]): string {
   if (err instanceof ApiError) {
-    if (err.code === "forbidden") {
-      return "This invite was sent to a different email address than the one you are signed in with.";
-    }
-    if (err.code === "token-expired" || err.code === "unauthorized") {
-      return "That invite has expired. Ask for a new one.";
-    }
+    if (err.code === "forbidden") return t("invite.wrongAccount");
+    if (err.code === "token-expired" || err.code === "unauthorized") return t("invite.expired");
   }
-  return "Could not accept the invite. Check your connection and try again.";
+  return t("invite.acceptFailed");
 }
 
 export function InvitePage() {
   const session = useSession();
+  const { t } = useI18n();
   const [error, setError] = useState<string | null>(null);
 
   const status = session.status;
@@ -38,7 +36,7 @@ export function InvitePage() {
 
     const token = new URLSearchParams(window.location.search).get("t");
     if (token === null) {
-      setError("That does not look like an invite.");
+      setError(t("invite.notAnInvite"));
       return;
     }
 
@@ -54,12 +52,12 @@ export function InvitePage() {
         if (!cancelled) navigate(`/lists/${encodeURIComponent(result.listId)}`);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(describeJoinError(err));
+        if (!cancelled) setError(describeJoinError(err, t));
       });
     return () => {
       cancelled = true;
     };
-  }, [status]);
+  }, [status, t]);
 
   if (error !== null) {
     return (
@@ -68,7 +66,7 @@ export function InvitePage() {
           {error}
         </p>
         <button className="pill-button" type="button" onClick={() => navigate("/")}>
-          Back to your lists
+          {t("invite.backToLists")}
         </button>
       </div>
     );
@@ -76,7 +74,7 @@ export function InvitePage() {
 
   return (
     <div className="page">
-      <p>Joining…</p>
+      <p>{t("invite.joining")}</p>
     </div>
   );
 }

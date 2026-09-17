@@ -9,8 +9,10 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { confirmAccountDeletion, requestAccountDeletion } from "../api/accountDeletion.js";
 import { ApiError } from "../api/client.js";
+import { useI18n } from "../i18n/I18nContext.js";
 
 export function RequestAccountDeletionPage() {
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   // No branch for "no such account" — the answer is the same either way
@@ -30,8 +32,8 @@ export function RequestAccountDeletionPage() {
     } catch (err) {
       setProblem(
         err instanceof ApiError && err.code === "rate-limited"
-          ? "Too many attempts — try again later."
-          : "Something went wrong. Try again.",
+          ? t("common.errorRateLimited")
+          : t("common.errorGeneric"),
       );
     } finally {
       setBusy(false);
@@ -40,18 +42,12 @@ export function RequestAccountDeletionPage() {
 
   return (
     <div className="auth-page">
-      <h1>Delete your Dielys account</h1>
+      <h1>{t("deleteAccount.title")}</h1>
       {sent ? (
-        <p>
-          If {email.trim()} has a Dielys account, we've sent a link to confirm deleting it. The link
-          is good for 15 minutes.
-        </p>
+        <p>{t("deleteAccount.sentMessage", { email: email.trim() })}</p>
       ) : (
         <>
-          <p>
-            Lists only you are on go with it. Lists you own that others are on pass to whoever has
-            been on them longest — they stay, you do not.
-          </p>
+          <p>{t("deleteAccount.explainBody")}</p>
           <form onSubmit={submit}>
             <input
               className="text-input"
@@ -63,7 +59,7 @@ export function RequestAccountDeletionPage() {
             />
             {problem !== null && <p className="error-text">{problem}</p>}
             <button className="pill-button" type="submit" disabled={busy || email.trim() === ""}>
-              Email me a deletion link
+              {t("deleteAccount.submitCta")}
             </button>
           </form>
         </>
@@ -75,6 +71,7 @@ export function RequestAccountDeletionPage() {
 type ConfirmStatus = "waiting" | "working" | "done" | "failed";
 
 export function ConfirmAccountDeletionPage() {
+  const { t } = useI18n();
   const [token, setToken] = useState<string | null>(null);
   const [status, setStatus] = useState<ConfirmStatus>("waiting");
   const [problem, setProblem] = useState<string | null>(null);
@@ -95,8 +92,8 @@ export function ConfirmAccountDeletionPage() {
     } catch (err) {
       setProblem(
         err instanceof ApiError && err.code === "rate-limited"
-          ? "Too many attempts — try again later."
-          : "This link has expired or has already been used. Request a new one.",
+          ? t("common.errorRateLimited")
+          : t("deleteAccount.linkExpired"),
       );
       setStatus("failed");
     }
@@ -104,18 +101,18 @@ export function ConfirmAccountDeletionPage() {
 
   return (
     <div className="auth-page">
-      <h1>Delete your Dielys account</h1>
-      {token === null && <p className="error-text">This link is missing its token.</p>}
+      <h1>{t("deleteAccount.title")}</h1>
+      {token === null && <p className="error-text">{t("deleteAccount.missingToken")}</p>}
       {token !== null && status === "waiting" && (
         <>
-          <p>This permanently deletes your account. It cannot be undone.</p>
+          <p>{t("deleteAccount.confirmIntro")}</p>
           <button className="pill-button" type="button" onClick={() => void confirm()}>
-            Delete my account
+            {t("deleteAccount.confirmCta")}
           </button>
         </>
       )}
-      {status === "working" && <p>Deleting your account…</p>}
-      {status === "done" && <p>Your account has been deleted.</p>}
+      {status === "working" && <p>{t("deleteAccount.deleting")}</p>}
+      {status === "done" && <p>{t("deleteAccount.done")}</p>}
       {status === "failed" && problem !== null && <p className="error-text">{problem}</p>}
     </div>
   );

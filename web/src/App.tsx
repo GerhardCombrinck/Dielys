@@ -1,4 +1,5 @@
 import { SessionProvider, useSession } from "./auth/SessionContext.js";
+import { I18nProvider, useI18n } from "./i18n/I18nContext.js";
 import {
   ConfirmAccountDeletionPage,
   RequestAccountDeletionPage,
@@ -16,6 +17,7 @@ const LIST_PATH = /^\/lists\/([^/]+)$/;
 function Routed() {
   const path = usePath();
   const session = useSession();
+  const { t } = useI18n();
 
   if (path === "/magic") return <MagicLinkPage />;
   // Checked ahead of the sign-in gate below: a signed-out visitor still needs
@@ -28,7 +30,7 @@ function Routed() {
   if (path === "/account/delete") return <RequestAccountDeletionPage />;
   if (path === "/account/delete/confirm") return <ConfirmAccountDeletionPage />;
 
-  if (session.status === "loading") return <p>Loading...</p>;
+  if (session.status === "loading") return <p>{t("common.loading")}</p>;
   if (session.status === "signed-out") return <SignInPage />;
 
   if (path === "/settings") return <SettingsPage />;
@@ -41,8 +43,10 @@ function Routed() {
 
 export function App() {
   return (
-    <SessionProvider>
-      <Routed />
-    </SessionProvider>
+    <I18nProvider>
+      <SessionProvider>
+        <Routed />
+      </SessionProvider>
+    </I18nProvider>
   );
 }

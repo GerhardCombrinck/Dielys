@@ -7,6 +7,7 @@
  * is already a screen.
  */
 import { useState } from "react";
+import { useI18n } from "../i18n/I18nContext.js";
 import type { InviteState, Member, MembersState } from "../sync/useSharing.js";
 
 export function MembersDialog({
@@ -22,18 +23,17 @@ export function MembersDialog({
   // nothing outside this dialog needs to know a question was asked, and
   // dismissing it is supposed to forget it.
   const [confirming, setConfirming] = useState<Member | null>(null);
+  const { t } = useI18n();
 
   if (confirming !== null) {
     const leaving = state.status === "loaded" && confirming.userId === state.meUserId;
     return (
       <ConfirmDialog
-        title={leaving ? "Leave this list?" : `Remove ${confirming.email}?`}
-        body={
-          leaving
-            ? "You will need a new invite to see it again."
-            : "They will need a new invite to see this list again."
+        title={
+          leaving ? t("sharing.leaveTitle") : t("sharing.removeTitle", { name: confirming.email })
         }
-        confirm={leaving ? "Leave" : "Remove"}
+        body={leaving ? t("common.leaveBody") : t("sharing.removeBody")}
+        confirm={leaving ? t("common.leave") : t("common.remove")}
         onConfirm={() => {
           onRemove(state.listId, confirming.userId);
           setConfirming(null);
@@ -46,8 +46,8 @@ export function MembersDialog({
   return (
     <div className="dialog-overlay">
       <div className="dialog-box">
-        <h2>Shared with</h2>
-        {state.status === "loading" && <p>Checking…</p>}
+        <h2>{t("sharing.membersTitle")}</h2>
+        {state.status === "loading" && <p>{t("sharing.checking")}</p>}
         {state.status === "failed" && (
           <p className="error-text" role="alert">
             {state.message}
@@ -55,10 +55,13 @@ export function MembersDialog({
         )}
         {state.status === "loaded" && (
           <ul className="row-list">
-            {state.members.length <= 1 && <p>Nobody has accepted an invite to this list yet.</p>}
+            {state.members.length <= 1 && <p>{t("sharing.noMembersYet")}</p>}
             {state.members.map((member) => {
               const isMe = member.userId === state.meUserId;
-              const note = [member.isOwner ? "owner" : null, isMe ? "you" : null]
+              const note = [
+                member.isOwner ? t("sharing.owner") : null,
+                isMe ? t("sharing.you") : null,
+              ]
                 .filter((part): part is string => part !== null)
                 .join(" · ");
               const canAct = state.working === null;
@@ -67,14 +70,14 @@ export function MembersDialog({
                   <span className="member-email">{member.email}</span>
                   {note !== "" && <span className="member-note">{note}</span>}
                   {state.working === member.userId ? (
-                    <span className="member-note">Working…</span>
+                    <span className="member-note">{t("sharing.working")}</span>
                   ) : canAct && isMe && !member.isOwner ? (
                     <button type="button" onClick={() => setConfirming(member)}>
-                      Leave
+                      {t("common.leave")}
                     </button>
                   ) : canAct && !isMe && state.iAmOwner ? (
                     <button type="button" onClick={() => setConfirming(member)}>
-                      Remove
+                      {t("common.remove")}
                     </button>
                   ) : null}
                 </li>
@@ -84,7 +87,7 @@ export function MembersDialog({
         )}
         <div className="dialog-actions">
           <button className="pill-button" type="button" onClick={onDismiss}>
-            Close
+            {t("common.close")}
           </button>
         </div>
       </div>
@@ -102,28 +105,31 @@ export function InviteDialog({
   onDismiss: () => void;
 }) {
   const [email, setEmail] = useState("");
+  const { t } = useI18n();
 
   return (
     <div className="dialog-overlay">
       <div className="dialog-box">
-        <h2>{state.status === "failed" ? "Couldn't share" : "Share list"}</h2>
+        <h2>
+          {state.status === "failed" ? t("sharing.shareFailedTitle") : t("sharing.shareListTitle")}
+        </h2>
         {state.status === "entering" && (
           <>
-            <p>Who is "{state.listTitle}" for?</p>
+            <p>{t("sharing.whoFor", { title: state.listTitle })}</p>
             <input
               className="text-input"
               type="email"
-              placeholder="Email address"
+              placeholder={t("sharing.emailAddressPlaceholder")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </>
         )}
-        {state.status === "working" && <p>Sending the invite to "{state.listTitle}"…</p>}
+        {state.status === "working" && (
+          <p>{t("sharing.sendingInvite", { title: state.listTitle })}</p>
+        )}
         {state.status === "sent" && (
-          <p>
-            Invited {state.email} to "{state.listTitle}".
-          </p>
+          <p>{t("sharing.invitedTo", { email: state.email, title: state.listTitle })}</p>
         )}
         {state.status === "failed" && (
           <p className="error-text" role="alert">
@@ -135,7 +141,7 @@ export function InviteDialog({
           {state.status === "entering" && (
             <>
               <button type="button" onClick={onDismiss}>
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 className="pill-button"
@@ -143,13 +149,13 @@ export function InviteDialog({
                 disabled={email.trim() === ""}
                 onClick={() => onSend(state.listId, state.listTitle, email)}
               >
-                Send invite
+                {t("sharing.sendInvite")}
               </button>
             </>
           )}
           {state.status !== "entering" && state.status !== "working" && (
             <button className="pill-button" type="button" onClick={onDismiss}>
-              {state.status === "sent" ? "Done" : "Close"}
+              {state.status === "sent" ? t("sharing.done") : t("common.close")}
             </button>
           )}
         </div>
@@ -171,6 +177,7 @@ function ConfirmDialog({
   onConfirm: () => void;
   onDismiss: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="dialog-overlay">
       <div className="dialog-box">
@@ -178,7 +185,7 @@ function ConfirmDialog({
         <p>{body}</p>
         <div className="dialog-actions">
           <button type="button" onClick={onDismiss}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button className="pill-button danger" type="button" onClick={onConfirm}>
             {confirm}

@@ -8,12 +8,14 @@
 import { useEffect, useState } from "react";
 import { verifyMagicLink } from "../api/auth.js";
 import { useSession } from "../auth/SessionContext.js";
+import { useI18n } from "../i18n/I18nContext.js";
 import { navigate } from "../router.js";
 
 type Status = "verifying" | "failed";
 
 export function MagicLinkPage() {
   const session = useSession();
+  const { t } = useI18n();
   const [status, setStatus] = useState<Status>("verifying");
 
   const { deviceId, signIn } = session;
@@ -37,12 +39,12 @@ export function MagicLinkPage() {
       .catch(() => setStatus("failed"));
   }, [deviceId, signIn]);
 
-  if (status === "verifying") return <p>Signing you in...</p>;
+  if (status === "verifying") return <p>{t("magicLink.signingIn")}</p>;
   return (
     <div>
-      <p>That link didn't work — it may have expired or already been used.</p>
+      <p>{t("magicLink.failed")}</p>
       <button className="pill-button" type="button" onClick={() => navigate("/")}>
-        Back to sign in
+        {t("magicLink.backToSignIn")}
       </button>
     </div>
   );

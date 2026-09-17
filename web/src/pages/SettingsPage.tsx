@@ -1,7 +1,6 @@
 /**
  * Account details, signing out and deleting the account —
- * `android/.../ui/settings/SettingsScreen.kt`'s web counterpart. No language
- * picker (the web client has no localized strings to switch between yet).
+ * `android/.../ui/settings/SettingsScreen.kt`'s web counterpart.
  */
 import type { SyncSettings, SyncSettingsPatch } from "@dielys/protocol";
 import { useEffect, useState } from "react";
@@ -9,6 +8,7 @@ import { deleteAccount, getSyncSettings, patchSyncSettings } from "../api/auth.j
 import { ApiError } from "../api/client.js";
 import { useSession } from "../auth/SessionContext.js";
 import { getNewItemsOnTop, setNewItemsOnTop } from "../domain/uiPrefs.js";
+import { APP_LANGUAGES, useI18n } from "../i18n/I18nContext.js";
 import { navigate } from "../router.js";
 import { BackChevronIcon } from "../ui/icons.js";
 
@@ -21,16 +21,19 @@ function syncIntervalOptions(current: number): number[] {
   return [...new Set([...SYNC_INTERVAL_PRESETS_MINUTES, current])].sort((a, b) => a - b);
 }
 
-function formatSyncInterval(minutes: number): string {
+function formatSyncInterval(minutes: number, plural: ReturnType<typeof useI18n>["plural"]): string {
   if (minutes % 60 === 0) {
     const hours = minutes / 60;
-    return `${hours} hour${hours === 1 ? "" : "s"}`;
+    return plural(hours, "settings.everyHours.one", "settings.everyHours.other", { n: hours });
   }
-  return `${minutes} minutes`;
+  return plural(minutes, "settings.everyMinutes.one", "settings.everyMinutes.other", {
+    n: minutes,
+  });
 }
 
 export function SettingsPage() {
   const session = useSession();
+  const { t, plural, chosenTag, setLanguage } = useI18n();
   const [newItemsOnTop, setNewItemsOnTopState] = useState(getNewItemsOnTop);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -49,12 +52,12 @@ export function SettingsPage() {
         if (!cancelled) setSync(settings);
       })
       .catch(() => {
-        if (!cancelled) setSyncError("Could not load the background sync setting.");
+        if (!cancelled) setSyncError(t("settings.syncLoadError"));
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   async function updateSync(patch: SyncSettingsPatch): Promise<void> {
     setSyncSaving(true);
@@ -62,7 +65,7 @@ export function SettingsPage() {
     try {
       setSync(await patchSyncSettings(patch));
     } catch {
-      setSyncError("Could not save. Check your connection and try again.");
+      setSyncError(t("settings.syncSaveError"));
     } finally {
       setSyncSaving(false);
     }
@@ -77,10 +80,7 @@ export function SettingsPage() {
 
   async function handleDeleteAccount(): Promise<void> {
     if (
-      !window.confirm(
-        "Delete your account? Lists only you are on go with it. Lists you own that others " +
-          "are on pass to whoever has been on them longest — they stay, you do not.",
-      )
+      !window.confirm(`${t("settings.deleteAccountQuestion")} ${t("deleteAccount.explainBody")}`)
     ) {
       return;
     }
@@ -93,8 +93,8 @@ export function SettingsPage() {
     } catch (err) {
       setDeleteError(
         err instanceof ApiError
-          ? `Could not delete your account: ${err.code}.`
-          : "Could not delete your account. Check your connection and try again.",
+          ? t("settings.deleteAccountFailed", { code: err.code })
+          : t("settings.deleteAccountNetworkError"),
       );
       setDeleting(false);
     }
@@ -106,42 +106,58 @@ export function SettingsPage() {
         <button
           className="icon-button"
           type="button"
-          aria-label="Back to lists"
+          aria-label={t("common.backToLists")}
           onClick={() => navigate("/")}
         >
           <BackChevronIcon />
         </button>
-        <h1>Settings</h1>
+        <h1>{t("settings.title")}</h1>
       </header>
 
       <section className="settings-section">
-        <h2>Account</h2>
-        <p className="settings-detail-label">Email</p>
-        <p>{session.email ?? "Unknown"}</p>
+        <h2>{t("settings.account")}</h2>
+        <p className="settings-detail-label">{t("settings.email")}</p>
+        <p>{session.email ?? t("settings.emailUnknown")}</p>
       </section>
 
       <section className="settings-section">
-        <h2>New items go to</h2>
+        <h2>{t("settings.newItemsGoTo")}</h2>
         <div className="settings-segmented">
           <button
             type="button"
             className={newItemsOnTop ? "segmented-option selected" : "segmented-option"}
             onClick={() => choosePlacement(true)}
           >
-            Top
+            {t("settings.top")}
           </button>
           <button
             type="button"
             className={!newItemsOnTop ? "segmented-option selected" : "segmented-option"}
             onClick={() => choosePlacement(false)}
           >
-            Bottom
+            {t("settings.bottom")}
           </button>
         </div>
       </section>
 
       <section className="settings-section">
-        <h2>Mobile background sync</h2>
+        <h2>{t("settings.language")}</h2>
+        <select
+          className="text-input"
+          value={chosenTag ?? ""}
+          onChange={(e) => setLanguage(e.target.value === "" ? null : e.target.value)}
+        >
+          <option value="">{t("settings.languageSystemDefault")}</option>
+          {APP_LANGUAGES.map((language) => (
+            <option key={language.tag} value={language.tag}>
+              {language.nativeName}
+            </option>
+          ))}
+        </select>
+      </section>
+
+      <section className="settings-section">
+        <h2>{t("settings.mobileSync")}</h2>
         {sync !== null && (
           <>
             <div className="settings-segmented">
@@ -151,7 +167,7 @@ export function SettingsPage() {
                 disabled={syncSaving}
                 onClick={() => void updateSync({ enabled: true })}
               >
-                On
+                {t("common.on")}
               </button>
               <button
                 type="button"
@@ -159,7 +175,7 @@ export function SettingsPage() {
                 disabled={syncSaving}
                 onClick={() => void updateSync({ enabled: false })}
               >
-                Off
+                {t("common.off")}
               </button>
             </div>
             {sync.enabled && (
@@ -171,7 +187,7 @@ export function SettingsPage() {
               >
                 {syncIntervalOptions(sync.intervalMinutes).map((minutes) => (
                   <option key={minutes} value={minutes}>
-                    Every {formatSyncInterval(minutes)}
+                    {formatSyncInterval(minutes, plural)}
                   </option>
                 ))}
               </select>
@@ -186,7 +202,7 @@ export function SettingsPage() {
       </section>
 
       <button className="pill-button settings-sign-out" type="button" onClick={session.signOut}>
-        Sign out
+        {t("settings.signOut")}
       </button>
 
       {/* Below signing out and quieter than it (a text button, not a
@@ -198,7 +214,7 @@ export function SettingsPage() {
         disabled={deleting}
         onClick={() => void handleDeleteAccount()}
       >
-        {deleting ? "Deleting your account…" : "Delete account"}
+        {deleting ? t("settings.deletingAccount") : t("settings.deleteAccount")}
       </button>
       {deleteError !== null && (
         <p className="error-text" role="alert">
