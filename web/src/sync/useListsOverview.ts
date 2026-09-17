@@ -14,8 +14,8 @@ import { ensureAccents, getAccent, setAccent as storeAccent } from "../domain/ac
 import { seedPositions } from "../domain/listOrder.js";
 import { between } from "../domain/position.js";
 import { uuid7 } from "../domain/uuid7.js";
-import { emptyListState, liveTaskCount } from "./applyChange.js";
-import { hydrateList } from "./hydrateList.js";
+import { emptyListState, type ListState, liveTaskCount } from "./applyChange.js";
+import { getBoardCache, getOverviewCache, reconcileList, setOverviewCache } from "./listCache.js";
 
 export interface ListRow {
   membership: Membership;
@@ -36,7 +36,10 @@ export interface ListsOverview {
 }
 
 export function useListsOverview(deviceId: string): ListsOverview {
-  const [rows, setRows] = useState<ListRow[] | null>(null);
+  // Seeded from last session's cache, if any (listCache.ts), so a repeat
+  // visit to the overview paints immediately instead of a "Loading…" flash
+  // — `load()` below still runs and reconciles it in the background.
+  const [rows, setRows] = useState<ListRow[] | null>(getOverviewCache);
   // Guards a `refresh()` call (or the mount load) that is still in flight
   // when this hook's owner unmounts, so it does not set state on a dead page.
   const aliveRef = useRef(true);
@@ -53,13 +56,17 @@ export function useListsOverview(deviceId: string): ListsOverview {
 
     const hydrated = await Promise.all(
       memberships.map(async (membership): Promise<ListRow> => {
-        const state = emptyListState();
+        // A cached list (from a previous visit here, an open task board, or
+        // a hover prefetch) only needs its delta pulled, not a full replay
+        // (listCache.ts's `reconcileList`) — a list never seen this session
+        // still gets one full catch-up the same as before.
+        let state: ListState = getBoardCache(membership.listId)?.state ?? emptyListState();
         try {
-          await hydrateList(membership.listId, state);
+          state = (await reconcileList(membership.listId)).state;
         } catch {
           // Offline or the room is unreachable — show the row with
-          // whatever we have (nothing) rather than dropping it, and
-          // `refresh()` (window focus, or leaving a list) tries again.
+          // whatever we have (cache, or nothing) rather than dropping it,
+          // and `refresh()` (window focus, or leaving a list) tries again.
         }
         const list = state.list;
         return {
@@ -71,7 +78,10 @@ export function useListsOverview(deviceId: string): ListsOverview {
       }),
     );
 
-    if (aliveRef.current) setRows(hydrated);
+    if (aliveRef.current) {
+      setRows(hydrated);
+      setOverviewCache(hydrated);
+    }
   }, []);
 
   useEffect(() => {

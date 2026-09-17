@@ -32,7 +32,12 @@ import {
   emptyListState,
   type ListState,
 } from "./applyChange.js";
-import { hydrateList } from "./hydrateList.js";
+import {
+  type BoardCacheEntry,
+  ensureListLoaded,
+  getBoardCache,
+  updateBoardCache,
+} from "./listCache.js";
 
 export type { ConnectionStatus } from "../api/socket.js";
 
@@ -69,26 +74,56 @@ export function useTaskBoard(listId: string, deviceId: string): TaskBoard {
     });
   }, []);
 
+  // Keeps listCache.ts in step with whatever this board last rendered — a
+  // socket push, this device's own mutation ack, or the initial load/reconcile
+  // above — so the next visit to this list (or the overview) finds it fresh.
+  // Runs after render rather than inside `mergeChange`'s updater, which React
+  // requires to stay a pure function of `prev`.
+  useEffect(() => {
+    if (!loaded) return;
+    updateBoardCache(listId, state, cursorRef.current);
+  }, [listId, state, loaded]);
+
   useEffect(() => {
     let cancelled = false;
-    setState(emptyListState());
-    setLoaded(false);
-    cursorRef.current = 0;
+    // A list already in the session cache (a previous visit, or HomePage's
+    // hover prefetch) paints immediately from it — no "Loading…" flash —
+    // and only needs its delta reconciled below, not a full replay
+    // (listCache.ts).
+    const cached = getBoardCache(listId);
+    if (cached !== null) {
+      setState(cached.state);
+      cursorRef.current = cached.cursor;
+      setLoaded(true);
+    } else {
+      setState(emptyListState());
+      setLoaded(false);
+      cursorRef.current = 0;
+    }
     setStatus("connecting");
 
     (async () => {
-      const fresh = emptyListState();
-      let maxSeq = 0;
+      if (cached !== null) {
+        try {
+          await fillGap(listId, cached.cursor, mergeChange);
+        } catch {
+          // The socket's hello-ok below retries the gap-fill on (re)connect.
+        }
+        return;
+      }
+      let entry: BoardCacheEntry | null = null;
       try {
-        maxSeq = await hydrateList(listId, fresh);
+        entry = await ensureListLoaded(listId);
       } catch {
         // Offline on first load — the socket below still tries, and once it
         // connects a `hello-ok` with a higher maxSeq than our cursor (0)
         // triggers the same gap catch-up a dropped connection would.
       }
       if (cancelled) return;
-      setState(fresh);
-      cursorRef.current = maxSeq;
+      if (entry !== null) {
+        setState(entry.state);
+        cursorRef.current = entry.cursor;
+      }
       setLoaded(true);
     })();
 

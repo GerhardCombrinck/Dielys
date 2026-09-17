@@ -10,6 +10,7 @@ import { useSession } from "../auth/SessionContext.js";
 import { ACCENT_COUNT, accentColor } from "../domain/accents.js";
 import { takePendingInvite } from "../domain/pendingInvite.js";
 import { navigate } from "../router.js";
+import { prefetchList } from "../sync/listCache.js";
 import { type ListRow, useListsOverview } from "../sync/useListsOverview.js";
 import { useSharing } from "../sync/useSharing.js";
 import { GearIcon, PeopleIcon } from "../ui/icons.js";
@@ -146,6 +147,11 @@ export function HomePage() {
                 setDragOverIndex(null);
               }}
               onDrop={() => handleDrop(index)}
+              // Hover (desktop) or the press before a tap resolves (touch) —
+              // a click's own catch-up round trip is then already in flight,
+              // often already cached, by the time navigate() runs below.
+              onPointerEnter={() => prefetchList(row.membership.listId)}
+              onPointerDown={() => prefetchList(row.membership.listId)}
             >
               <span className="drag-handle" aria-hidden="true">
                 ⠿

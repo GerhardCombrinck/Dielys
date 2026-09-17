@@ -11,6 +11,7 @@ import type { TokenPair } from "@dielys/protocol";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
 import { type AuthTokens, onTokensRefreshed, refreshTokens, setAuthTokens } from "../api/client.js";
 import { deviceId } from "../domain/deviceId.js";
+import { clearListCache } from "../sync/listCache.js";
 
 const REFRESH_TOKEN_KEY = "dielys.refreshToken";
 // The server never hands the email back (a `TokenPair` carries only a user
@@ -64,6 +65,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(EMAIL_KEY);
     setAuthTokens(null);
+    clearListCache();
     setState({ status: "signed-out" });
   }, []);
 
