@@ -42,6 +42,31 @@ interface DoneSectionPrefs {
 }
 
 /**
+ * Whether the half-hourly `WorkManager` floor (H3.12) runs at all, and how
+ * often — the socket and push are still best-effort either way, so turning
+ * this off or stretching it out trades away the guarantee that a change
+ * shows up even when both of those miss, not correctness of the change
+ * itself. Its own interface for the same reason [NewTaskPlacement] has one:
+ * [za.co.dielys.data.sync.WorkManagerSyncScheduler] needs to read it without
+ * pulling in a `Context`.
+ */
+interface SyncPrefs {
+    val syncEnabled: StateFlow<Boolean>
+
+    fun setSyncEnabled(value: Boolean)
+
+    val syncIntervalMinutes: StateFlow<Long>
+
+    fun setSyncIntervalMinutes(minutes: Long)
+
+    companion object {
+        /** `PeriodicWorkRequest` refuses anything shorter than this itself. */
+        const val MIN_INTERVAL_MINUTES = 15L
+        const val DEFAULT_INTERVAL_MINUTES = 30L
+    }
+}
+
+/**
  * The app's display language (#42), as a BCP-47 tag ("af", "zu", …) — null
  * means "follow the phone's own language", same as never having chosen one.
  * Its own interface for the same reason [NewTaskPlacement] has one: the
@@ -95,6 +120,7 @@ class UiPrefs
         @ApplicationContext private val context: Context,
     ) : NewTaskPlacement,
         DoneSectionPrefs,
+        SyncPrefs,
         LocalePrefs {
         private val prefs: SharedPreferences =
             context.getSharedPreferences(UI_PREFS_FILE, Context.MODE_PRIVATE)
@@ -120,6 +146,28 @@ class UiPrefs
             expanded: Boolean,
         ) {
             prefs.edit().putBoolean(KEY_DONE_EXPANDED_PREFIX + listId, expanded).apply()
+        }
+
+        private val _syncEnabled = MutableStateFlow(prefs.getBoolean(KEY_SYNC_ENABLED, true))
+
+        override val syncEnabled: StateFlow<Boolean> = _syncEnabled.asStateFlow()
+
+        override fun setSyncEnabled(value: Boolean) {
+            prefs.edit().putBoolean(KEY_SYNC_ENABLED, value).apply()
+            _syncEnabled.value = value
+        }
+
+        private val _syncIntervalMinutes =
+            MutableStateFlow(
+                prefs.getLong(KEY_SYNC_INTERVAL_MINUTES, SyncPrefs.DEFAULT_INTERVAL_MINUTES),
+            )
+
+        override val syncIntervalMinutes: StateFlow<Long> = _syncIntervalMinutes.asStateFlow()
+
+        override fun setSyncIntervalMinutes(minutes: Long) {
+            val clamped = minutes.coerceAtLeast(SyncPrefs.MIN_INTERVAL_MINUTES)
+            prefs.edit().putLong(KEY_SYNC_INTERVAL_MINUTES, clamped).apply()
+            _syncIntervalMinutes.value = clamped
         }
 
         // Two stores, because two platforms. From API 33 the system owns this:
@@ -158,5 +206,7 @@ class UiPrefs
         private companion object {
             const val KEY_NEW_ITEMS_ON_TOP = "new-items-on-top"
             const val KEY_DONE_EXPANDED_PREFIX = "done-expanded-"
+            const val KEY_SYNC_ENABLED = "sync-enabled"
+            const val KEY_SYNC_INTERVAL_MINUTES = "sync-interval-minutes"
         }
     }

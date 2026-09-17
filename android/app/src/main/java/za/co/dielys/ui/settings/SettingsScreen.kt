@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -20,11 +21,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -38,11 +41,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import za.co.dielys.R
+import za.co.dielys.data.local.SyncPrefs
 import za.co.dielys.ui.ConfirmPrompt
 
 /**
@@ -137,6 +143,8 @@ fun SettingsScreen(
             }
 
             LanguageSection(viewModel)
+
+            BackgroundSyncSection(viewModel)
 
             Button(
                 onClick = onSignOut,
@@ -314,3 +322,145 @@ private fun LanguageOption(
         Text(label, modifier = Modifier.padding(start = 4.dp))
     }
 }
+
+/**
+ * The half-hourly floor (H3.12), as something a person can turn off or
+ * stretch out. Push and the socket both still work either way — this only
+ * trades away the guarantee that a change shows up even when both of those
+ * miss.
+ */
+@Composable
+private fun BackgroundSyncSection(viewModel: SettingsViewModel) {
+    var pickerOpen by remember { mutableStateOf(false) }
+    val enabled by viewModel.syncEnabled.collectAsStateWithLifecycle()
+    val intervalMinutes by viewModel.syncIntervalMinutes.collectAsStateWithLifecycle()
+
+    Column(modifier = Modifier.padding(top = 32.dp)) {
+        Text(
+            stringResource(R.string.settings_background_sync),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+        ) {
+            Text(
+                stringResource(R.string.settings_background_sync_enabled),
+                modifier = Modifier.weight(1f),
+            )
+            Switch(checked = enabled, onCheckedChange = viewModel::setSyncEnabled)
+        }
+        if (enabled) {
+            TextButton(
+                onClick = { pickerOpen = true },
+                modifier = Modifier.padding(top = 4.dp),
+            ) {
+                Text(frequencyLabel(intervalMinutes))
+            }
+        }
+    }
+
+    if (pickerOpen) {
+        SyncFrequencyDialog(
+            currentMinutes = intervalMinutes,
+            onConfirm = {
+                viewModel.setSyncIntervalMinutes(it)
+                pickerOpen = false
+            },
+            onDismiss = { pickerOpen = false },
+        )
+    }
+}
+
+@Composable
+private fun frequencyLabel(minutes: Long): String =
+    if (minutes % MINUTES_PER_HOUR == 0L) {
+        val hours = (minutes / MINUTES_PER_HOUR).toInt()
+        pluralStringResource(R.plurals.settings_sync_frequency_every_hours, hours, hours)
+    } else {
+        pluralStringResource(
+            R.plurals.settings_sync_frequency_every_minutes,
+            minutes.toInt(),
+            minutes,
+        )
+    }
+
+/**
+ * A number and a unit rather than a fixed list of presets — "a custom time
+ * span" means whatever number someone actually wants, not a pick from ours.
+ * Clamped no lower than [SyncPrefs.MIN_INTERVAL_MINUTES]: `PeriodicWorkRequest`
+ * refuses anything shorter itself, so a smaller value here would just be a
+ * promise the platform will not keep.
+ */
+@Composable
+private fun SyncFrequencyDialog(
+    currentMinutes: Long,
+    onConfirm: (Long) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val startInHours = currentMinutes % MINUTES_PER_HOUR == 0L
+    var hours by remember { mutableStateOf(startInHours) }
+    var text by remember {
+        mutableStateOf(
+            if (startInHours) {
+                (currentMinutes / MINUTES_PER_HOUR).toString()
+            } else {
+                currentMinutes.toString()
+            },
+        )
+    }
+    val value = text.toLongOrNull()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_sync_frequency_dialog_title)) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { new -> if (new.all(Char::isDigit)) text = new },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                )
+                SingleChoiceSegmentedButtonRow(
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                ) {
+                    SegmentedButton(
+                        selected = !hours,
+                        onClick = { hours = false },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    ) {
+                        Text(stringResource(R.string.settings_sync_frequency_unit_minutes))
+                    }
+                    SegmentedButton(
+                        selected = hours,
+                        onClick = { hours = true },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    ) {
+                        Text(stringResource(R.string.settings_sync_frequency_unit_hours))
+                    }
+                }
+                Text(
+                    stringResource(R.string.settings_sync_frequency_minimum),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val minutes = if (hours) value!! * MINUTES_PER_HOUR else value!!
+                    onConfirm(minutes.coerceAtLeast(SyncPrefs.MIN_INTERVAL_MINUTES))
+                },
+                enabled = value != null && value > 0,
+            ) { Text(stringResource(R.string.action_save)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
+}
+
+private const val MINUTES_PER_HOUR = 60L

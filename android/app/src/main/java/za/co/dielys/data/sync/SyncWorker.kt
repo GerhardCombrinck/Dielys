@@ -14,6 +14,11 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
+import za.co.dielys.data.local.SyncPrefs
+import za.co.dielys.di.ApplicationScope
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -68,7 +73,21 @@ class WorkManagerSyncScheduler
     @Inject
     constructor(
         private val workManager: WorkManager,
+        private val syncPrefs: SyncPrefs,
+        @ApplicationScope scope: CoroutineScope,
     ) : SyncScheduler {
+        init {
+            // Settings writes only the preference (E1.2: no view model reaches
+            // into WorkManager directly) — this is what makes a changed toggle
+            // or interval take effect immediately instead of waiting for the
+            // next process start-up to read it.
+            scope.launch {
+                combine(syncPrefs.syncEnabled, syncPrefs.syncIntervalMinutes) { enabled, minutes ->
+                    enabled to minutes
+                }.collect { schedulePeriodicSync() }
+            }
+        }
+
         /**
          * `APPEND_OR_REPLACE` keeps a single chain: a burst of ticks while offline
          * enqueues one drain, not twenty.
@@ -89,14 +108,26 @@ class WorkManagerSyncScheduler
 
         /**
          * FCM is best-effort — a dropped data message must not mean a list that
-         * never catches up (H3.12).
+         * never catches up (H3.12), unless the settings screen has turned this
+         * floor off. Reads [SyncPrefs] fresh on every call rather than being
+         * told the values, so both the [init] collector and the app-start-up
+         * caller in `DielysApplication` go through the one place this happens.
+         *
+         * `UPDATE` (not `KEEP`) so a changed interval actually takes effect on an
+         * already-enqueued job instead of being silently ignored.
          */
         override fun schedulePeriodicSync() {
+            if (!syncPrefs.syncEnabled.value) {
+                workManager.cancelUniqueWork(PERIODIC_WORK)
+                return
+            }
             workManager.enqueueUniquePeriodicWork(
                 PERIODIC_WORK,
-                ExistingPeriodicWorkPolicy.KEEP,
-                PeriodicWorkRequestBuilder<SyncWorker>(PERIOD_MINUTES, TimeUnit.MINUTES)
-                    .setConstraints(NETWORK)
+                ExistingPeriodicWorkPolicy.UPDATE,
+                PeriodicWorkRequestBuilder<SyncWorker>(
+                    syncPrefs.syncIntervalMinutes.value,
+                    TimeUnit.MINUTES,
+                ).setConstraints(NETWORK)
                     .setBackoffCriteria(
                         BackoffPolicy.EXPONENTIAL,
                         BACKOFF_SECONDS,
@@ -109,7 +140,6 @@ class WorkManagerSyncScheduler
             const val DRAIN_WORK = "dielys-sync-drain"
             const val PERIODIC_WORK = "dielys-sync-periodic"
             const val BACKOFF_SECONDS = 30L
-            const val PERIOD_MINUTES = 30L
             val NETWORK: Constraints =
                 Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
         }

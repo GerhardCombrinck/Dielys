@@ -138,6 +138,22 @@
     <string name="settings_language">Language</string>
     <string name="settings_language_system_default">System default</string>
 
+    <string name="settings_background_sync">Background sync</string>
+    <string name="settings_background_sync_enabled">Sync automatically</string>
+    <string name="settings_background_sync_frequency">Frequency</string>
+    <string name="settings_sync_frequency_dialog_title">Sync frequency</string>
+    <string name="settings_sync_frequency_unit_minutes">Minutes</string>
+    <string name="settings_sync_frequency_unit_hours">Hours</string>
+    <string name="settings_sync_frequency_minimum">Shortest is 15 minutes.</string>
+    <plurals name="settings_sync_frequency_every_minutes">
+        <item quantity="one">Every %d minute</item>
+        <item quantity="other">Every %d minutes</item>
+    </plurals>
+    <plurals name="settings_sync_frequency_every_hours">
+        <item quantity="one">Every %d hour</item>
+        <item quantity="other">Every %d hours</item>
+    </plurals>
+
     <!-- Deleting the account (ADR 0007). -->
     <string name="settings_delete_account">Delete account</string>
     <string name="settings_deleting_account">Deleting account…</string>
