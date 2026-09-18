@@ -87,6 +87,7 @@ import {
   selectAccountDeletionRequest,
   selectDevicesForList,
   selectDistinctListIds,
+  selectEmailsNewestFirst,
   selectListMembers,
   selectLongestOtherMember,
   selectMagicLink,
@@ -1218,6 +1219,12 @@ export class UsersRoom extends DurableObject {
    *  rather than this room reaching into ListRoom itself. */
   async listIds(): Promise<string[]> {
     return selectDistinctListIds(this.sql);
+  }
+
+  /** Every account's email, newest first (#84) — raw; the Worker obscures
+   *  the domain before it ever reaches a response body. */
+  async userEmails(): Promise<string[]> {
+    return selectEmailsNewestFirst(this.sql);
   }
 
   /**

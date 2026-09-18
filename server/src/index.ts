@@ -14,6 +14,7 @@ import { clientAddress, clientKey } from "./auth/ratelimit.js";
 import { ListRoom } from "./do/ListRoom.js";
 import { listRoom, usersRoom } from "./do/rooms.js";
 import { UsersRoom } from "./do/UsersRoom.js";
+import { obscureEmail } from "./domain/redact.js";
 import {
   parseJson,
   validateAcceptInviteRequest,
@@ -657,13 +658,15 @@ async function handleCreateUser(request: Request, env: Env, now: number): Promis
 }
 
 /**
- * `GET /admin/stats` (#84) — total accounts, plus lists and items across
- * every list anyone has a membership on. `UsersRoom` answers what it knows
- * directly; the per-list deleted/task-count numbers live in each list's own
- * `ListRoom`, so this fans out to all of them the same way `eraseAccount`
- * does for account deletion, and sums what comes back. A single list whose
- * `ListRoom` fails to answer is logged and excluded rather than failing the
- * whole page — one bad room should not hide every other number.
+ * `GET /admin/stats` (#84) — total accounts (with each account's email, its
+ * domain obscured — curiosity about who signed up, not a directory), plus
+ * lists and items across every list anyone has a membership on. `UsersRoom`
+ * answers what it knows directly; the per-list deleted/task-count numbers
+ * live in each list's own `ListRoom`, so this fans out to all of them the
+ * same way `eraseAccount` does for account deletion, and sums what comes
+ * back. A single list whose `ListRoom` fails to answer is logged and
+ * excluded rather than failing the whole page — one bad room should not
+ * hide every other number.
  */
 async function handleAdminStats(request: Request, env: Env): Promise<Response> {
   if (request.method !== "GET") return errorResponse("malformed", 405);
@@ -672,8 +675,8 @@ async function handleAdminStats(request: Request, env: Env): Promise<Response> {
     return errorResponse("unauthorized", 401);
   }
 
-  const [users, listIds] = await Promise.all([
-    usersRoom(env).userCount(),
+  const [emails, listIds] = await Promise.all([
+    usersRoom(env).userEmails(),
     usersRoom(env).listIds(),
   ]);
 
@@ -696,7 +699,12 @@ async function handleAdminStats(request: Request, env: Env): Promise<Response> {
     items += stat.taskCount;
   }
 
-  return Response.json({ users, lists, items });
+  return Response.json({
+    users: emails.length,
+    lists,
+    items,
+    emails: emails.map(obscureEmail),
+  });
 }
 
 /**

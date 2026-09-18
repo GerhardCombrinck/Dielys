@@ -86,6 +86,14 @@ export function countUsers(sql: SqlStorage): number {
   return Number(row.n);
 }
 
+/** Newest account first (#84) — "who signed up" reads top-down like an
+ *  activity feed, not alphabetically. */
+export function selectEmailsNewestFirst(sql: SqlStorage): string[] {
+  return [...sql.exec("SELECT email FROM users ORDER BY created_at DESC")].map((row) =>
+    String(row.email),
+  );
+}
+
 /** `null` for a user id that does not exist — the caller (`UsersRoom`) turns
  * that into `not-found`; this layer just reports what it saw (D1). */
 export function selectSyncSettings(sql: SqlStorage, userId: string): SyncSettings | null {

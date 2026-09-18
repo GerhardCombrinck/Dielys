@@ -20,6 +20,8 @@ interface Stats {
   users: number;
   lists: number;
   items: number;
+  /** Local part only — the server never sends the domain (#84). */
+  emails: string[];
 }
 
 export function AdminPage() {
@@ -95,11 +97,27 @@ export function AdminPage() {
           </form>
 
           {stats !== null && (
-            <div className="settings-section">
-              <StatRow label="Users" value={stats.users} />
-              <StatRow label="Lists" value={stats.lists} />
-              <StatRow label="Items" value={stats.items} />
-            </div>
+            <>
+              <div className="settings-section">
+                <StatRow label="Users" value={stats.users} />
+                <StatRow label="Lists" value={stats.lists} />
+                <StatRow label="Items" value={stats.items} />
+              </div>
+
+              <div className="settings-section">
+                <h2>Who signed up</h2>
+                <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
+                  {stats.emails.map((email, i) => (
+                    // The server doesn't hand back a stable id for this list, and
+                    // it never reorders under us within one load — index is fine.
+                    // biome-ignore lint/suspicious/noArrayIndexKey: see comment above.
+                    <li key={i} style={{ padding: "0.25rem 0" }}>
+                      {email}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
           )}
         </div>
       </div>

@@ -217,11 +217,13 @@ describe("admin stats (#84)", () => {
       users: number;
       lists: number;
       items: number;
+      emails: string[];
     };
 
     const ownerEmail = uniqueEmail();
+    const otherEmail = uniqueEmail();
     await createUser(ownerEmail);
-    await createUser(uniqueEmail());
+    await createUser(otherEmail);
     const owner = await login(ownerEmail);
 
     // A kept list: two active tasks and one deleted one, which must not count.
@@ -285,10 +287,21 @@ describe("admin stats (#84)", () => {
 
     const response = await get("/admin/stats", ADMIN);
     expect(response.status).toBe(200);
-    const stats = (await response.json()) as { users: number; lists: number; items: number };
+    const stats = (await response.json()) as {
+      users: number;
+      lists: number;
+      items: number;
+      emails: string[];
+    };
     expect(stats.users - before.users).toBe(2);
     expect(stats.lists - before.lists).toBe(1);
     expect(stats.items - before.items).toBe(2);
+
+    const domain = ownerEmail.slice(ownerEmail.indexOf("@"));
+    expect(stats.emails).not.toContain(ownerEmail);
+    expect(stats.emails).toContain(`${ownerEmail.slice(0, ownerEmail.indexOf("@"))}@…`);
+    expect(stats.emails).not.toContain(otherEmail);
+    expect(stats.emails.some((e) => e.endsWith(domain))).toBe(false);
   });
 });
 
