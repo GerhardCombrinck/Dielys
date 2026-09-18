@@ -201,6 +201,15 @@ export function SettingsPage() {
         )}
       </section>
 
+      <a
+        className="text-button link settings-privacy-policy"
+        href="https://dielys.com/privacy"
+        target="_blank"
+        rel="noreferrer"
+      >
+        {t("settings.privacyPolicy")}
+      </a>
+
       <button className="pill-button settings-sign-out" type="button" onClick={session.signOut}>
         {t("settings.signOut")}
       </button>

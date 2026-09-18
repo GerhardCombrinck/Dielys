@@ -117,6 +117,7 @@
     <string name="settings_sign_out">Bvani</string>
     <string name="settings_language">Luambo</string>
     <string name="settings_language_system_default">Zwa sisiteme</string>
+    <string name="settings_privacy_policy">Mulayo wa Tshiphiri</string>
 
     <string name="settings_delete_account">Thutha akhaunthu</string>
     <string name="settings_deleting_account">I khou thutha akhaunthu…</string>

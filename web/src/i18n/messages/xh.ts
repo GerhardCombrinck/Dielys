@@ -139,6 +139,7 @@ export const xh: Messages = {
   "settings.everyHours.other": "Rhoqo ngeeyure ezi-{n}",
   "settings.language": "Ulwimi",
   "settings.languageSystemDefault": "Okuzenzekelayo kwenkqubo",
+  "settings.privacyPolicy": "Umgaqo-nkqubo Wemfihlo",
   "settings.signOut": "Phuma",
   "settings.deleteAccountQuestion": "Cima i-akhawunti yakho?",
   "settings.deleteAccount": "Cima i-akhawunti",

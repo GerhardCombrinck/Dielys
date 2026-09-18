@@ -138,6 +138,7 @@ export const nr: Messages = {
   "settings.everyHours.other": "Qobe ngamahora ali-{n}",
   "settings.language": "Ilimi",
   "settings.languageSystemDefault": "Okuzenzakalelako kwesistimu",
+  "settings.privacyPolicy": "Inqubomgomo Yobumfihlo",
   "settings.signOut": "Phuma",
   "settings.deleteAccountQuestion": "Susa i-akhawunti yakho?",
   "settings.deleteAccount": "Susa i-akhawunti",

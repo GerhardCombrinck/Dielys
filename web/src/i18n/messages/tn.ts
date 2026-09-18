@@ -136,6 +136,7 @@ export const tn: Messages = {
   "settings.everyHours.other": "Nako le nako ya diura tse {n}",
   "settings.language": "Puo",
   "settings.languageSystemDefault": "Tlwaelo ya thulaganyo",
+  "settings.privacyPolicy": "Pholisi ya Sephiri",
   "settings.signOut": "Tswa",
   "settings.deleteAccountQuestion": "Phimola akhaonto ya gago?",
   "settings.deleteAccount": "Phimola akhaonto",

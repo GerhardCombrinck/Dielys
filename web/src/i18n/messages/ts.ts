@@ -144,6 +144,7 @@ export const ts: Messages = {
   "settings.everyHours.other": "Tiawara ta {n} hinkwato",
   "settings.language": "Ririmi",
   "settings.languageSystemDefault": "Swa sisiteme",
+  "settings.privacyPolicy": "Nawu wa Xihundla",
   "settings.signOut": "Huma",
   "settings.deleteAccountQuestion": "Susa akhawunti ya wena?",
   "settings.deleteAccount": "Susa akhawunti",

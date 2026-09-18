@@ -135,6 +135,7 @@ export const st: Messages = {
   "settings.everyHours.other": "Dihora tse {n} tse nngwe le tse nngwe",
   "settings.language": "Puo",
   "settings.languageSystemDefault": "Tlwaelo ya sistimi",
+  "settings.privacyPolicy": "Pholisi ya Lekunutu",
   "settings.signOut": "Tswa",
   "settings.deleteAccountQuestion": "Hlakola akhaonto ya hao?",
   "settings.deleteAccount": "Hlakola akhaonto",

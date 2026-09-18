@@ -117,6 +117,7 @@
     <string name="settings_sign_out">Huma</string>
     <string name="settings_language">Ririmi</string>
     <string name="settings_language_system_default">Swa sisiteme</string>
+    <string name="settings_privacy_policy">Nawu wa Xihundla</string>
 
     <string name="settings_delete_account">Susa akhawunti</string>
     <string name="settings_deleting_account">Ku susa akhawunti…</string>

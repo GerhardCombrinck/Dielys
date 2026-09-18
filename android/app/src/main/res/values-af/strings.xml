@@ -123,6 +123,7 @@
     <string name="settings_sign_out">Meld af</string>
     <string name="settings_language">Taal</string>
     <string name="settings_language_system_default">Stelselverstek</string>
+    <string name="settings_privacy_policy">Privaatheidsbeleid</string>
 
     <string name="settings_delete_account">Skrap rekening</string>
     <string name="settings_deleting_account">Skrap tans rekening…</string>

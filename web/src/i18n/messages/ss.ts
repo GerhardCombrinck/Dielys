@@ -134,6 +134,7 @@ export const ss: Messages = {
   "settings.everyHours.other": "Njalo ngemahora leli-{n}",
   "settings.language": "Lulwimi",
   "settings.languageSystemDefault": "Lokutentekelako kwesistimu",
+  "settings.privacyPolicy": "Inchubomgomo Yemfihlo",
   "settings.signOut": "Phuma",
   "settings.deleteAccountQuestion": "Susa i-akhawunti yakho?",
   "settings.deleteAccount": "Susa i-akhawunti",

@@ -3,6 +3,8 @@ package za.co.dielys.ui.settings
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -146,6 +148,8 @@ fun SettingsScreen(
 
             BackgroundSyncSection(viewModel)
 
+            PrivacyPolicySection()
+
             Button(
                 onClick = onSignOut,
                 colors =
@@ -162,6 +166,23 @@ fun SettingsScreen(
                 onDelete = viewModel::deleteAccount,
             )
         }
+    }
+}
+
+/** Play's User Data policy requires this link both in the store listing and
+ * somewhere reachable inside the app itself — this is that second place. */
+@Composable
+private fun PrivacyPolicySection() {
+    val context = LocalContext.current
+    TextButton(
+        onClick = {
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW, Uri.parse("https://dielys.com/privacy")),
+            )
+        },
+        modifier = Modifier.padding(top = 32.dp),
+    ) {
+        Text(stringResource(R.string.settings_privacy_policy))
     }
 }
 

@@ -122,6 +122,7 @@
     <string name="settings_sign_out">Tšwa</string>
     <string name="settings_language">Polelo</string>
     <string name="settings_language_system_default">Tlwaelo ya sistimi</string>
+    <string name="settings_privacy_policy">Pholisi ya Sephiri</string>
 
     <string name="settings_delete_account">Phumola akhaonto</string>
     <string name="settings_deleting_account">E phumola akhaonto…</string>

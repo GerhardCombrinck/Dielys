@@ -134,6 +134,7 @@ export const zu: Messages = {
   "settings.everyHours.other": "Njalo ngamahora angu-{n}",
   "settings.language": "Ulimi",
   "settings.languageSystemDefault": "Okuzenzakalelayo kwesistimu",
+  "settings.privacyPolicy": "Inqubomgomo Yobumfihlo",
   "settings.signOut": "Phuma",
   "settings.deleteAccountQuestion": "Susa i-akhawunti yakho?",
   "settings.deleteAccount": "Susa i-akhawunti",

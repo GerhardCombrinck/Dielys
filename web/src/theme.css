@@ -842,6 +842,13 @@ input {
   margin-top: 0.75rem;
 }
 
+.settings-privacy-policy {
+  display: block;
+  width: fit-content;
+  margin: 1.5rem auto 0;
+  text-decoration: none;
+}
+
 .settings-sign-out {
   background: var(--rust);
   margin-top: 2rem;

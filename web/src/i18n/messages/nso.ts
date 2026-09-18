@@ -137,6 +137,7 @@ export const nso: Messages = {
   "settings.everyHours.other": "Diiri tše {n} tše dingwe le tše dingwe",
   "settings.language": "Polelo",
   "settings.languageSystemDefault": "Tlwaelo ya sistimi",
+  "settings.privacyPolicy": "Pholisi ya Sephiri",
   "settings.signOut": "Tšwa",
   "settings.deleteAccountQuestion": "Phumola akhaonto ya gago?",
   "settings.deleteAccount": "Phumola akhaonto",

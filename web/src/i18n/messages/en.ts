@@ -128,6 +128,7 @@ export const en = {
   "settings.everyHours.other": "Every {n} hours",
   "settings.language": "Language",
   "settings.languageSystemDefault": "System default",
+  "settings.privacyPolicy": "Privacy policy",
   "settings.signOut": "Sign out",
   "settings.deleteAccountQuestion": "Delete your account?",
   "settings.deleteAccount": "Delete account",

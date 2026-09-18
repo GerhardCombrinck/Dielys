@@ -137,6 +137,7 @@
     <string name="settings_sign_out">Sign out</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_system_default">System default</string>
+    <string name="settings_privacy_policy">Privacy policy</string>
 
     <string name="settings_background_sync">Background sync</string>
     <string name="settings_background_sync_enabled">Sync automatically</string>

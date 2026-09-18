@@ -117,6 +117,7 @@
     <string name="settings_sign_out">Phuma</string>
     <string name="settings_language">Ulimi</string>
     <string name="settings_language_system_default">Okuzenzakalelayo kwesistimu</string>
+    <string name="settings_privacy_policy">Inqubomgomo Yobumfihlo</string>
 
     <string name="settings_delete_account">Susa i-akhawunti</string>
     <string name="settings_deleting_account">Isusa i-akhawunti…</string>

@@ -130,6 +130,7 @@ export const af: Messages = {
   "settings.everyHours.other": "Elke {n} uur",
   "settings.language": "Taal",
   "settings.languageSystemDefault": "Stelselverstek",
+  "settings.privacyPolicy": "Privaatheidsbeleid",
   "settings.signOut": "Meld af",
   "settings.deleteAccountQuestion": "Skrap jou rekening?",
   "settings.deleteAccount": "Skrap rekening",

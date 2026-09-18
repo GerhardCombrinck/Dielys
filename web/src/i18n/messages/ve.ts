@@ -143,6 +143,7 @@ export const ve: Messages = {
   "settings.everyHours.other": "Awara dza {n} dzoṱhe",
   "settings.language": "Luambo",
   "settings.languageSystemDefault": "Zwa sisiteme",
+  "settings.privacyPolicy": "Mulayo wa Tshiphiri",
   "settings.signOut": "Bvani",
   "settings.deleteAccountQuestion": "Thutha akhaunthu yaṋu?",
   "settings.deleteAccount": "Thutha akhaunthu",
