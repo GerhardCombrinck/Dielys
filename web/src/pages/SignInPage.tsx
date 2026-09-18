@@ -12,7 +12,7 @@ import { magicLinkStatus, requestMagicLink, verifyMagicCode } from "../api/auth.
 import { ApiError } from "../api/client.js";
 import { useSession } from "../auth/SessionContext.js";
 import { useI18n } from "../i18n/I18nContext.js";
-import { Spinner } from "../ui/icons.js";
+import { LogoMarkIcon, Spinner } from "../ui/icons.js";
 
 const POLL_INTERVAL_MS = 10_000;
 const MAX_POLL_ATTEMPTS = 18; // ~3 minutes, matching the Android client
@@ -113,7 +113,9 @@ export function SignInPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-header">
-          <div className="auth-badge">D</div>
+          <div className="auth-badge">
+            <LogoMarkIcon />
+          </div>
           <h1>Die Lys</h1>
           <div className="auth-tagline">SIT DIT OP DIE LYS</div>
         </div>
