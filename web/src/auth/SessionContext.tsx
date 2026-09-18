@@ -9,7 +9,14 @@
 
 import type { TokenPair } from "@dielys/protocol";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
-import { type AuthTokens, onTokensRefreshed, refreshTokens, setAuthTokens } from "../api/client.js";
+import {
+  type AuthTokens,
+  isDefinitelySignedOut,
+  onRefreshTokenRequested,
+  onTokensRefreshed,
+  refreshTokens,
+  setAuthTokens,
+} from "../api/client.js";
 import { deviceId } from "../domain/deviceId.js";
 import { clearListCache } from "../sync/listCache.js";
 
@@ -89,7 +96,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       .then((refreshed) => {
         if (cancelled) return;
         if (refreshed === null) {
-          localStorage.removeItem(REFRESH_TOKEN_KEY);
+          // Only forget this device when the server actually rejected the
+          // token — a rate limit or a dropped request must not throw away an
+          // otherwise-good 30-day refresh token (#83); the next reload
+          // retries with the same one still in localStorage.
+          if (isDefinitelySignedOut()) localStorage.removeItem(REFRESH_TOKEN_KEY);
           setState({ status: "signed-out" });
           return;
         }
@@ -112,6 +123,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     onTokensRefreshed((refreshed: AuthTokens) => {
       localStorage.setItem(REFRESH_TOKEN_KEY, refreshed.refreshToken);
     });
+    onRefreshTokenRequested(() => localStorage.getItem(REFRESH_TOKEN_KEY));
   }, []);
 
   return (
