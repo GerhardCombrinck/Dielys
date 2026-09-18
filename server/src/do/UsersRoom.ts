@@ -86,6 +86,7 @@ import {
   recordListHead,
   selectAccountDeletionRequest,
   selectDevicesForList,
+  selectDistinctListIds,
   selectListMembers,
   selectLongestOtherMember,
   selectMagicLink,
@@ -1209,6 +1210,14 @@ export class UsersRoom extends DurableObject {
    * bootstrapping a second time without an explicit token. */
   async userCount(): Promise<number> {
     return countUsers(this.sql);
+  }
+
+  /** Every list id any membership here points at (#84) — the admin stats
+   *  route fans out to each one over RPC for its own item count, the same
+   *  way [deleteAccount]'s result hands the Worker a list of ids to act on
+   *  rather than this room reaching into ListRoom itself. */
+  async listIds(): Promise<string[]> {
+    return selectDistinctListIds(this.sql);
   }
 
   /**

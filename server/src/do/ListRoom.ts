@@ -29,6 +29,7 @@ import {
   toEnvelope,
 } from "../storage/changes.js";
 import {
+  countActiveTasks,
   readRoomMeta,
   selectFieldMeta,
   selectList,
@@ -155,6 +156,27 @@ export class ListRoom extends DurableObject {
    */
   async disconnectAll(): Promise<void> {
     this.closeAllSockets("membership-changed");
+  }
+
+  /**
+   * Admin-only aggregate counts (#84): whether this list is (soft-)deleted,
+   * and how many of its tasks are not. No auth of its own (see the class
+   * docstring) — reached only from the Worker's ADMIN_TOKEN-gated
+   * `/admin/stats` handler, the same way `erase`/`disconnectAll` above are
+   * reached only from the account-deletion path.
+   *
+   * A list this room has never actually been given a `lists` row for (the
+   * membership was claimed, but no "list" mutation has landed yet) counts as
+   * not deleted with zero tasks, rather than being excluded — it exists to
+   * whoever claimed it, even if nothing has synced yet.
+   */
+  async stats(): Promise<{ deleted: boolean; taskCount: number }> {
+    const listId = this.listId();
+    const list = listId === null ? null : selectList(this.sql, listId);
+    return {
+      deleted: list !== null && list.deletedAt !== null,
+      taskCount: countActiveTasks(this.sql),
+    };
   }
 
   /** 1012 ("service restart"): the client's reconnect loop treats it as

@@ -280,6 +280,14 @@ export function selectMembership(
   return toMembership(row);
 }
 
+/** Every list anyone still has a membership on (#84) — the full set this
+ *  room can name, for the admin stats route to fan out to. */
+export function selectDistinctListIds(sql: SqlStorage): string[] {
+  return [...sql.exec("SELECT DISTINCT list_id FROM memberships")].map((row) =>
+    String(row.list_id),
+  );
+}
+
 /** How many people are on a list at all. Zero means it is unclaimed. */
 export function countListMembers(sql: SqlStorage, listId: string): number {
   const row = sql.exec("SELECT COUNT(*) AS n FROM memberships WHERE list_id = ?", listId).one();

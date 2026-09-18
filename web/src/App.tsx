@@ -1,5 +1,6 @@
 import { SessionProvider, useSession } from "./auth/SessionContext.js";
 import { I18nProvider, useI18n } from "./i18n/I18nContext.js";
+import { AdminPage } from "./pages/AdminPage.js";
 import {
   ConfirmAccountDeletionPage,
   RequestAccountDeletionPage,
@@ -29,6 +30,8 @@ function Routed() {
   // reason to be signed in on this browser.
   if (path === "/account/delete") return <RequestAccountDeletionPage />;
   if (path === "/account/delete/confirm") return <ConfirmAccountDeletionPage />;
+  // Gated by ADMIN_TOKEN on the server, not a session — see AdminPage.tsx.
+  if (path === "/admin") return <AdminPage />;
 
   if (session.status === "loading") return <p>{t("common.loading")}</p>;
   if (session.status === "signed-out") return <SignInPage />;

@@ -135,6 +135,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
         return await handleRegisterDevice(request, env, now);
       case "/admin/users":
         return await handleCreateUser(request, env, now);
+      case "/admin/stats":
+        return await handleAdminStats(request, env);
       case "/invites/accept":
         return await handleAcceptInvite(request, env, now);
       case "/account":
@@ -652,6 +654,49 @@ async function handleCreateUser(request: Request, env: Env, now: number): Promis
   if (!result.ok) return errorResponse(result.code, result.code === "already-exists" ? 409 : 400);
 
   return Response.json({ userId: result.value }, { status: 201 });
+}
+
+/**
+ * `GET /admin/stats` (#84) — total accounts, plus lists and items across
+ * every list anyone has a membership on. `UsersRoom` answers what it knows
+ * directly; the per-list deleted/task-count numbers live in each list's own
+ * `ListRoom`, so this fans out to all of them the same way `eraseAccount`
+ * does for account deletion, and sums what comes back. A single list whose
+ * `ListRoom` fails to answer is logged and excluded rather than failing the
+ * whole page — one bad room should not hide every other number.
+ */
+async function handleAdminStats(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET") return errorResponse("malformed", 405);
+  if (!authorizeAdmin(request, env)) {
+    log("warn", "worker.admin.denied", {});
+    return errorResponse("unauthorized", 401);
+  }
+
+  const [users, listIds] = await Promise.all([
+    usersRoom(env).userCount(),
+    usersRoom(env).listIds(),
+  ]);
+
+  const perList = await Promise.all(
+    listIds.map((listId) =>
+      listRoom(env, listId)
+        .stats()
+        .catch((error: unknown) => {
+          log("error", "worker.admin.stats.list-failed", { listId, error: String(error) });
+          return null;
+        }),
+    ),
+  );
+
+  let lists = 0;
+  let items = 0;
+  for (const stat of perList) {
+    if (stat === null || stat.deleted) continue;
+    lists += 1;
+    items += stat.taskCount;
+  }
+
+  return Response.json({ users, lists, items });
 }
 
 /**

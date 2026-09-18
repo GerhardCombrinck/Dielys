@@ -180,6 +180,118 @@ describe("account creation (L2)", () => {
   });
 });
 
+async function mutateTask(
+  listId: string,
+  entityId: string,
+  patch: Record<string, unknown>,
+  token: string,
+): Promise<void> {
+  const response = await post(
+    `/lists/${listId}/mutate`,
+    {
+      type: "mutate",
+      protocolVersion: 2,
+      listId,
+      entityType: "task",
+      entityId,
+      idempotencyKey: crypto.randomUUID(),
+      deviceId: "device-a",
+      patch,
+    },
+    token,
+  );
+  expect(response.status).toBe(200);
+}
+
+describe("admin stats (#84)", () => {
+  it("refuses without the admin token", async () => {
+    const response = await get("/admin/stats");
+    expect(response.status).toBe(401);
+  });
+
+  it("counts accounts, lists, and active items — deleted ones aside", async () => {
+    // Storage is shared across this whole file (H1: real DO storage, not
+    // reset per test), so other describe blocks' users and lists are still
+    // there — assert the delta this test itself adds, not an absolute count.
+    const before = (await (await get("/admin/stats", ADMIN)).json()) as {
+      users: number;
+      lists: number;
+      items: number;
+    };
+
+    const ownerEmail = uniqueEmail();
+    await createUser(ownerEmail);
+    await createUser(uniqueEmail());
+    const owner = await login(ownerEmail);
+
+    // A kept list: two active tasks and one deleted one, which must not count.
+    const keptListId = crypto.randomUUID();
+    await post(`/lists/${keptListId}`, {}, owner.accessToken);
+    await mutateTask(
+      keptListId,
+      crypto.randomUUID(),
+      { title: "Melk", position: "a0" },
+      owner.accessToken,
+    );
+    await mutateTask(
+      keptListId,
+      crypto.randomUUID(),
+      { title: "Brood", position: "a1" },
+      owner.accessToken,
+    );
+    const removedTask = crypto.randomUUID();
+    await mutateTask(
+      keptListId,
+      removedTask,
+      { title: "Eiers", position: "a2" },
+      owner.accessToken,
+    );
+    await mutateTask(
+      keptListId,
+      removedTask,
+      { deletedAt: new Date().toISOString() },
+      owner.accessToken,
+    );
+
+    // A second list, deleted outright — neither it nor its task should count.
+    const deletedListId = crypto.randomUUID();
+    await post(`/lists/${deletedListId}`, {}, owner.accessToken);
+    await mutateTask(
+      deletedListId,
+      crypto.randomUUID(),
+      { title: "Botter", position: "a0" },
+      owner.accessToken,
+    );
+    async function mutateList(patch: Record<string, unknown>): Promise<Response> {
+      return post(
+        `/lists/${deletedListId}/mutate`,
+        {
+          type: "mutate",
+          protocolVersion: 2,
+          listId: deletedListId,
+          entityType: "list",
+          entityId: deletedListId,
+          idempotencyKey: crypto.randomUUID(),
+          deviceId: "device-a",
+          patch,
+        },
+        owner.accessToken,
+      );
+    }
+    // A list entity only exists once something has named it (apply.ts's
+    // "incomplete-create") — deleting it is a second mutation, not the first.
+    expect((await mutateList({ title: "Vullis" })).status).toBe(200);
+    expect((await mutateList({ deletedAt: new Date().toISOString() })).status).toBe(200);
+
+    const response = await get("/admin/stats", ADMIN);
+    expect(response.status).toBe(200);
+    const stats = (await response.json()) as { users: number; lists: number; items: number };
+    expect(stats.users - before.users).toBe(2);
+    expect(stats.lists - before.lists).toBe(1);
+    expect(stats.items - before.items).toBe(2);
+  });
+});
+
 /** ADR 0004 replaced L2's admin-only registration with a public route. */
 describe("public registration (L2, ADR 0004)", () => {
   it("creates the account and signs the caller in, in one call", async () => {
