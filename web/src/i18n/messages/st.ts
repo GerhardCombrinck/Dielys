@@ -127,6 +127,7 @@ export const st: Messages = {
   "settings.top": "Hodimo",
   "settings.bottom": "Tlase",
   "settings.mobileSync": "Ho kopanngwa ha fono ka nako e sa tsejweng",
+  "settings.backgroundSyncDescription": "Boloka manane a ntjhafaditswe ha app e kwetswe",
   "settings.syncLoadError": "E hlolehile ho kenya tlhophiso ya ho kopanngwa ka nako e sa tsejweng.",
   "settings.syncSaveError": "E hlolehile ho boloka. Sheba khokahano ya hao mme o leke hape.",
   "settings.everyMinutes.one": "Motsotso o mong le o mong {n}",

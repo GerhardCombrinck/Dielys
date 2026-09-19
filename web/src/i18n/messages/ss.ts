@@ -126,6 +126,7 @@ export const ss: Messages = {
   "settings.top": "Etulu",
   "settings.bottom": "Ngentasi",
   "settings.mobileSync": "Kuvumelanisa kwelusenteni kwelucingo",
+  "settings.backgroundSyncDescription": "Gcina luhlu lubuyeketiwe nangabe i-app ivaliwe",
   "settings.syncLoadError": "Ayikhonanga kulayisha sicwangciso sekuvumelanisa ngemuva.",
   "settings.syncSaveError": "Ayikhonanga kugcina. Hlola luchumano lwakho bese uzama futsi.",
   "settings.everyMinutes.one": "Njalo ngemzuzu {n}",

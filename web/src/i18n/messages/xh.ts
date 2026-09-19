@@ -130,6 +130,7 @@ export const xh: Messages = {
   "settings.top": "Phezulu",
   "settings.bottom": "Ezantsi",
   "settings.mobileSync": "Ukuvumelanisa kwefowuni ngasemva",
+  "settings.backgroundSyncDescription": "Gcina uluhlu luhlaziyiwe xa usetyenziso luvaliwe",
   "settings.syncLoadError": "Ayikwazanga ukufaka isicwangciso sokuvumelanisa ngasemva.",
   "settings.syncSaveError":
     "Ayikwazanga ukugcina. Khangela uqhagamshelo lwakho uze uzame kwakhona.",

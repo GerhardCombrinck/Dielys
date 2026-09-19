@@ -135,6 +135,8 @@ export const ts: Messages = {
   "settings.top": "Ehenhla",
   "settings.bottom": "Ehansi",
   "settings.mobileSync": "Ku hlanganisiwa ka riqingho endzhaku",
+  "settings.backgroundSyncDescription":
+    "Hlayisa swinxaxamelo swi pfuxetiwile loko app yi pfaletiwile",
   "settings.syncLoadError": "A swi kotekanga ku layisha vulunghiso bya ku hlanganisiwa endzhaku.",
   "settings.syncSaveError":
     "A swi kotekanga ku hlayisa. Languta vuhlanganisi bya wena kutani u ringeta nakambe.",

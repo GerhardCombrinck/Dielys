@@ -129,6 +129,7 @@ export const nso: Messages = {
   "settings.top": "Godimo",
   "settings.bottom": "Tlase",
   "settings.mobileSync": "Go sepetšana ga mogala ka morago",
+  "settings.backgroundSyncDescription": "Boloka dilista di mpshafaditšwe ge app e tswaletšwe",
   "settings.syncLoadError": "E paletšwe go laiša peakanyo ya go sepetšana ka morago.",
   "settings.syncSaveError": "E paletšwe go boloka. Lekola kgokagano ya gago gomme o leke gape.",
   "settings.everyMinutes.one": "Motsotso o mongwe le o mongwe wa {n}",

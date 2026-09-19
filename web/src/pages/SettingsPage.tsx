@@ -3,14 +3,14 @@
  * `android/.../ui/settings/SettingsScreen.kt`'s web counterpart.
  */
 import type { SyncSettings, SyncSettingsPatch } from "@dielys/protocol";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { deleteAccount, getSyncSettings, patchSyncSettings } from "../api/auth.js";
 import { ApiError } from "../api/client.js";
 import { useSession } from "../auth/SessionContext.js";
 import { getNewItemsOnTop, setNewItemsOnTop } from "../domain/uiPrefs.js";
 import { APP_LANGUAGES, useI18n } from "../i18n/I18nContext.js";
 import { navigate } from "../router.js";
-import { BackChevronIcon } from "../ui/icons.js";
+import { BackChevronIcon, ChevronDownIcon } from "../ui/icons.js";
 
 /** A handful of common choices — Android's own picker is freeform, so
  * whatever it last sent is added below if it is not already one of these
@@ -114,122 +114,161 @@ export function SettingsPage() {
         <h1>{t("settings.title")}</h1>
       </header>
 
-      <section className="settings-section">
-        <h2>{t("settings.account")}</h2>
-        <p className="settings-detail-label">{t("settings.email")}</p>
-        <p>{session.email ?? t("settings.emailUnknown")}</p>
-      </section>
+      <div className="settings-cards">
+        <section className="settings-card">
+          <h2 className="settings-card-eyebrow">{t("settings.account")}</h2>
+          <p className="settings-detail-label">{t("settings.email")}</p>
+          <p className="settings-detail-value">{session.email ?? t("settings.emailUnknown")}</p>
+        </section>
 
-      <section className="settings-section">
-        <h2>{t("settings.newItemsGoTo")}</h2>
-        <div className="settings-segmented">
-          <button
-            type="button"
-            className={newItemsOnTop ? "segmented-option selected" : "segmented-option"}
-            onClick={() => choosePlacement(true)}
+        <section className="settings-card">
+          <h2>{t("settings.newItemsGoTo")}</h2>
+          <div className="settings-segmented">
+            <button
+              type="button"
+              aria-pressed={newItemsOnTop}
+              className={newItemsOnTop ? "segmented-option selected" : "segmented-option"}
+              onClick={() => choosePlacement(true)}
+            >
+              {t("settings.top")}
+            </button>
+            <button
+              type="button"
+              aria-pressed={!newItemsOnTop}
+              className={!newItemsOnTop ? "segmented-option selected" : "segmented-option"}
+              onClick={() => choosePlacement(false)}
+            >
+              {t("settings.bottom")}
+            </button>
+          </div>
+        </section>
+
+        <section className="settings-card">
+          <h2>{t("settings.language")}</h2>
+          <SettingsSelect
+            ariaLabel={t("settings.language")}
+            value={chosenTag ?? ""}
+            onChange={(value) => setLanguage(value === "" ? null : value)}
           >
-            {t("settings.top")}
-          </button>
-          <button
-            type="button"
-            className={!newItemsOnTop ? "segmented-option selected" : "segmented-option"}
-            onClick={() => choosePlacement(false)}
-          >
-            {t("settings.bottom")}
-          </button>
-        </div>
-      </section>
+            <option value="">{t("settings.languageSystemDefault")}</option>
+            {APP_LANGUAGES.map((language) => (
+              <option key={language.tag} value={language.tag}>
+                {language.nativeName}
+              </option>
+            ))}
+          </SettingsSelect>
+        </section>
 
-      <section className="settings-section">
-        <h2>{t("settings.language")}</h2>
-        <select
-          className="text-input"
-          value={chosenTag ?? ""}
-          onChange={(e) => setLanguage(e.target.value === "" ? null : e.target.value)}
-        >
-          <option value="">{t("settings.languageSystemDefault")}</option>
-          {APP_LANGUAGES.map((language) => (
-            <option key={language.tag} value={language.tag}>
-              {language.nativeName}
-            </option>
-          ))}
-        </select>
-      </section>
-
-      <section className="settings-section">
-        <h2>{t("settings.mobileSync")}</h2>
-        {sync !== null && (
-          <>
-            <div className="settings-segmented">
-              <button
-                type="button"
-                className={sync.enabled ? "segmented-option selected" : "segmented-option"}
-                disabled={syncSaving}
-                onClick={() => void updateSync({ enabled: true })}
-              >
-                {t("common.on")}
-              </button>
-              <button
-                type="button"
-                className={!sync.enabled ? "segmented-option selected" : "segmented-option"}
-                disabled={syncSaving}
-                onClick={() => void updateSync({ enabled: false })}
-              >
-                {t("common.off")}
-              </button>
+        <section className="settings-card">
+          <div className="settings-switch-row">
+            <div>
+              <h2 id="settings-sync-title">{t("settings.mobileSync")}</h2>
+              <p className="settings-card-description">{t("settings.backgroundSyncDescription")}</p>
             </div>
-            {sync.enabled && (
-              <select
-                className="text-input sync-interval-select"
-                value={sync.intervalMinutes}
+            {sync !== null && (
+              <button
+                type="button"
+                role="switch"
+                aria-checked={sync.enabled}
+                aria-labelledby="settings-sync-title"
+                className="settings-switch"
                 disabled={syncSaving}
-                onChange={(e) => void updateSync({ intervalMinutes: Number(e.target.value) })}
+                onClick={() => void updateSync({ enabled: !sync.enabled })}
               >
-                {syncIntervalOptions(sync.intervalMinutes).map((minutes) => (
-                  <option key={minutes} value={minutes}>
-                    {formatSyncInterval(minutes, plural)}
-                  </option>
-                ))}
-              </select>
+                <span className="settings-switch-knob" />
+              </button>
             )}
-          </>
-        )}
-        {syncError !== null && (
-          <p className="error-text" role="alert">
-            {syncError}
-          </p>
-        )}
-      </section>
+          </div>
+          {sync?.enabled === true && (
+            <SettingsSelect
+              className="sync-interval-select"
+              ariaLabel={t("settings.mobileSync")}
+              value={String(sync.intervalMinutes)}
+              disabled={syncSaving}
+              onChange={(value) => void updateSync({ intervalMinutes: Number(value) })}
+            >
+              {syncIntervalOptions(sync.intervalMinutes).map((minutes) => (
+                <option key={minutes} value={minutes}>
+                  {formatSyncInterval(minutes, plural)}
+                </option>
+              ))}
+            </SettingsSelect>
+          )}
+          {syncError !== null && (
+            <p className="error-text" role="alert">
+              {syncError}
+            </p>
+          )}
+        </section>
 
-      <a
-        className="text-button link settings-privacy-policy"
-        href="https://dielys.com/privacy"
-        target="_blank"
-        rel="noreferrer"
+        <a
+          className="settings-privacy-policy"
+          href="https://dielys.com/privacy"
+          target="_blank"
+          rel="noreferrer"
+        >
+          {t("settings.privacyPolicy")}
+        </a>
+
+        {/* Outlined, not red: signing out is ordinary and undoable. */}
+        <button className="settings-sign-out" type="button" onClick={session.signOut}>
+          {t("settings.signOut")}
+        </button>
+
+        {/* Below a divider and quieter than everything else on the page, so
+            the permanent action is never the one a thumb lands on by habit —
+            the confirm prompt is where it gets its weight. */}
+        <div className="settings-danger-zone">
+          <button
+            type="button"
+            className="settings-delete-account"
+            disabled={deleting}
+            onClick={() => void handleDeleteAccount()}
+          >
+            {deleting ? t("settings.deletingAccount") : t("settings.deleteAccount")}
+          </button>
+          {deleteError !== null && (
+            <p className="error-text" role="alert">
+              {deleteError}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** A native `<select>` dressed as a field, with its own chevron in place of
+ * the platform arrow (which ignores the theme's colours). */
+function SettingsSelect({
+  value,
+  onChange,
+  ariaLabel,
+  disabled = false,
+  className,
+  children,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  ariaLabel: string;
+  disabled?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={className ? `settings-select ${className}` : "settings-select"}>
+      <select
+        className="text-input"
+        aria-label={ariaLabel}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
       >
-        {t("settings.privacyPolicy")}
-      </a>
-
-      <button className="pill-button settings-sign-out" type="button" onClick={session.signOut}>
-        {t("settings.signOut")}
-      </button>
-
-      {/* Below signing out and quieter than it (a text button, not a
-          filled one), so the permanent action is never the one a thumb
-          lands on by habit. */}
-      <button
-        type="button"
-        className="settings-delete-account"
-        disabled={deleting}
-        onClick={() => void handleDeleteAccount()}
-      >
-        {deleting ? t("settings.deletingAccount") : t("settings.deleteAccount")}
-      </button>
-      {deleteError !== null && (
-        <p className="error-text" role="alert">
-          {deleteError}
-        </p>
-      )}
+        {children}
+      </select>
+      <span className="settings-select-chevron">
+        <ChevronDownIcon rotated={false} />
+      </span>
     </div>
   );
 }

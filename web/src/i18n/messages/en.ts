@@ -120,6 +120,7 @@ export const en = {
   "settings.top": "Top",
   "settings.bottom": "Bottom",
   "settings.mobileSync": "Mobile background sync",
+  "settings.backgroundSyncDescription": "Keep lists updated while the app is closed",
   "settings.syncLoadError": "Could not load the background sync setting.",
   "settings.syncSaveError": "Could not save. Check your connection and try again.",
   "settings.everyMinutes.one": "Every {n} minute",

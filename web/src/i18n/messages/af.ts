@@ -122,6 +122,7 @@ export const af: Messages = {
   "settings.top": "Bo",
   "settings.bottom": "Onder",
   "settings.mobileSync": "Sinkronisasie op die foon",
+  "settings.backgroundSyncDescription": "Hou lyste op datum terwyl die toep toe is",
   "settings.syncLoadError": "Kon nie die agtergrondsinkronisasie-instelling laai nie.",
   "settings.syncSaveError": "Kon nie stoor nie. Gaan jou verbinding na en probeer weer.",
   "settings.everyMinutes.one": "Elke {n} minuut",

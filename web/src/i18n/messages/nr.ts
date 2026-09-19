@@ -130,6 +130,7 @@ export const nr: Messages = {
   "settings.top": "Phezulu",
   "settings.bottom": "Phasi",
   "settings.mobileSync": "Ukuvumelanisa kwefoni ngemuva",
+  "settings.backgroundSyncDescription": "Gcina irhelo libuyekeziwe nange-app ivaliwe",
   "settings.syncLoadError": "Ayikghonanga ukulayisha isilungiselelo sokuvumelanisa ngemuva.",
   "settings.syncSaveError": "Ayikghonanga ukubulunga. Hlola ukuxhumana kwakho bese ulinga godu.",
   "settings.everyMinutes.one": "Qobe ngomzuzu {n}",

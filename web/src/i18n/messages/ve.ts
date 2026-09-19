@@ -134,6 +134,7 @@ export const ve: Messages = {
   "settings.top": "Ntha",
   "settings.bottom": "Fhasi",
   "settings.mobileSync": "U tanganyiswa ha luṱingo nga murahu",
+  "settings.backgroundSyncDescription": "Vhulungani mitevhe yo khwinifhadzwa musi app yo valwa",
   "settings.syncLoadError": "Zwo kundelwa u thoma zwiimiswa zwa u tanganyiswa nga murahu.",
   "settings.syncSaveError":
     "Zwo kundelwa u vhulunga. Sedzani vhukwamani hanu nahone ni lingedze hafhu.",

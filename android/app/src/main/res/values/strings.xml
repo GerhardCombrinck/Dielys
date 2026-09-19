@@ -140,7 +140,6 @@
     <string name="settings_privacy_policy">Privacy policy</string>
 
     <string name="settings_background_sync">Background sync</string>
-    <string name="settings_background_sync_enabled">Sync automatically</string>
     <string name="settings_background_sync_frequency">Frequency</string>
     <string name="settings_sync_frequency_dialog_title">Sync frequency</string>
     <string name="settings_sync_frequency_unit_minutes">Minutes</string>

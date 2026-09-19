@@ -128,6 +128,7 @@ export const tn: Messages = {
   "settings.top": "Godimo",
   "settings.bottom": "Tlase",
   "settings.mobileSync": "Go tsamaisana ka nako ya semausu ya mogala",
+  "settings.backgroundSyncDescription": "Boloka dilenaane di ntšhafaditswe fa app e tswetswe",
   "settings.syncLoadError": "Go paletswe go laisha tlhophiso ya go tsamaisana ka nako ya semausu.",
   "settings.syncSaveError": "Go paletswe go boloka. Leba kgokagano ya gago mme o leke gape.",
   "settings.everyMinutes.one": "Nako le nako ya motsotso {n}",

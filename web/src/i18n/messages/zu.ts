@@ -126,6 +126,7 @@ export const zu: Messages = {
   "settings.top": "Phezulu",
   "settings.bottom": "Phansi",
   "settings.mobileSync": "Ukuvumelanisa kwefoni ngasemuva",
+  "settings.backgroundSyncDescription": "Gcina uhlu lubuyekeziwe ngenkathi uhlelo luvaliwe",
   "settings.syncLoadError": "Ayikwazanga ukulayisha isilungiselelo sokuvumelanisa ngasemuva.",
   "settings.syncSaveError": "Ayikwazanga ukulondoloza. Hlola uxhumano lwakho bese uzama futhi.",
   "settings.everyMinutes.one": "Njalo ngomzuzu {n}",
