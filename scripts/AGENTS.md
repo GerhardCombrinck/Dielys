@@ -8,6 +8,7 @@ Utility and maintenance scripts. POSIX `sh` or Node only — CI runs on Linux
 | `verify.sh`       | Runs everything `ci.yml` runs, locally. Use before every push ([B3](../docs/CODE_STANDARD.md#standard-b3)). | No |
 | `node-tests.sh`   | Runs one node component's tests, bounded and retried past [workers-sdk#15498](https://github.com/cloudflare/workers-sdk/issues/15498). Called by `verify.sh` and by `ci.yml`. | No |
 | `build-web-public.sh` | Builds `web/` and merges it into `server/public/` (gitignored) with `server/public-static/` — what `server/`'s Worker actually deploys as its static assets. Called by `verify.sh`, `ci.yml`'s `server` job, and `deploy-server.yml`. | No |
+| `check-r8-keeps.sh` | Fails if R8 dropped a class or constructor the release build only reaches by reflection (WorkManager's InputMergers, `SyncWorker`, wire serializers). Reads `seeds.txt` after `assembleRelease`. Called by `verify.sh` and `ci.yml`. | No |
 | `smoke.sh`        | End-to-end check against a running server — local, dev or prod. Run after a deploy. | Creates two throwaway accounts, one list and two device rows |
 | `push-probe.sh`   | Makes a deployed server attempt one real FCM send, to prove the credential works. Read `wrangler tail` for the answer. | Creates one throwaway account and one list |
 | `create-user.ts`  | Creates one Dielys account in `UsersRoom`. See [L2](../docs/CODE_STANDARD.md#standard-l2) — there is no public registration endpoint, this is the only way an account gets created. | Yes |

@@ -114,6 +114,17 @@ unit tests runs against a shrunk build, so a missing keep rule compiles fine
 and fails at runtime, most likely as a sync or sign-in that silently does
 nothing.
 
+A library's own consumer rule is not proof: WorkManager 2.9.1 keeps
+`InputMerger` subclasses without members, which in R8 full mode drops the
+no-arg constructor it instantiates by name — 0.5.6 shipped with every sync job
+failing that way. `scripts/check-r8-keeps.sh` (run by `verify.sh` and CI after
+`assembleRelease`) checks R8's `seeds.txt` for everything reached by
+reflection; add an entry there whenever something new is created by name.
+
+**Before approving an `android-v*` release:** install the release APK over an
+existing install on a real phone, make one edit, and check it shows on web.
+The R8 check only covers what it lists; this covers what it does not.
+
 `release-android.yml` attaches `mapping.txt` to the GitHub Release alongside
 the APK and bundle, so a crash can be retraced. There is no automated Play
 publish step in this repo (the `.aab` is uploaded to Play Console by hand) —

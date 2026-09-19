@@ -76,5 +76,8 @@ jobs:
       - uses: actions/setup-java@v6
         with: { distribution: 'temurin', java-version: '21' }
       - uses: gradle/actions/setup-gradle@v6
-      - run: ./gradlew ktlintCheck detekt testDebugUnitTest
+      # assembleRelease (unsigned, no google-services.json) runs R8; the check
+      # after it fails on anything reached by reflection that R8 dropped.
+      - run: ./gradlew ktlintCheck detekt testDebugUnitTest assembleRelease
         working-directory: android
+      - run: sh scripts/check-r8-keeps.sh
