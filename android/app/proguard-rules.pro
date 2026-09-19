@@ -31,3 +31,13 @@
 -keepclasseswithmembers class za.co.dielys.data.remote.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
+
+# WorkManager 2.9.1's own rule is `-keep class * extends androidx.work.InputMerger`
+# with no members, and in R8 full mode (AGP 8's default) that keeps the class but
+# not its no-arg constructor. WorkerWrapper instantiates the merger reflectively
+# by name before every job, so without this every sync fails before doWork() —
+# "Could not create Input Merger androidx.work.OverwritingInputMerger" — and the
+# outbox never drains. Shipped broken in 0.5.6.
+-keep class * extends androidx.work.InputMerger {
+    public <init>();
+}
