@@ -66,7 +66,13 @@ class SyncEngine
             if (caught != SyncOutcome.Success) return caught
             val pushed = registerPushToken()
             if (pushed != SyncOutcome.Success) return pushed
-            return syncSyncSettings()
+            // Never a reason to retry the run: every list is caught up by now,
+            // and a Retry here would hold every later drain behind this one's
+            // backoff (APPEND_OR_REPLACE) — outbox and all — over one preference.
+            // Nothing is lost by skipping it: the baseline is untouched, so the
+            // next run reconciles it again.
+            val settings = syncSyncSettings()
+            return if (settings is SyncOutcome.SessionExpired) settings else SyncOutcome.Success
         }
 
         /**
@@ -126,12 +132,19 @@ class SyncEngine
             return try {
                 val settings =
                     if (changedHere) {
-                        api.setSyncSettings(
-                            SyncSettingsPatch(
-                                enabled = localEnabled,
-                                intervalMinutes = localMinutes,
-                            ),
-                        )
+                        try {
+                            api.setSyncSettings(
+                                SyncSettingsPatch(
+                                    enabled = localEnabled,
+                                    intervalMinutes = localMinutes,
+                                ),
+                            )
+                        } catch (_: ApiException.Rejected) {
+                            // The server will never take this value, so asking
+                            // again next run would only fail again. Adopt what it
+                            // has instead, like a pull.
+                            api.syncSettings()
+                        }
                     } else {
                         api.syncSettings()
                     }

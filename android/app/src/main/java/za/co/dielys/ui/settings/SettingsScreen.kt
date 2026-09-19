@@ -411,7 +411,9 @@ private fun frequencyLabel(minutes: Long): String =
  * span" means whatever number someone actually wants, not a pick from ours.
  * Clamped no lower than [SyncPrefs.MIN_INTERVAL_MINUTES]: `PeriodicWorkRequest`
  * refuses anything shorter itself, so a smaller value here would just be a
- * promise the platform will not keep.
+ * promise the platform will not keep. Anything over
+ * [SyncPrefs.MAX_INTERVAL_MINUTES] cannot be saved at all: the server rejects
+ * it, so it could never reach `web/` or another phone.
  */
 @Composable
 private fun SyncFrequencyDialog(
@@ -430,7 +432,12 @@ private fun SyncFrequencyDialog(
             },
         )
     }
-    val value = text.toLongOrNull()
+    // Capped before multiplying so a long run of digits cannot overflow into
+    // something that looks valid.
+    val minutes =
+        text.toLongOrNull()?.takeIf { it <= SyncPrefs.MAX_INTERVAL_MINUTES }?.let {
+            if (hours) it * MINUTES_PER_HOUR else it
+        }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -472,10 +479,9 @@ private fun SyncFrequencyDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    val minutes = if (hours) value!! * MINUTES_PER_HOUR else value!!
-                    onConfirm(minutes.coerceAtLeast(SyncPrefs.MIN_INTERVAL_MINUTES))
+                    onConfirm(minutes!!.coerceAtLeast(SyncPrefs.MIN_INTERVAL_MINUTES))
                 },
-                enabled = value != null && value > 0,
+                enabled = minutes != null && minutes in 1..SyncPrefs.MAX_INTERVAL_MINUTES,
             ) { Text(stringResource(R.string.action_save)) }
         },
         dismissButton = {

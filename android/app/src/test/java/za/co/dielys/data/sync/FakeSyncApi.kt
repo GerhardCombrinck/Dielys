@@ -11,6 +11,8 @@ import za.co.dielys.data.remote.ErrorCode
 import za.co.dielys.data.remote.ListChange
 import za.co.dielys.data.remote.ListMember
 import za.co.dielys.data.remote.ListMutation
+import za.co.dielys.data.remote.MAX_SYNC_INTERVAL_MINUTES
+import za.co.dielys.data.remote.MIN_SYNC_INTERVAL_MINUTES
 import za.co.dielys.data.remote.Membership
 import za.co.dielys.data.remote.MembershipRole
 import za.co.dielys.data.remote.Mutation
@@ -209,13 +211,24 @@ class FakeSyncApi :
      *  the same default the migration gives every real account. */
     var syncSettings: SyncSettings = SyncSettings(enabled = true, intervalMinutes = 30)
 
+    /** When true, only `/auth/sync-settings` answers 503 — every list route is fine. */
+    var syncSettingsDown = false
+
     override suspend fun syncSettings(): SyncSettings {
         gate()
+        if (syncSettingsDown) throw ApiException.Unavailable(status = 503, code = null)
         return syncSettings
     }
 
     override suspend fun setSyncSettings(patch: SyncSettingsPatch): SyncSettings {
         gate()
+        if (syncSettingsDown) throw ApiException.Unavailable(status = 503, code = null)
+        // The server's bound (F3): out of range is `malformed`, never clamped.
+        patch.intervalMinutes?.let {
+            if (it !in MIN_SYNC_INTERVAL_MINUTES..MAX_SYNC_INTERVAL_MINUTES) {
+                throw ApiException.Rejected(status = 400, code = ErrorCode.MALFORMED)
+            }
+        }
         syncSettings =
             syncSettings.copy(
                 enabled = patch.enabled ?: syncSettings.enabled,

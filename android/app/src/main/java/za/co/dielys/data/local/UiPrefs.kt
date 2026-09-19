@@ -82,6 +82,10 @@ interface SyncPrefs {
     companion object {
         /** `PeriodicWorkRequest` refuses anything shorter than this itself. */
         const val MIN_INTERVAL_MINUTES = 15L
+
+        /** One week — the server's own bound (`MAX_SYNC_INTERVAL_MINUTES`), which
+         *  answers anything longer with a 400. */
+        const val MAX_INTERVAL_MINUTES = 10_080L
         const val DEFAULT_INTERVAL_MINUTES = 30L
     }
 }
@@ -179,13 +183,18 @@ class UiPrefs
 
         private val _syncIntervalMinutes =
             MutableStateFlow(
-                prefs.getLong(KEY_SYNC_INTERVAL_MINUTES, SyncPrefs.DEFAULT_INTERVAL_MINUTES),
+                // Clamped on read too, so a value stored before the upper
+                // bound existed is healed rather than pushed and rejected.
+                prefs
+                    .getLong(KEY_SYNC_INTERVAL_MINUTES, SyncPrefs.DEFAULT_INTERVAL_MINUTES)
+                    .coerceIn(SyncPrefs.MIN_INTERVAL_MINUTES, SyncPrefs.MAX_INTERVAL_MINUTES),
             )
 
         override val syncIntervalMinutes: StateFlow<Long> = _syncIntervalMinutes.asStateFlow()
 
         override fun setSyncIntervalMinutes(minutes: Long) {
-            val clamped = minutes.coerceAtLeast(SyncPrefs.MIN_INTERVAL_MINUTES)
+            val clamped =
+                minutes.coerceIn(SyncPrefs.MIN_INTERVAL_MINUTES, SyncPrefs.MAX_INTERVAL_MINUTES)
             prefs.edit().putLong(KEY_SYNC_INTERVAL_MINUTES, clamped).apply()
             _syncIntervalMinutes.value = clamped
         }

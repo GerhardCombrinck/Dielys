@@ -145,7 +145,7 @@
     <string name="settings_sync_frequency_dialog_title">Sync frequency</string>
     <string name="settings_sync_frequency_unit_minutes">Minutes</string>
     <string name="settings_sync_frequency_unit_hours">Hours</string>
-    <string name="settings_sync_frequency_minimum">Shortest is 15 minutes.</string>
+    <string name="settings_sync_frequency_minimum">Shortest is 15 minutes, longest is 1 week.</string>
     <plurals name="settings_sync_frequency_every_minutes">
         <item quantity="one">Every %d minute</item>
         <item quantity="other">Every %d minutes</item>
