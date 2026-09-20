@@ -71,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import za.co.dielys.BuildConfig
 import za.co.dielys.R
 import za.co.dielys.data.local.SyncPrefs
 import za.co.dielys.ui.ConfirmPrompt
@@ -198,6 +199,18 @@ fun SettingsScreen(
             DeleteAccountSection(
                 deletion = deletion,
                 onDelete = viewModel::deleteAccount,
+            )
+
+            // Quietest thing on the screen, and deliberately not translated: a
+            // bug report is only actionable if it names the build it came
+            // from, and a version string reads the same in every language. The
+            // versionCode is what Play Console lists a release by, so it is
+            // the one that matches a crash back to an upload.
+            Text(
+                "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 14.dp),
             )
         }
     }

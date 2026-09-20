@@ -233,6 +233,11 @@ export function SettingsPage() {
             </p>
           )}
         </div>
+
+        {/* Quietest thing on the page, and deliberately not translated: a bug
+            report is only actionable if it names the build it came from, and
+            a version string reads the same in every language. */}
+        <p className="settings-version">v{import.meta.env.VITE_APP_VERSION ?? "dev"}</p>
       </div>
     </div>
   );

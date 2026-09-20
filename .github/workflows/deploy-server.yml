@@ -51,7 +51,11 @@ jobs:
         working-directory: server
       # See deploy-dev above: server/public/ is web/'s build merged with
       # server/public-static/, and what gets deployed as static assets.
+      # The tag is the version Settings shows — passed in because the runner's
+      # shallow clone has no tags for `git describe` to find.
       - run: sh scripts/build-web-public.sh
+        env:
+          VITE_APP_VERSION: ${{ github.ref_name }}
       - run: npm test
         working-directory: server
         timeout-minutes: 3
