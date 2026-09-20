@@ -6,6 +6,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
@@ -14,6 +16,7 @@ import za.co.dielys.data.PendingInvite
 import za.co.dielys.data.PendingMagicLink
 import za.co.dielys.data.local.withChosenLocale
 import za.co.dielys.ui.DielysApp
+import za.co.dielys.ui.UpdateReadyBar
 import za.co.dielys.ui.theme.DielysTheme
 import javax.inject.Inject
 
@@ -38,6 +41,15 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var magicLinks: PendingMagicLink
 
+    /**
+     * Asks Play for a newer build rather than waiting for auto-update to get
+     * round to it (#88). Constructed here, in the Activity, because it
+     * registers an activity result launcher — which must happen before the
+     * Activity is STARTED — and because E1 forbids a `ViewModel` holding a
+     * `Context`.
+     */
+    private lateinit var updates: AppUpdates
+
     /** The chosen language (#42), on the API levels where applying it is ours
      *  to do. Every resource this Activity reads resolves against this context,
      *  so it has to be in place before anything is inflated or composed. */
@@ -55,10 +67,19 @@ class MainActivity : ComponentActivity() {
             invites.offer(intent?.dataString)
             magicLinks.offer(intent?.dataString)
         }
+        updates = AppUpdates(this)
         setContent {
             DielysTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    DielysApp()
+                    // The bar sits below the app rather than over it, so a
+                    // download finishing never covers a row the user is
+                    // reaching for.
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Box(modifier = Modifier.weight(1f)) { DielysApp() }
+                        if (updates.restartReady) {
+                            UpdateReadyBar(onRestart = updates::completeUpdate)
+                        }
+                    }
                 }
             }
         }
