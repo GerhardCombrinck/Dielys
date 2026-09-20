@@ -131,4 +131,7 @@
     <string name="auth_sign_in_with_code">Ngena ngekhodi</string>
     <string name="error_magic_code_invalid">Leyo khodi ayilungile noma iphelelwe yisikhathi. Hlola i-imeyili, noma uthumele isixhumanisi esisha.</string>
     <string name="error_magic_code_locked">Amakhodi amaningi kakhulu angalungile. Thepha isixhumanisi ku-imeyili esikhundleni salokho, noma uzame futhi kusasa.</string>
+    <!-- Play in-app updates (#88) -->
+    <string name="update_ready">Isibuyekezo silungile.</string>
+    <string name="update_restart">Qala kabusha</string>
 </resources>
