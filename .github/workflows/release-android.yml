@@ -76,6 +76,13 @@ jobs:
       #
       # Promoting internal -> production is still a Play Console action: this
       # never touches the production track.
+      #
+      # `tracks` is a comma-separated list, and it must stay a single entry.
+      # Note that the action defaults to *production* when neither `track` nor
+      # `tracks` is set (action.yml declares no default, but validateTracks()
+      # returns ['production']), so deleting this line would not disable the
+      # publish — it would redirect it. The service account's Play Console
+      # grant is the backstop that would refuse it.
       - name: Publish bundle to Play internal testing
         uses: r0adkll/upload-google-play@v1
         with:
@@ -84,5 +91,5 @@ jobs:
           releaseFiles: android/app/build/outputs/bundle/release/*.aab
           mappingFile: android/app/build/outputs/mapping/release/mapping.txt
           releaseName: ${{ github.ref_name }}
-          track: internal
+          tracks: internal
           status: completed
