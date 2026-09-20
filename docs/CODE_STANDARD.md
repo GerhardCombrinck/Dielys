@@ -1118,6 +1118,9 @@ jobs:
 - The signing keystore MUST come from a GitHub environment secret, base64-decoded at build
   time and never written to a path that a later step archives.
 - `versionCode` MUST increase monotonically. Derive it from the run number, not by hand.
+- The bundle MUST be published to Play's `internal` track by the same job, using a service
+  account credential from a GitHub environment secret. The job MUST NOT write any other
+  track — promotion to production stays a deliberate Play Console action.
 - Losing the keystore means no upgrade path for installed apps. It MUST be backed up outside
   this repo, encrypted, before the first release.
 
@@ -1626,6 +1629,7 @@ Use to verify the repo before first release, and to audit periodically.
 | J3.1 | Scoped API token, not a global key                 |        |
 | J3.2 | Rollback documented in README                      |        |
 | J4.1 | `versionCode` derived, monotonic                   |        |
+| J4.2 | Publishes to Play `internal` track only            |        |
 
 ### K: Evaluate Documentation
 

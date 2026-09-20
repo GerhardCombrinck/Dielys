@@ -126,8 +126,18 @@ existing install on a real phone, make one edit, and check it shows on web.
 The R8 check only covers what it lists; this covers what it does not.
 
 `release-android.yml` attaches `mapping.txt` to the GitHub Release alongside
-the APK and bundle, so a crash can be retraced. There is no automated Play
-publish step in this repo (the `.aab` is uploaded to Play Console by hand) —
-that same `mapping.txt` needs uploading to Play Console's own "Deobfuscation
-files" section by hand too, alongside the bundle, or Play Console can't
-symbolicate crashes it collects from real installs.
+the APK and bundle, so a crash from a sideloaded APK can be retraced. The same
+job then publishes the `.aab` and `mapping.txt` to Play's **internal testing**
+track via `r0adkll/upload-google-play`, using the `PLAY_SERVICE_ACCOUNT_JSON`
+secret on the `prod` environment — so nothing is uploaded to Play Console by
+hand any more.
+
+That step only ever writes the `internal` track. Promoting a build to
+production is still a deliberate Play Console action, and the release is
+approved by a human first (see the release check above). The service account
+is granted "Release to testing tracks" in Play Console and nothing more, so
+this can't reach production even by accident.
+
+`versionCode` comes from the workflow's run number, and Play rejects a bundle
+whose `versionCode` it has already seen — so a re-run of a failed release job
+produces a *new* version code rather than a duplicate, which is the intent.
