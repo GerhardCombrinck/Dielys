@@ -1120,7 +1120,9 @@ jobs:
 - `versionCode` MUST increase monotonically. Derive it from the run number, not by hand.
 - The bundle MUST be published to Play's `internal` track by the same job, using a service
   account credential from a GitHub environment secret. The job MUST NOT write any other
-  track — promotion to production stays a deliberate Play Console action.
+  track — promotion to production stays a deliberate Play Console action. The track MUST be
+  named explicitly: the upload action falls back to `production` when the input is absent,
+  so an omitted track is a misdirected release rather than a skipped one.
 - Losing the keystore means no upgrade path for installed apps. It MUST be backed up outside
   this repo, encrypted, before the first release.
 
