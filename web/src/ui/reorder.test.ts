@@ -30,23 +30,32 @@ describe("neighborsOf", () => {
 });
 
 describe("dropTarget", () => {
-  const centers = [25, 85, 145, 205];
+  // Four 50px rows with a 10px gap: tops 0, 60, 120, 180.
+  const rects = [0, 60, 120, 180].map((top) => ({ top, height: 50 }));
 
-  it("stays put until the middle crosses a neighbour's middle", () => {
-    expect(dropTarget(centers, 1, 140)).toBe(1);
-    expect(dropTarget(centers, 1, 30)).toBe(1);
+  it("stays put until the middle enters a neighbour's box", () => {
+    expect(dropTarget(rects, 1, 115)).toBe(1);
+    expect(dropTarget(rects, 1, 55)).toBe(1);
   });
 
-  it("takes the next slot down once past its middle", () => {
-    expect(dropTarget(centers, 1, 150)).toBe(2);
+  it("takes the next slot down as soon as the middle is into it", () => {
+    expect(dropTarget(rects, 1, 121)).toBe(2);
   });
 
-  it("takes the first slot once past the top row's middle", () => {
-    expect(dropTarget(centers, 2, 20)).toBe(0);
+  it("takes the slot above as soon as the middle is into it", () => {
+    expect(dropTarget(rects, 2, 105)).toBe(1);
   });
 
-  it("dragged past the bottom lands last", () => {
-    expect(dropTarget(centers, 0, 999)).toBe(3);
+  it("second-last reaches last well before the drag's clamp", () => {
+    // Clamped, row 2's middle can go no lower than 180 + 50 - 25 = 205.
+    expect(dropTarget(rects, 2, 185)).toBe(3);
+    expect(dropTarget(rects, 2, 205)).toBe(3);
+  });
+
+  it("second reaches first well before the drag's clamp", () => {
+    // Clamped, row 1's middle can go no higher than 25.
+    expect(dropTarget(rects, 1, 45)).toBe(0);
+    expect(dropTarget(rects, 1, 25)).toBe(0);
   });
 });
 

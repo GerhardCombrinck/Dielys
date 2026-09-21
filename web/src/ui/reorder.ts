@@ -32,16 +32,27 @@ export function neighborsOf(
 }
 
 /**
- * Which slot the dragged row belongs in, given where every row's middle sat
- * when the drag began and where the dragged row's middle is now. A row gives
- * up its place once the dragged middle passes its own middle — the web
- * equivalent of Android's "more than half into it", which is what stops a
- * slow drag oscillating between two slots.
+ * Which slot the dragged row belongs in, given every row's box when the drag
+ * began and where the dragged row's middle is now. A neighbour gives up its
+ * place as soon as that middle enters its box — Android's "more than half
+ * into it", which stops a slow drag oscillating between two slots.
+ *
+ * Its box, not its middle: the drag is clamped to the column, and at the
+ * clamp the dragged middle only just *reaches* the last row's middle, so a
+ * middle-past-middle rule made the last slot a pixel-perfect target.
  */
-export function dropTarget(centers: readonly number[], from: number, middle: number): number {
+export function dropTarget(
+  rects: readonly { top: number; height: number }[],
+  from: number,
+  middle: number,
+): number {
   let target = 0;
-  centers.forEach((center, index) => {
-    if (index !== from && center < middle) target++;
+  rects.forEach((rect, index) => {
+    if (index === from) return;
+    // Rows below are passed once the middle is into them; rows above stay
+    // above until the middle comes back up into them.
+    const above = index < from ? middle >= rect.top + rect.height : middle > rect.top;
+    if (above) target++;
   });
   return target;
 }

@@ -110,8 +110,7 @@ export function useDragReorder(storedIds: readonly string[], onMove: MoveFn) {
       Math.max(raw, first.top - self.top),
       last.top + last.height - (self.top + self.height),
     );
-    const centers = rects.map((r) => r.top + r.height / 2);
-    const to = dropTarget(centers, from, self.top + self.height / 2 + dy);
+    const to = dropTarget(rects, from, self.top + self.height / 2 + dy);
     setView((v) => (v === null ? v : { ...v, dy, to }));
   }, []);
 
