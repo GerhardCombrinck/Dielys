@@ -1,5 +1,6 @@
 package za.co.dielys
 
+import android.os.SystemClock
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -80,8 +81,20 @@ class AppUpdates(
      * download can finish while the app is backgrounded, which is the common
      * case for a download of any size; and an update published while the app
      * was open would otherwise go unnoticed until the process died.
+     *
+     * Debounced process-wide, because "every resume" is more often than it
+     * sounds. Applying the chosen language (#42) recreates the Activity on
+     * every cold start, so a launch built two of these and asked Play twice;
+     * and an app flicked in and out of the foreground would ask on each pass.
+     * Play publishes on the order of days, so [CHECK_INTERVAL_MS] loses
+     * nothing and the resume-after-process-death case still checks, since a
+     * new process starts the clock at zero.
      */
     override fun onResume(owner: LifecycleOwner) {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastCheckedAt < CHECK_INTERVAL_MS) return
+        lastCheckedAt = now
+
         manager.appUpdateInfo
             .addOnSuccessListener { info ->
                 // Already downloaded and waiting — the listener above only
@@ -123,5 +136,18 @@ class AppUpdates(
 
     private companion object {
         const val TAG = "AppUpdates"
+
+        /** Long enough to collapse a recreation and ordinary app-switching. */
+        const val CHECK_INTERVAL_MS = 15 * 60 * 1000L
+
+        /**
+         * Process-wide, not per-instance: the duplicate this exists to stop
+         * comes from *two* [AppUpdates], one per Activity instance, so an
+         * instance field would not see the other's check.
+         *
+         * Elapsed realtime, so it cannot be skewed by a clock change.
+         */
+        @Volatile
+        var lastCheckedAt = 0L
     }
 }
