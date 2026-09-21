@@ -8,7 +8,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import dagger.hilt.android.AndroidEntryPoint
@@ -75,7 +78,15 @@ class MainActivity : ComponentActivity() {
                     // download finishing never covers a row the user is
                     // reaching for.
                     Column(modifier = Modifier.fillMaxSize()) {
-                        Box(modifier = Modifier.weight(1f)) { DielysApp() }
+                        // While the bar is up it owns the navigation-bar inset,
+                        // so the screens above must not pad for it again.
+                        val appModifier =
+                            if (updates.restartReady) {
+                                Modifier.consumeWindowInsets(WindowInsets.navigationBars)
+                            } else {
+                                Modifier
+                            }
+                        Box(modifier = Modifier.weight(1f).then(appModifier)) { DielysApp() }
                         if (updates.restartReady) {
                             UpdateReadyBar(onRestart = updates::completeUpdate)
                         }

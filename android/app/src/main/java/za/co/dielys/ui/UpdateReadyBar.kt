@@ -3,6 +3,7 @@ package za.co.dielys.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -24,6 +25,9 @@ import za.co.dielys.R
  * install itself on the next natural restart regardless, so interrupting
  * whatever the user is in the middle of would be asking for a decision that
  * does not need making now.
+ *
+ * It sits at the bottom of an edge-to-edge window, so the colour runs behind
+ * the navigation bar while the text and button are padded clear of it.
  */
 @Composable
 fun UpdateReadyBar(
@@ -38,7 +42,11 @@ fun UpdateReadyBar(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(start = 16.dp, end = 4.dp),
         ) {
             Text(stringResource(R.string.update_ready), fontSize = 13.5.sp)
             TextButton(onClick = onRestart) {
