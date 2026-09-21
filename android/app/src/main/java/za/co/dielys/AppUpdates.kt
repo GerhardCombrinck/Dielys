@@ -66,9 +66,15 @@ class AppUpdates(
             ActivityResultContracts.StartIntentSenderForResult(),
         ) { result -> Log.d(TAG, "update flow closed with ${result.resultCode}") }
 
+    /**
+     * Tracks the status both ways, not just into DOWNLOADED: Play can drop a
+     * finished download (a failed or cancelled install, or its own cleanup),
+     * and a bar still offering a restart after that is a button that does
+     * nothing.
+     */
     private val installListener =
         InstallStateUpdatedListener { state ->
-            if (state.installStatus() == InstallStatus.DOWNLOADED) restartReady = true
+            restartReady = state.installStatus() == InstallStatus.DOWNLOADED
         }
 
     init {
@@ -100,10 +106,10 @@ class AppUpdates(
                 // Already downloaded and waiting — the listener above only
                 // fires for a download that happens while we are listening,
                 // so a resume after process death has to find it this way.
-                if (info.installStatus() == InstallStatus.DOWNLOADED) {
-                    restartReady = true
-                    return@addOnSuccessListener
-                }
+                // Assigned either way, so a download Play has since dropped
+                // takes the bar down with it.
+                restartReady = info.installStatus() == InstallStatus.DOWNLOADED
+                if (restartReady) return@addOnSuccessListener
                 val available = info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
                 if (available && info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)) {
                     startFlexibleUpdate(info)
@@ -125,9 +131,22 @@ class AppUpdates(
         }.onFailure { Log.d(TAG, "could not start update flow: ${it.message}") }
     }
 
-    /** Installs the downloaded update and restarts the app. */
+    /**
+     * Installs the downloaded update and restarts the app.
+     *
+     * On success the process is killed and nothing after this runs. A failure
+     * means Play no longer has the download, even though it once reported one
+     * (seen on a device as `error.code=-7`, "Download not present"). So drop
+     * the bar and ask Play again straight away, skipping the debounce, which
+     * offers the download afresh instead of leaving a Restart that can't work.
+     */
     fun completeUpdate() {
-        manager.completeUpdate()
+        manager.completeUpdate().addOnFailureListener {
+            Log.d(TAG, "could not complete update: ${it.message}")
+            restartReady = false
+            lastCheckedAt = 0L
+            onResume(activity)
+        }
     }
 
     override fun onDestroy(owner: LifecycleOwner) {
