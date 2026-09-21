@@ -1,7 +1,7 @@
 /**
  * The lists screen (`android/.../ui/lists/ListsScreen.kt`'s web counterpart).
- * Fed by `sync/useListsOverview.ts` — a fresh `/auth/memberships` plus one
- * catch-up per list, since there is no local database to read instead.
+ * Fed by `sync/useListsOverview.ts`, which reads the local replica
+ * (`data/replica.ts`) and lets `SyncEngine` catch it up behind the scenes.
  * Visual design: design_handoff_web_auth/Lists.dc.html (2026-09).
  */
 import { useEffect, useState } from "react";
@@ -11,11 +11,10 @@ import { ACCENT_COUNT, accentColor } from "../domain/accents.js";
 import { takePendingInvite } from "../domain/pendingInvite.js";
 import { useI18n } from "../i18n/I18nContext.js";
 import { navigate } from "../router.js";
-import { prefetchList } from "../sync/listCache.js";
 import { type ListRow, useListsOverview } from "../sync/useListsOverview.js";
 import { useSharing } from "../sync/useSharing.js";
 import { GearIcon, PeopleIcon, Spinner } from "../ui/icons.js";
-import { dropNeighbors } from "../ui/reorder.js";
+import { useDragReorder } from "../ui/useDragReorder.js";
 import { InviteDialog, MembersDialog } from "./SharingDialogs.js";
 
 type ConfirmTarget = { row: ListRow; kind: "delete" | "leave" };
@@ -23,15 +22,13 @@ type ConfirmTarget = { row: ListRow; kind: "delete" | "leave" };
 export function HomePage() {
   const session = useSession();
   const { t } = useI18n();
-  const overview = useListsOverview(session.deviceId);
+  const overview = useListsOverview();
   const sharing = useSharing(session.status === "signed-in" ? session.userId : "");
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [creating, setCreating] = useState(false);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<ConfirmTarget | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,9 +41,12 @@ export function HomePage() {
     if (token !== null) navigate(`/invite?t=${encodeURIComponent(token)}`);
   }, []);
 
-  if (session.status !== "signed-in") return null;
-
   const rows = overview.rows?.filter((r) => r.title !== null) ?? null;
+  const reorder = useDragReorder(rows?.map((r) => r.membership.listId) ?? [], overview.moveList);
+  const rowsById = new Map(rows?.map((r) => [r.membership.listId, r]));
+  const shownRows = reorder.order.flatMap((id) => rowsById.get(id) ?? []);
+
+  if (session.status !== "signed-in") return null;
 
   async function handleCreate(): Promise<void> {
     const title = newTitle.trim();
@@ -87,18 +87,6 @@ export function HomePage() {
     }
   }
 
-  function handleDrop(targetIndex: number): void {
-    if (dragIndex !== null && rows !== null) {
-      const ids = rows.map((r) => r.membership.listId);
-      if (dragIndex !== targetIndex) {
-        const { id, afterId, beforeId } = dropNeighbors(ids, dragIndex, targetIndex);
-        void overview.moveList(id, afterId, beforeId);
-      }
-    }
-    setDragIndex(null);
-    setDragOverIndex(null);
-  }
-
   return (
     <div className="page">
       <header className="page-header">
@@ -136,164 +124,148 @@ export function HomePage() {
 
       {rows !== null && rows.length > 0 && (
         <ul className="row-list">
-          {rows.map((row, index) => (
-            <li
-              key={row.membership.listId}
-              className={
-                dragOverIndex === index && dragIndex !== index ? "list-row drag-over" : "list-row"
-              }
-              draggable
-              onDragStart={() => setDragIndex(index)}
-              onDragOver={(e) => {
-                e.preventDefault();
-                if (dragOverIndex !== index) setDragOverIndex(index);
-              }}
-              onDragEnd={() => {
-                setDragIndex(null);
-                setDragOverIndex(null);
-              }}
-              onDrop={() => handleDrop(index)}
-              // Hover (desktop) or the press before a tap resolves (touch) —
-              // a click's own catch-up round trip is then already in flight,
-              // often already cached, by the time navigate() runs below.
-              onPointerEnter={() => prefetchList(row.membership.listId)}
-              onPointerDown={() => prefetchList(row.membership.listId)}
-            >
-              <span className="drag-handle" aria-hidden="true">
-                ⠿
-              </span>
-              <span className="accent-dot" style={{ background: accentColor(row.accent) }} />
+          {shownRows.map((row) => {
+            const drag = reorder.rowProps(row.membership.listId);
+            return (
+              <li key={row.membership.listId} className="list-row" {...drag}>
+                <span className="drag-handle" aria-hidden="true">
+                  ⠿
+                </span>
+                <span className="accent-dot" style={{ background: accentColor(row.accent) }} />
 
-              <div className="row-title-wrap">
-                {editingId === row.membership.listId ? (
-                  <input
-                    className="text-input inline-edit"
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onBlur={() => {
-                      void overview.renameList(row.membership.listId, draft);
-                      setEditingId(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") e.currentTarget.blur();
-                      if (e.key === "Escape") setEditingId(null);
-                    }}
-                  />
-                ) : (
+                <div className="row-title-wrap">
+                  {editingId === row.membership.listId ? (
+                    <input
+                      className="text-input inline-edit"
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onBlur={() => {
+                        void overview.renameList(row.membership.listId, draft);
+                        setEditingId(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") e.currentTarget.blur();
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      className="row-title"
+                      onClick={() =>
+                        navigate(`/lists/${encodeURIComponent(row.membership.listId)}`)
+                      }
+                    >
+                      {row.title}
+                    </button>
+                  )}
+                </div>
+
+                {row.membership.memberCount > 1 && (
                   <button
                     type="button"
-                    className="row-title"
-                    onClick={() => navigate(`/lists/${encodeURIComponent(row.membership.listId)}`)}
+                    className="icon-button small"
+                    aria-label={t("home.sharedMembers")}
+                    onClick={() => void sharing.openMembers(row.membership.listId)}
                   >
-                    {row.title}
+                    <PeopleIcon />
                   </button>
                 )}
-              </div>
 
-              {row.membership.memberCount > 1 && (
+                {row.itemCount > 0 && <span className="row-count">{row.itemCount}</span>}
+
                 <button
                   type="button"
                   className="icon-button small"
-                  aria-label={t("home.sharedMembers")}
-                  onClick={() => void sharing.openMembers(row.membership.listId)}
+                  aria-label={t("home.listOptions")}
+                  onClick={() =>
+                    setMenuFor(menuFor === row.membership.listId ? null : row.membership.listId)
+                  }
                 >
-                  <PeopleIcon />
+                  ⋯
                 </button>
-              )}
 
-              {row.itemCount > 0 && <span className="row-count">{row.itemCount}</span>}
-
-              <button
-                type="button"
-                className="icon-button small"
-                aria-label={t("home.listOptions")}
-                onClick={() =>
-                  setMenuFor(menuFor === row.membership.listId ? null : row.membership.listId)
-                }
-              >
-                ⋯
-              </button>
-
-              {menuFor === row.membership.listId && (
-                <>
-                  <button
-                    type="button"
-                    className="menu-overlay"
-                    aria-label={t("common.closeMenu")}
-                    onClick={() => setMenuFor(null)}
-                  />
-                  <div className="menu-popover">
+                {menuFor === row.membership.listId && (
+                  <>
                     <button
                       type="button"
-                      onClick={() => {
-                        setDraft(row.title ?? "");
-                        setEditingId(row.membership.listId);
-                        setMenuFor(null);
-                      }}
-                    >
-                      {t("common.rename")}
-                    </button>
-                    <div className="accent-row">
-                      {Array.from({ length: ACCENT_COUNT }, (_, i) => (
+                      className="menu-overlay"
+                      aria-label={t("common.closeMenu")}
+                      onClick={() => setMenuFor(null)}
+                    />
+                    <div className="menu-popover">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDraft(row.title ?? "");
+                          setEditingId(row.membership.listId);
+                          setMenuFor(null);
+                        }}
+                      >
+                        {t("common.rename")}
+                      </button>
+                      <div className="accent-row">
+                        {Array.from({ length: ACCENT_COUNT }, (_, i) => (
+                          <button
+                            key={accentColor(i)}
+                            type="button"
+                            className="accent-swatch"
+                            aria-label={t("home.colourOption", { n: i + 1 })}
+                            style={{ background: accentColor(i) }}
+                            onClick={() => {
+                              overview.setAccent(row.membership.listId, i);
+                              setMenuFor(null);
+                            }}
+                          />
+                        ))}
+                      </div>
+                      {/* L3: only the owner may invite, so a list somebody else shared
+                        does not offer it rather than offering it and being refused. */}
+                      {row.membership.role === "owner" && (
                         <button
-                          key={accentColor(i)}
                           type="button"
-                          className="accent-swatch"
-                          aria-label={t("home.colourOption", { n: i + 1 })}
-                          style={{ background: accentColor(i) }}
                           onClick={() => {
-                            overview.setAccent(row.membership.listId, i);
+                            sharing.openInvite(
+                              row.membership.listId,
+                              row.title ?? t("list.untitled"),
+                            );
                             setMenuFor(null);
                           }}
-                        />
-                      ))}
-                    </div>
-                    {/* L3: only the owner may invite, so a list somebody else shared
-                        does not offer it rather than offering it and being refused. */}
-                    {row.membership.role === "owner" && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sharing.openInvite(
-                            row.membership.listId,
-                            row.title ?? t("list.untitled"),
-                          );
-                          setMenuFor(null);
-                        }}
-                      >
-                        {t("common.share")}
-                      </button>
-                    )}
-                    {/* One or the other, never both (ADR 0006): a delete takes the
+                        >
+                          {t("common.share")}
+                        </button>
+                      )}
+                      {/* One or the other, never both (ADR 0006): a delete takes the
                         list off every member's phone, so it is the owner's to make;
                         anybody else can still get it off their own, by leaving. */}
-                    {row.membership.role === "owner" ? (
-                      <button
-                        type="button"
-                        className="menu-danger"
-                        onClick={() => {
-                          setMenuFor(null);
-                          setConfirmTarget({ row, kind: "delete" });
-                        }}
-                      >
-                        {t("common.delete")}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMenuFor(null);
-                          setConfirmTarget({ row, kind: "leave" });
-                        }}
-                      >
-                        {t("common.leave")}
-                      </button>
-                    )}
-                  </div>
-                </>
-              )}
-            </li>
-          ))}
+                      {row.membership.role === "owner" ? (
+                        <button
+                          type="button"
+                          className="menu-danger"
+                          onClick={() => {
+                            setMenuFor(null);
+                            setConfirmTarget({ row, kind: "delete" });
+                          }}
+                        >
+                          {t("common.delete")}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMenuFor(null);
+                            setConfirmTarget({ row, kind: "leave" });
+                          }}
+                        >
+                          {t("common.leave")}
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 

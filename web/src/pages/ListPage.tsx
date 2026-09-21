@@ -6,7 +6,6 @@
  * moved out of this page's header (now a settings gear, matching Lists) and
  * lives only in the list-row menu on the Lists overview, same as the mockup.
  */
-import type { Task } from "@dielys/protocol";
 import { type CSSProperties, useState } from "react";
 import { useSession } from "../auth/SessionContext.js";
 import { getAccent } from "../domain/accentStore.js";
@@ -25,7 +24,7 @@ import {
   Spinner,
   StarIcon,
 } from "../ui/icons.js";
-import { dropNeighbors } from "../ui/reorder.js";
+import { useDragReorder } from "../ui/useDragReorder.js";
 
 const DONE_EXPANDED_KEY_PREFIX = "dielys.doneExpanded.";
 
@@ -57,8 +56,13 @@ export function ListPage({ listId }: { listId: string }) {
   const [taskDraft, setTaskDraft] = useState("");
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [doneExpanded, setDoneExpanded] = useState(() => readDoneExpanded(listId));
-  const [dragTaskId, setDragTaskId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const reorder = useDragReorder(
+    board.active.map((task) => task.id),
+    board.move,
+  );
+  const activeById = new Map(board.active.map((task) => [task.id, task]));
+  const shownActive = reorder.order.flatMap((id) => activeById.get(id) ?? []);
 
   const accent = accentColor(getAccent(listId) ?? hashedAccent(listId));
 
@@ -80,17 +84,6 @@ export function ListPage({ listId }: { listId: string }) {
     const next = !doneExpanded;
     setDoneExpanded(next);
     writeDoneExpanded(listId, next);
-  }
-
-  function handleTaskDrop(section: Task[], targetIndex: number): void {
-    if (dragTaskId === null) return;
-    const ids = section.map((t) => t.id);
-    const fromIndex = ids.indexOf(dragTaskId);
-    if (fromIndex !== -1 && fromIndex !== targetIndex) {
-      const { id, afterId, beforeId } = dropNeighbors(ids, fromIndex, targetIndex);
-      void board.move(id, afterId, beforeId);
-    }
-    setDragTaskId(null);
   }
 
   return (
@@ -161,15 +154,8 @@ export function ListPage({ listId }: { listId: string }) {
 
       {board.active.length > 0 && (
         <ul className="row-list">
-          {board.active.map((task, index) => (
-            <li
-              key={task.id}
-              className="task-row"
-              draggable
-              onDragStart={() => setDragTaskId(task.id)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={() => handleTaskDrop(board.active, index)}
-            >
+          {shownActive.map((task) => (
+            <li key={task.id} className="task-row" {...reorder.rowProps(task.id)}>
               <span className="drag-handle" aria-hidden="true">
                 ⠿
               </span>
