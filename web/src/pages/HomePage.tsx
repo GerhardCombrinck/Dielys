@@ -1,7 +1,7 @@
 /**
  * The lists screen (`android/.../ui/lists/ListsScreen.kt`'s web counterpart).
- * Fed by `sync/useListsOverview.ts` — a fresh `/auth/memberships` plus one
- * catch-up per list, since there is no local database to read instead.
+ * Fed by `sync/useListsOverview.ts`, which reads the local replica
+ * (`data/replica.ts`) and lets `SyncEngine` catch it up behind the scenes.
  * Visual design: design_handoff_web_auth/Lists.dc.html (2026-09).
  */
 import { useEffect, useState } from "react";
@@ -11,7 +11,6 @@ import { ACCENT_COUNT, accentColor } from "../domain/accents.js";
 import { takePendingInvite } from "../domain/pendingInvite.js";
 import { useI18n } from "../i18n/I18nContext.js";
 import { navigate } from "../router.js";
-import { prefetchList } from "../sync/listCache.js";
 import { type ListRow, useListsOverview } from "../sync/useListsOverview.js";
 import { useSharing } from "../sync/useSharing.js";
 import { GearIcon, PeopleIcon, Spinner } from "../ui/icons.js";
@@ -23,7 +22,7 @@ type ConfirmTarget = { row: ListRow; kind: "delete" | "leave" };
 export function HomePage() {
   const session = useSession();
   const { t } = useI18n();
-  const overview = useListsOverview(session.deviceId);
+  const overview = useListsOverview();
   const sharing = useSharing(session.status === "signed-in" ? session.userId : "");
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -128,19 +127,7 @@ export function HomePage() {
           {shownRows.map((row) => {
             const drag = reorder.rowProps(row.membership.listId);
             return (
-              <li
-                key={row.membership.listId}
-                className="list-row"
-                {...drag}
-                // Hover (desktop) or the press before a tap resolves (touch) —
-                // a click's own catch-up round trip is then already in flight,
-                // often already cached, by the time navigate() runs below.
-                onPointerEnter={() => prefetchList(row.membership.listId)}
-                onPointerDown={(e) => {
-                  prefetchList(row.membership.listId);
-                  drag.onPointerDown(e);
-                }}
-              >
+              <li key={row.membership.listId} className="list-row" {...drag}>
                 <span className="drag-handle" aria-hidden="true">
                   ⠿
                 </span>

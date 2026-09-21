@@ -100,9 +100,9 @@ Where Dielys is and what comes next. Short by design — the standard is in
       deployed through the required-reviewer gate on the `prod` GitHub environment,
       `scripts/smoke.sh` all 29 checks green. `FCM_SERVICE_ACCOUNT_JSON` is not set yet —
       fail-open, so prod runs with no wake push until that key rotation is repeated for prod.
-- [x] **Web client** (`web/`, issue #74) — React + Vite + TypeScript, online-first: no local
-      replica and no outbox, a mutation is a direct call to the server, and a network failure
-      surfaces as an error rather than something queued (`web/AGENTS.md`). The WebSocket-auth
+- [x] **Web client** (`web/`, issue #74) — React + Vite + TypeScript. Shipped online-first; now
+      local-first like Android (ADR 0011): an IndexedDB replica and outbox, so a tap lands
+      locally at once and syncs after, offline included (`web/AGENTS.md`). The WebSocket-auth
       blocker — a browser cannot set headers on the upgrade the way Android's OkHttp does — is
       answered by ADR 0009, a one-time ticket minted over `POST /auth/ws-ticket`. Sign-in,
       lists, tasks, sharing (invite/members/leave), settings, and account deletion — including

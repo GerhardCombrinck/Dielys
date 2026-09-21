@@ -1,8 +1,8 @@
 # web/
 
-The web client: React + Vite + TypeScript, online-first (no local database, no outbox — see
-`AGENTS.md` for what that changes). Full feature parity with Android's connected/online
-experience: sign-in, lists, tasks, sharing, and account settings.
+The web client: React + Vite + TypeScript, local-first like Android — an IndexedDB replica and
+an outbox, so taps land instantly and work offline (see `AGENTS.md` and ADR 0011). Full feature
+parity with Android: sign-in, lists, tasks, sharing, and account settings.
 
 ## Running it locally
 
@@ -30,6 +30,6 @@ Or all three, plus every other package, from the repo root: `scripts/verify.sh w
 
 ## Where to look next
 
-`AGENTS.md` — the architecture: why there is no local replica, how the WebSocket auth problem
+`AGENTS.md` — the architecture: the local replica and outbox, how the WebSocket auth problem
 (a browser cannot set headers on the upgrade) is solved, and how sync, sharing, and account
 deletion are structured.

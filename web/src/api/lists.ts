@@ -1,9 +1,8 @@
 /**
- * List/task calls. Mutations go straight to `POST /lists/{id}/mutate` over
- * plain HTTP (ListRoom.ts's "primary write path") — this client has no
- * outbox to drain from a socket instead (web/AGENTS.md). The socket
- * (`socket.ts`) is only for the "change" pushes a live view wants while
- * someone else is editing the same list.
+ * List/task calls, used by `data/syncEngine.ts` — never by a page directly
+ * (web/AGENTS.md). Mutations are the outbox draining over plain HTTP
+ * (ListRoom.ts's "primary write path"); the socket (`socket.ts`) only carries
+ * the "change" pushes a live view wants while someone else is editing.
  */
 import type {
   CatchUpResponse,

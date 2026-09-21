@@ -38,8 +38,8 @@ One repo, two runtimes, one contract:
   plus one singleton `UsersRoom` DO for accounts/auth/membership.
 - `android/` — Kotlin + Compose + Room, package `za.co.dielys`.
 - `protocol/` — the wire contract. Both sides depend on it; it depends on nothing.
-- `web/` — React + Vite + TypeScript, online-first (no local replica, no outbox — see
-  `web/AGENTS.md`), consuming `protocol/` the same way `server/` does.
+- `web/` — React + Vite + TypeScript, local-first like Android (IndexedDB replica + outbox —
+  see `web/AGENTS.md` and ADR 0011), consuming `protocol/` the same way `server/` does.
 
 ## Before you push
 

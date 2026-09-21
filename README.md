@@ -206,7 +206,7 @@ See `web/README.md` and `web/AGENTS.md` for more.
 | `server/`   | Cloudflare Workers + Durable Objects backend (TypeScript)  |
 | `protocol/` | The wire contract — types and fixtures shared by both sides |
 | `android/`  | Kotlin + Compose + Room Android client                     |
-| `web/`      | React + Vite + TypeScript web client, online-first          |
+| `web/`      | React + Vite + TypeScript web client, local-first           |
 | `docs/`     | Coding standard, ADRs, sync design                          |
 | `scripts/`  | One-off and maintenance scripts                              |
 
