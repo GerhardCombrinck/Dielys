@@ -131,4 +131,7 @@
     <string name="auth_sign_in_with_code">Dzhenani nga khoudu</string>
     <string name="error_magic_code_invalid">Iyo khoudu a yo ngo luga kana tshifhinga tshayo tsho fhela. Sedzani imeili, kana ni rumele vhukwamani vhuswa.</string>
     <string name="error_magic_code_locked">Khoudu nnzhi dzi songo luga. Kha vha pfe vhukwamani kha imeili, kana vha lingedze hafhu matshelo.</string>
+    <!-- Play in-app updates (#88) -->
+    <string name="update_ready">Mvusuludzo yo lugela.</string>
+    <string name="update_restart">Thoma hafhu</string>
 </resources>

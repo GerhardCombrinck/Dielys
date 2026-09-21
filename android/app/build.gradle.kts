@@ -29,7 +29,7 @@ android {
         minSdk = 26
         targetSdk = 37
         versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 1
-        versionName = "0.5.10"
+        versionName = "0.5.13"
     }
 
     buildFeatures {
@@ -151,12 +151,16 @@ dependencies {
     ksp("androidx.hilt:hilt-compiler:1.4.0")
     implementation("com.google.dagger:hilt-android:2.60.1")
     ksp("com.google.dagger:hilt-android-compiler:2.60.1")
-    implementation("com.google.firebase:firebase-messaging-ktx:24.0.1")
+    implementation("com.google.firebase:firebase-messaging-ktx:24.1.2")
+    // Play in-app updates. Only does anything in a build Play installed; a
+    // sideloaded or debug build gets UpdateAvailability.UPDATE_NOT_AVAILABLE
+    // and the prompt simply never appears.
+    implementation("com.google.android.play:app-update-ktx:2.1.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("com.squareup.okhttp3:okhttp:5.2.1")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     // Room needs an android.content.Context even for an in-memory database, so
     // the tests that touch it run under Robolectric — still the JVM, still no
@@ -169,7 +173,7 @@ dependencies {
     // caches it and CI does not fetch 90 MB on every build.
     testImplementation("org.robolectric:android-all-instrumented:14-robolectric-10818077-i7")
     testImplementation("androidx.test:core:1.6.1")
-    testImplementation("app.cash.turbine:turbine:1.1.0")
+    testImplementation("app.cash.turbine:turbine:1.2.1")
     testImplementation("androidx.room:room-testing:2.8.4")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     testImplementation("com.lemonappdev:konsist:0.17.3")

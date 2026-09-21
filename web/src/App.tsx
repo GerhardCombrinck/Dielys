@@ -1,4 +1,5 @@
 import { SessionProvider, useSession } from "./auth/SessionContext.js";
+import { DataProvider } from "./data/store.js";
 import { I18nProvider, useI18n } from "./i18n/I18nContext.js";
 import { AdminPage } from "./pages/AdminPage.js";
 import {
@@ -36,6 +37,15 @@ function Routed() {
   if (session.status === "loading") return <p>{t("common.loading")}</p>;
   if (session.status === "signed-out") return <SignInPage />;
 
+  // Everything past the sign-in gate reads the local replica (data/store.tsx).
+  return (
+    <DataProvider userId={session.userId} deviceId={session.deviceId}>
+      <SignedIn path={path} />
+    </DataProvider>
+  );
+}
+
+function SignedIn({ path }: { path: string }) {
   if (path === "/settings") return <SettingsPage />;
 
   const list = LIST_PATH.exec(path);

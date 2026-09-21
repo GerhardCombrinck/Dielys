@@ -1,9 +1,8 @@
 /**
  * Thin fetch wrapper: attaches `Authorization`, retries once through a
- * refresh on a 401. No offline queue, no retry-with-backoff beyond that one
- * refresh — this client is online-first (web/AGENTS.md); a failed request
- * surfaces as an error for the caller to show, not something queued for
- * later.
+ * refresh on a 401, and otherwise throws. Queuing and retrying list edits is
+ * not done here — that is the outbox's job (`data/syncEngine.ts`); this layer
+ * only reports what happened to one request.
  */
 import type { RefreshRequest, TokenPair } from "@dielys/protocol";
 

@@ -473,8 +473,60 @@ input {
   min-height: 53px;
 }
 
-.list-row.drag-over {
+/* Drag-to-reorder (ui/useDragReorder.ts) — Android's lift: the picked-up
+   row rises (scale + shadow + the elevated surface) and follows the pointer
+   with no easing, since the pointer is already placing it; the rows it passes
+   slide aside, and on release it glides into its slot. */
+.list-row,
+.task-row {
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+.list-row[data-drag],
+.task-row[data-drag] {
+  will-change: transform;
+}
+
+.list-row[data-drag="shifting"],
+.task-row[data-drag="shifting"],
+.list-row[data-drag="settling"],
+.task-row[data-drag="settling"] {
+  transition:
+    transform 180ms cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+
+.list-row[data-drag="lifted"],
+.task-row[data-drag="lifted"] {
+  z-index: 2;
   background: var(--color-elevated);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.25);
+  scale: 1.02;
+  transition:
+    scale 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+.list-row[data-drag="settling"],
+.task-row[data-drag="settling"] {
+  z-index: 2;
+}
+
+body.reordering,
+body.reordering * {
+  cursor: grabbing;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list-row[data-drag],
+  .task-row[data-drag] {
+    transition: none;
+  }
 }
 
 .task-row {
@@ -494,6 +546,8 @@ input {
 
 .drag-handle {
   cursor: grab;
+  /* A finger on the handle is a drag from the first pixel, never a scroll. */
+  touch-action: none;
   color: rgba(var(--on-surface-rgb), 0.35);
   user-select: none;
   padding: 0 6px;

@@ -168,4 +168,7 @@
     <string name="auth_sign_in_with_code">Sign in with code</string>
     <string name="error_magic_code_invalid">That code is wrong or has expired. Check the email, or send a new link.</string>
     <string name="error_magic_code_locked">Too many wrong codes. Tap the link in the email instead, or try again tomorrow.</string>
+    <!-- Play in-app updates (#88) -->
+    <string name="update_ready">An update is ready.</string>
+    <string name="update_restart">Restart</string>
 </resources>
