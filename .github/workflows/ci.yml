@@ -19,6 +19,21 @@ jobs:
       - run: sh scripts/node-tests.sh protocol
         env: { DIELYS_TEST_TIMEOUT: '150' }
 
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'npm', cache-dependency-path: web/package-lock.json }
+      - run: npm ci
+        working-directory: web
+      - run: npx biome ci .
+        working-directory: web
+      - run: npx tsc --noEmit
+        working-directory: web
+      - run: sh scripts/node-tests.sh web
+        env: { DIELYS_TEST_TIMEOUT: '150' }
+
   server:
     runs-on: ubuntu-latest
     steps:
@@ -32,6 +47,9 @@ jobs:
       - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: npm ci
         working-directory: server
+      # server/public/ (this Worker's static assets) is web/'s build merged
+      # with server/public-static/ — the tests below serve and assert on it.
+      - run: sh scripts/build-web-public.sh
       - run: npx biome ci .
         working-directory: server
       - run: npx tsc --noEmit
@@ -58,5 +76,8 @@ jobs:
       - uses: actions/setup-java@v6
         with: { distribution: 'temurin', java-version: '21' }
       - uses: gradle/actions/setup-gradle@v6
-      - run: ./gradlew ktlintCheck detekt testDebugUnitTest
+      # assembleRelease (unsigned, no google-services.json) runs R8; the check
+      # after it fails on anything reached by reflection that R8 dropped.
+      - run: ./gradlew ktlintCheck detekt testDebugUnitTest assembleRelease
         working-directory: android
+      - run: sh scripts/check-r8-keeps.sh

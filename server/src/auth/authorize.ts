@@ -34,13 +34,24 @@ export async function authenticate(request: Request, env: Env): Promise<AuthResu
 /**
  * Authentication plus membership, in that order. A request that reaches a
  * `ListRoom` has passed both.
+ *
+ * `wsTicket` is only ever passed for the WebSocket upgrade route: a browser
+ * cannot set `Authorization` on that one request the way every other route
+ * (and OkHttp's upgrade) can, so it falls back to a one-time `?ticket=`
+ * (ADR 0009) when there is no bearer token. `viaTicket` on the result says
+ * which path was used, so the caller can trust the ticket's bound device id
+ * over whatever `?deviceId=` the client itself put on the URL.
  */
 export async function authorizeListAccess(
   request: Request,
   env: Env,
   listId: string,
-): Promise<AuthResult<{ principal: Principal; membership: Membership }>> {
-  const authenticated = await authenticate(request, env);
+  wsTicket?: { url: URL; now: number },
+): Promise<AuthResult<{ principal: Principal; membership: Membership; viaTicket: boolean }>> {
+  const viaTicket = bearerToken(request) === null;
+  const authenticated = viaTicket
+    ? await authenticateViaTicket(env, wsTicket)
+    : await authenticate(request, env);
   if (!authenticated.ok) return authenticated;
 
   const membership = await usersRoom(env).checkMembership(authenticated.value.userId, listId);
@@ -50,7 +61,22 @@ export async function authorizeListAccess(
     return { ok: false, code: "forbidden", status: 403 };
   }
 
-  return { ok: true, value: { principal: authenticated.value, membership } };
+  return { ok: true, value: { principal: authenticated.value, membership, viaTicket } };
+}
+
+async function authenticateViaTicket(
+  env: Env,
+  wsTicket: { url: URL; now: number } | undefined,
+): Promise<AuthResult<Principal>> {
+  if (wsTicket === undefined) return { ok: false, code: "unauthorized", status: 401 };
+
+  const ticket = wsTicket.url.searchParams.get("ticket");
+  if (ticket === null) return { ok: false, code: "unauthorized", status: 401 };
+
+  const redeemed = await usersRoom(env).redeemWsTicket(ticket, wsTicket.now);
+  if (!redeemed.ok) return { ok: false, code: "unauthorized", status: 401 };
+
+  return { ok: true, value: redeemed.value };
 }
 
 /**

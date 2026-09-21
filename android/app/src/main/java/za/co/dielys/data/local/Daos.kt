@@ -1,6 +1,7 @@
 package za.co.dielys.data.local
 
 import androidx.room.Dao
+import androidx.room.Embedded
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -117,6 +118,12 @@ interface ListPurgeDao {
     suspend fun list(listId: String)
 }
 
+/** A list and its colour on this phone, if it has one. See [ListAccentDao.observeLists]. */
+data class ListWithAccent(
+    @Embedded val list: ListEntity,
+    val accent: Int?,
+)
+
 /** How many live lists wear one palette index. See [ListAccentDao.usage]. */
 data class AccentUsage(
     val accent: Int,
@@ -129,8 +136,25 @@ data class AccentUsage(
  */
 @Dao
 interface ListAccentDao {
-    @Query("SELECT * FROM list_accent")
-    fun observeAll(): Flow<List<ListAccentEntity>>
+    /**
+     * [ListDao.observeAll]'s lists, in the same order, each with this phone's colour for it
+     * (#57), or null for one not coloured yet.
+     *
+     * One query rather than the lists and their colours read separately:
+     * a new list and its colour are written in one transaction, but two
+     * queries are two reads, and between them the screen could be handed the
+     * row without its colour and draw the fallback for a frame. A join reads
+     * both from the same snapshot.
+     */
+    @Query(
+        """
+        SELECT lists.*, list_accent.accent AS accent FROM lists
+        LEFT JOIN list_accent ON list_accent.list_id = lists.id
+        WHERE lists.deleted_at IS NULL
+        ORDER BY COALESCE(lists.position, '~'), lists.title, lists.id
+        """,
+    )
+    fun observeLists(): Flow<List<ListWithAccent>>
 
     @Query("SELECT accent FROM list_accent WHERE list_id = :listId")
     fun observe(listId: String): Flow<Int?>

@@ -90,15 +90,24 @@ Where Dielys is and what comes next. Short by design — the standard is in
 - [x] **Dev shakedown** — ran the debug build against `dielys-dev` on two phones by hand:
       offline add/reorder on both, double-tick convergence, delete-vs-rename race, and FCM
       wake push to a backgrounded phone. All twelve H3 scenarios held up outside the JVM tests.
-- [ ] **Visual redesign** (Navy/Sand/Amber, "Die Lys" wordmark) — login, lists, and task-list
-      screens rebuilt in Compose from the design handoff in `docs/`, plus a password-visibility
-      toggle, a settings screen with account details, join-a-list moved there, and a
-      collapsible Done section. Needs a look on a real phone before this is called finished —
-      the handoff's pixel values were followed but never checked against the mock on-device.
+- [x] **Visual redesign** (Navy/Sand/Amber, "Die Lys" wordmark) — login, lists, and task-list
+      screens rebuilt in Compose from the design handoff in `docs/`, a settings screen with
+      account details and account deletion (ADR 0007), and a collapsible Done section.
+      Password entry went away entirely once ADR 0005's magic-link sign-in landed, which is
+      why there is no password-visibility toggle; join-a-list stayed on the lists screen (an
+      invite link, not a Settings action) rather than moving to Settings as first planned here.
 - [x] **Prod** — `JWT_SIGNING_KEY`/`ADMIN_TOKEN` set on `dielys-prod`, `v0.1.0` tagged and
       deployed through the required-reviewer gate on the `prod` GitHub environment,
       `scripts/smoke.sh` all 29 checks green. `FCM_SERVICE_ACCOUNT_JSON` is not set yet —
       fail-open, so prod runs with no wake push until that key rotation is repeated for prod.
+- [x] **Web client** (`web/`, issue #74) — React + Vite + TypeScript. Shipped online-first; now
+      local-first like Android (ADR 0011): an IndexedDB replica and outbox, so a tap lands
+      locally at once and syncs after, offline included (`web/AGENTS.md`). The WebSocket-auth
+      blocker — a browser cannot set headers on the upgrade the way Android's OkHttp does — is
+      answered by ADR 0009, a one-time ticket minted over `POST /auth/ws-ticket`. Sign-in,
+      lists, tasks, sharing (invite/members/leave), settings, and account deletion — including
+      the public `dielys.com/account/delete` pages ADR 0007 and Google Play's deletion
+      requirement call for — all match Android's connected/online experience.
 
 ## Open questions
 
@@ -107,6 +116,3 @@ Where Dielys is and what comes next. Short by design — the standard is in
   unresolved — the Workers and Durable Objects limits pages disagree — and settling it is one
   probe. If it does, `PASSWORD_ITERATIONS` goes to 600,000; the per-user column means
   existing accounts re-hash on next login rather than breaking.
-- **Web client** (`web/`) is priority 3 and unstarted. Note that the browser cannot set
-  headers on a WebSocket upgrade, which is how the Android client authenticates — that needs
-  an answer before `web/` is real.

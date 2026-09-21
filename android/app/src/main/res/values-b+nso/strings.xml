@@ -122,6 +122,7 @@
     <string name="settings_sign_out">Tšwa</string>
     <string name="settings_language">Polelo</string>
     <string name="settings_language_system_default">Tlwaelo ya sistimi</string>
+    <string name="settings_privacy_policy">Pholisi ya Sephiri</string>
 
     <string name="settings_delete_account">Phumola akhaonto</string>
     <string name="settings_deleting_account">E phumola akhaonto…</string>
@@ -135,4 +136,7 @@
     <string name="auth_sign_in_with_code">Tsena ka khoutu</string>
     <string name="error_magic_code_invalid">Khoutu yeo e fošagetše goba e fetile nako. Lekola imeile, goba romela kgokagano ye mpsha.</string>
     <string name="error_magic_code_locked">Dikhoutu tše dintši kudu tše di fošagetšego. Kgotla kgokagano ka go imeile go e na le moo, goba leka gape gosasa.</string>
+    <!-- Play in-app updates (#88) -->
+    <string name="update_ready">Mpshafatšo e loketše.</string>
+    <string name="update_restart">Thoma gape</string>
 </resources>

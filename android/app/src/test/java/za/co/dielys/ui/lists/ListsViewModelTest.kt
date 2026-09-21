@@ -1,10 +1,14 @@
 package za.co.dielys.ui.lists
 
+import androidx.lifecycle.viewModelScope
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -56,6 +60,15 @@ class ListsViewModelTest {
 
     @After
     fun tearDown() {
+        // Everything the view model started is over before the database closes and
+        // `Dispatchers.Main` is put back. A join still waiting on Room would
+        // otherwise resume from Room's own thread after that, into whatever the
+        // next test has made Main — which fails that test instead of this one.
+        // Cancelling is not enough: the waiter still has to come back to notice.
+        runBlocking {
+            viewModel.viewModelScope.coroutineContext.job
+                .cancelAndJoin()
+        }
         phone.close()
         Dispatchers.resetMain()
     }
@@ -72,8 +85,11 @@ class ListsViewModelTest {
                 assertEquals(emptyList<String>(), awaitItem()?.map { it.list.title })
                 viewModel.create("  Groceries  ")
 
+                // Already wearing its colour: the row and the colour are one
+                // transaction and one query, never a row and then a colour (#57).
                 val shown = awaitItem().orEmpty()
                 assertEquals(listOf("Groceries"), shown.map { it.list.title })
+                assertNotNull(shown.single().accent)
                 // No server timestamp yet: the row is an optimistic local write,
                 // which is what the screen labels "Not synced yet".
                 assertEquals(null, shown.single().list.updatedAt)
@@ -186,7 +202,9 @@ class ListsViewModelTest {
             viewModel.lists.test {
                 assertNull(awaitItem())
                 viewModel.create("Groceries")
-                assertEquals(listOf("Groceries"), awaitItem()?.map { it.list.title })
+                val shown = awaitItem().orEmpty()
+                assertEquals(listOf("Groceries"), shown.map { it.list.title })
+                assertNotNull(shown.single().accent)
             }
         }
 

@@ -117,6 +117,7 @@
     <string name="settings_sign_out">Phuma</string>
     <string name="settings_language">Ulwimi</string>
     <string name="settings_language_system_default">Okuzenzekelayo kwenkqubo</string>
+    <string name="settings_privacy_policy">Umgaqo-nkqubo Wemfihlo</string>
 
     <string name="settings_delete_account">Cima i-akhawunti</string>
     <string name="settings_deleting_account">Icima i-akhawunti…</string>
@@ -130,4 +131,7 @@
     <string name="auth_sign_in_with_code">Ngena ngekhowudi</string>
     <string name="error_magic_code_invalid">Loo khowudi ayichanekanga okanye iphelelwe lixesha. Jonga i-imeyile, okanye uthumele ikhonkco elitsha.</string>
     <string name="error_magic_code_locked">Iikhowudi ezininzi kakhulu ezingachanekanga. Cofa ikhonkco kwi-imeyile endaweni yoko, okanye uzame kwakhona ngomso.</string>
+    <!-- Play in-app updates (#88) -->
+    <string name="update_ready">Uhlaziyo lulungile.</string>
+    <string name="update_restart">Qala kwakhona</string>
 </resources>

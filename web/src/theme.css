@@ -1,0 +1,1122 @@
+/* Navy/Sand/Amber, ported from android/.../ui/theme/Theme.kt so the web
+   client is recognisably the same app. Not user-configurable (same reasoning
+   as the Android client skipping dynamic/Material You color: two people on
+   the same household list should see the same app, not two different ones
+   shaped by device theme extraction) — but it still follows the OS's
+   light/dark preference the same way Android's DielysTheme does.
+
+   Component styling below matches design_handoff_web_auth (2026-09), a
+   high-fidelity dark-theme handoff — hex values and spacing there are exact
+   targets. The light variant is a proportional derivation (same shapes,
+   spacing and layout), since the handoff only specified dark. */
+
+:root {
+  --navy: #1b2a4a;
+  --navy-light: #2e4372;
+  --navy-deep: #0e1728;
+  --sand: #f6f4ef;
+  --amber: #e8a33d;
+  --amber-button: #e2a44a;
+  --amber-button-hover: #d6963c;
+  --rust: #b3261e;
+  --rust-hover: #9c211a;
+  --sage: #7fa893;
+
+  --color-primary: var(--navy);
+  --color-on-primary: #ffffff;
+  --color-primary-container: var(--navy-light);
+  --color-on-primary-container: #ffffff;
+  --color-secondary: var(--amber);
+  --color-on-secondary: var(--navy-deep);
+  --color-background: var(--sand);
+  --color-on-background: var(--navy-deep);
+  --color-surface: #ffffff;
+  --color-on-surface: var(--navy-deep);
+  --color-elevated: #ffffff;
+  --color-field: #ffffff;
+  --color-accent-blue: var(--navy);
+  --color-error: var(--rust);
+  --color-error-strong: var(--rust);
+  --color-border: rgba(14, 23, 40, 0.12);
+  --on-surface-rgb: 14, 23, 40;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary: #9cb6e8;
+    --color-on-primary: var(--navy-deep);
+    --color-primary-container: var(--navy-light);
+    --color-on-primary-container: #ffffff;
+    --color-secondary: var(--amber);
+    --color-on-secondary: var(--navy-deep);
+    --color-background: var(--navy-deep);
+    --color-on-background: var(--sand);
+    --color-surface: var(--navy);
+    --color-on-surface: var(--sand);
+    --color-elevated: var(--navy-light);
+    --color-field: var(--navy-deep);
+    --color-accent-blue: #9cb6e8;
+    --color-error: #f2b8b5;
+    --color-error-strong: var(--rust);
+    --color-border: rgba(246, 244, 239, 0.14);
+    --on-surface-rgb: 246, 244, 239;
+
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--color-background);
+  color: var(--color-on-background);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+@keyframes dl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dl-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: dl-spin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* On the page background rather than a solid button — a themed, low-opacity
+   ring instead of the fixed white one above. */
+.spinner-muted {
+  width: 24px;
+  height: 24px;
+  border-color: rgba(var(--on-surface-rgb), 0.2);
+  border-top-color: var(--color-on-surface);
+}
+
+.page-spinner {
+  display: flex;
+  justify-content: center;
+  padding: 3.75rem 0;
+}
+
+/* Buttons */
+
+.pill-button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.75rem 1.5rem;
+  background: var(--amber-button);
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.pill-button:hover:not(:disabled) {
+  background: var(--amber-button-hover);
+}
+
+.pill-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.pill-button.secondary {
+  background: var(--color-elevated);
+  color: var(--color-on-surface);
+}
+
+.pill-button.secondary:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+
+.pill-button.danger {
+  background: var(--rust);
+}
+
+.pill-button.danger:hover:not(:disabled) {
+  background: var(--rust-hover);
+}
+
+.pill-button.full-width {
+  width: 100%;
+  height: 50px;
+}
+
+.text-button {
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+}
+
+.text-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.text-button.link {
+  color: var(--color-accent-blue);
+  font-weight: 600;
+}
+
+.text-button.muted {
+  color: rgba(var(--on-surface-rgb), 0.55);
+}
+
+.text-input {
+  border: 1px solid rgba(var(--on-surface-rgb), 0.18);
+  border-radius: 12px;
+  padding: 0.875rem 1rem;
+  background: var(--color-field);
+  color: var(--color-on-surface);
+  width: 100%;
+  outline: none;
+}
+
+.text-input:focus {
+  border-color: var(--color-accent-blue);
+}
+
+.text-input.code-input {
+  text-align: center;
+  letter-spacing: 4px;
+  font-size: 1rem;
+}
+
+.error-text {
+  color: var(--color-error);
+  font-size: 0.875rem;
+}
+
+/* Auth / delete-account card shell */
+
+.auth-page {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.25rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 520px;
+  background: var(--color-surface);
+  border-radius: 24px;
+  padding: 3rem 2.75rem 2.5rem;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.6);
+}
+
+.auth-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.auth-badge {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: var(--color-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ffffff;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.auth-header h1 {
+  margin: 20px 0 0;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--color-on-surface);
+  letter-spacing: -0.01em;
+}
+
+.auth-tagline {
+  margin: 6px 0 28px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--amber);
+}
+
+.auth-intro {
+  margin: 0 0 20px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(var(--on-surface-rgb), 0.7);
+  text-align: center;
+}
+
+.auth-stage h2 {
+  margin: 0 0 8px;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--color-on-surface);
+  text-align: center;
+}
+
+.auth-divider {
+  height: 1px;
+  background: rgba(var(--on-surface-rgb), 0.14);
+  margin: 20px 0;
+}
+
+.auth-delivered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 0 20px;
+  animation: dl-pop 0.4s ease-out;
+  font-size: 22px;
+}
+
+.auth-delivered .check {
+  color: var(--sage);
+  font-weight: 700;
+}
+
+.auth-code-hint {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: rgba(var(--on-surface-rgb), 0.6);
+  text-align: center;
+}
+
+.auth-links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 18px;
+}
+
+.auth-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 0 4px;
+  animation: dl-pop 0.4s ease-out;
+  text-align: center;
+}
+
+.auth-success-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(127, 168, 147, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sage);
+  font-size: 28px;
+  font-weight: 700;
+}
+
+/* Page shell (Lists / Items) */
+
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 5rem;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 1.5rem;
+  /* The lists header carries a title + tagline, the item-list header just a
+     title next to a back button — left alone, the shorter one lets every row
+     below it sit higher on screen, so the eye re-locates the list on every
+     navigation instead of finding it in the same place. Matches the taller
+     of the two so both pages give the first row the same starting position. */
+  min-height: 55px;
+}
+
+.page-header-titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-header h1 {
+  flex: 1;
+  font-size: 1.75rem;
+  margin: 0;
+  text-align: left;
+  letter-spacing: -0.01em;
+}
+
+.page-tagline {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--amber);
+  text-transform: uppercase;
+}
+
+.page-title-button {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  padding: 0.25rem 0 0.25rem 0.5rem;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.page-title-button h1 {
+  font-size: 22px;
+}
+
+.new-row {
+  display: flex;
+  gap: 0.625rem;
+  margin-top: 1.25rem;
+}
+
+.new-row .text-input {
+  flex: 1;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 3.75rem 1.25rem;
+}
+
+.empty-state-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-on-surface);
+  margin-bottom: 6px;
+}
+
+.empty-state-body {
+  font-size: 14px;
+  color: rgba(var(--on-surface-rgb), 0.6);
+}
+
+.row-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list-row,
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--color-surface);
+  border-radius: 14px;
+  padding: 6px 8px 6px 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  position: relative;
+  /* A task row's own title button carries more built-in padding than a list
+     row's (stripped to 0 below), so left alone it renders a few px taller —
+     every row jumping half a card-height as you go from Lists into a list's
+     items. A shared floor keeps both the same regardless of that padding. */
+  min-height: 53px;
+}
+
+/* Drag-to-reorder (ui/useDragReorder.ts) — Android's lift: the picked-up
+   row rises (scale + shadow + the elevated surface) and follows the pointer
+   with no easing, since the pointer is already placing it; the rows it passes
+   slide aside, and on release it glides into its slot. */
+.list-row,
+.task-row {
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+.list-row[data-drag],
+.task-row[data-drag] {
+  will-change: transform;
+}
+
+.list-row[data-drag="shifting"],
+.task-row[data-drag="shifting"],
+.list-row[data-drag="settling"],
+.task-row[data-drag="settling"] {
+  transition:
+    transform 180ms cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+
+.list-row[data-drag="lifted"],
+.task-row[data-drag="lifted"] {
+  z-index: 2;
+  background: var(--color-elevated);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.25);
+  scale: 1.02;
+  transition:
+    scale 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+.list-row[data-drag="settling"],
+.task-row[data-drag="settling"] {
+  z-index: 2;
+}
+
+body.reordering,
+body.reordering * {
+  cursor: grabbing;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list-row[data-drag],
+  .task-row[data-drag] {
+    transition: none;
+  }
+}
+
+.task-row {
+  padding: 4px 6px;
+}
+
+.task-row.done {
+  box-shadow: none;
+  background: none;
+  border-radius: 0;
+  padding: 2px 6px;
+  /* Deliberately more compact than an active row (see .list-row, .task-row's
+     shared min-height, which this opts back out of) — a done list can be
+     long, and it's not part of the height parity this fixes. */
+  min-height: 0;
+}
+
+.drag-handle {
+  cursor: grab;
+  /* A finger on the handle is a drag from the first pixel, never a scroll. */
+  touch-action: none;
+  color: rgba(var(--on-surface-rgb), 0.35);
+  user-select: none;
+  padding: 0 6px;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.accent-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.row-title-wrap {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 4px;
+}
+
+.task-row .row-title-wrap {
+  padding: 2px 4px;
+}
+
+.row-title {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--color-on-surface);
+  padding: 12px 4px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 15.5px;
+  border-radius: 8px;
+  display: block;
+  width: 100%;
+}
+
+.list-row .row-title {
+  padding: 0;
+  font-weight: 500;
+}
+
+/* Stripped to 0 for the same reason as list-row's above — the button's own
+   padding, not this file's other spacing, was what made a task row taller
+   than a list row (see .list-row, .task-row's shared min-height). */
+.task-row .row-title {
+  padding: 0;
+}
+
+.done-title {
+  text-decoration: line-through;
+  cursor: default;
+  color: rgba(var(--on-surface-rgb), 0.55);
+  padding: 12px 4px;
+  display: block;
+  font-size: 15.5px;
+}
+
+.row-count {
+  color: rgba(var(--on-surface-rgb), 0.6);
+  font-size: 14.5px;
+  font-weight: 500;
+  padding: 0 6px;
+  flex-shrink: 0;
+}
+
+.inline-edit {
+  flex: 1;
+}
+
+.inline-edit.text-input {
+  border-color: var(--color-accent-blue);
+  padding: 0.5rem 0.625rem;
+}
+
+/* The list row's title button has no padding or border of its own (see
+   `.list-row .row-title` above) — the rename input has to match that exact
+   box model, or swapping it in mid-row changes the card's height. A border
+   would add back the height it just gave up, so the "editing" affordance is
+   an inset underline instead, which paints without taking layout space. */
+.list-row .inline-edit.text-input {
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  font-size: 15.5px;
+  font-weight: 500;
+  background: transparent;
+  box-shadow: inset 0 -2px 0 0 var(--color-accent-blue);
+}
+
+/* Same reasoning for a task row: `.task-row .row-title` is stripped to 0
+   padding too now (to fix the list/task row height mismatch — see
+   .list-row, .task-row's shared min-height), so the rename input matches
+   that, not the base .row-title padding it used to carry. */
+.task-row .inline-edit.text-input {
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  font-size: 15.5px;
+  background: transparent;
+  box-shadow: inset 0 -2px 0 0 var(--color-accent-blue);
+}
+
+/* Icon buttons */
+
+.icon-button {
+  background: none;
+  border: none;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-on-surface);
+  border-radius: 999px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon-button:hover {
+  background: rgba(var(--on-surface-rgb), 0.12);
+}
+
+.icon-button.small {
+  width: 36px;
+  height: 36px;
+}
+
+.icon-button.starred {
+  color: var(--list-accent, var(--color-secondary));
+}
+
+.icon-button.checkbox {
+  width: 44px;
+  height: 44px;
+}
+
+.checkbox-box {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 2px solid var(--list-accent, var(--color-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.checkbox-box.checked {
+  opacity: 0.5;
+  color: var(--list-accent, var(--color-secondary));
+}
+
+/* Menus / popovers */
+
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  border: none;
+  padding: 0;
+  z-index: 5;
+  cursor: default;
+}
+
+.menu-popover {
+  position: absolute;
+  right: 6px;
+  top: calc(100% - 2px);
+  z-index: 6;
+  background: var(--color-elevated);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 11rem;
+}
+
+.menu-popover button {
+  background: none;
+  border: none;
+  color: var(--color-on-surface);
+  text-align: left;
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14.5px;
+}
+
+.menu-popover button:hover {
+  background: rgba(var(--on-surface-rgb), 0.1);
+}
+
+.menu-danger {
+  color: var(--color-error);
+}
+
+.menu-popover button.menu-danger:hover {
+  background: rgba(242, 184, 181, 0.12);
+}
+
+.accent-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+}
+
+.accent-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--on-surface-rgb), 0.25);
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Dialogs */
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 23, 40, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 10;
+}
+
+.dialog-box {
+  background: var(--color-elevated);
+  color: var(--color-on-surface);
+  border-radius: 16px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 24rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  animation: dl-pop 0.2s ease-out;
+}
+
+.dialog-box h2 {
+  margin: 0 0 0.625rem;
+  font-size: 17px;
+}
+
+.dialog-box p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: rgba(var(--on-surface-rgb), 0.75);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.dialog-actions button:not(.pill-button) {
+  background: none;
+  border: none;
+  color: var(--color-on-surface);
+  font: inherit;
+  font-size: 14.5px;
+  padding: 0.625rem 0.875rem;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.dialog-actions button:not(.pill-button):hover {
+  background: rgba(var(--on-surface-rgb), 0.1);
+}
+
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(var(--on-surface-rgb), 0.12);
+}
+
+.member-email {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14.5px;
+}
+
+.member-note {
+  opacity: 0.65;
+  font-size: 12.5px;
+}
+
+/* Settings page */
+
+.settings-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-card {
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  border-radius: 16px;
+  padding: 22px 24px;
+}
+
+.settings-card h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 14px;
+}
+
+.settings-card h2.settings-card-eyebrow {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(var(--on-surface-rgb), 0.5);
+}
+
+.settings-detail-label {
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.settings-detail-value {
+  font-size: 15.5px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.settings-card-description {
+  font-size: 13.5px;
+  color: rgba(var(--on-surface-rgb), 0.55);
+  margin: 2px 0 0;
+}
+
+.settings-segmented {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--color-background);
+  border-radius: 999px;
+}
+
+.segmented-option {
+  flex: 1;
+  height: 40px;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  color: rgba(var(--on-surface-rgb), 0.6);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.segmented-option.selected {
+  background: var(--amber);
+  color: var(--navy-deep);
+}
+
+.settings-select {
+  position: relative;
+}
+
+.settings-select select {
+  appearance: none;
+  font: inherit;
+  padding: 12px 40px 12px 14px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.settings-select select:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.settings-select option {
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+}
+
+.settings-select-chevron {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: rgba(var(--on-surface-rgb), 0.6);
+  pointer-events: none;
+}
+
+.sync-interval-select {
+  margin-top: 16px;
+}
+
+.settings-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-switch-row h2 {
+  margin: 0;
+}
+
+.settings-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 48px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(var(--on-surface-rgb), 0.2);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.settings-switch[aria-checked="true"] {
+  background: var(--amber);
+}
+
+.settings-switch:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.settings-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--sand);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: left 0.15s;
+}
+
+.settings-switch[aria-checked="true"] .settings-switch-knob {
+  left: 23px;
+}
+
+.settings-privacy-policy {
+  align-self: center;
+  margin: 8px 0 4px;
+  font-size: 14px;
+  color: var(--color-accent-blue);
+  text-decoration: underline;
+}
+
+.settings-sign-out {
+  width: 100%;
+  height: 52px;
+  margin-top: 8px;
+  border: 1px solid rgba(var(--on-surface-rgb), 0.22);
+  border-radius: 999px;
+  background: none;
+  color: var(--color-on-background);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-sign-out:hover {
+  background: rgba(var(--on-surface-rgb), 0.08);
+}
+
+.settings-danger-zone {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(var(--on-surface-rgb), 0.1);
+  text-align: center;
+}
+
+.settings-delete-account {
+  padding: 0.5rem 0.75rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  color: rgba(var(--on-surface-rgb), 0.4);
+}
+
+.settings-delete-account:hover:not(:disabled) {
+  color: rgba(var(--on-surface-rgb), 0.65);
+}
+
+.settings-delete-account:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.settings-version {
+  margin: 14px 0 0;
+  text-align: center;
+  font-size: 11px;
+  color: rgba(var(--on-surface-rgb), 0.3);
+}
+
+/* Done section (Items) */
+
+.done-section {
+  margin-top: 1.25rem;
+}
+
+.done-toggle {
+  background: none;
+  border: none;
+  color: rgba(var(--on-surface-rgb), 0.55);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.5rem 0.25rem;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* Add-item bar (Items) */
+
+.add-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 1.5rem;
+}
+
+.add-bar .text-input {
+  border-radius: 999px;
+  border-color: rgba(var(--on-surface-rgb), 0.22);
+}
+
+.add-bar-submit {
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(var(--on-surface-rgb), 0.18);
+}
+
+.add-bar-submit.ready {
+  background: var(--color-elevated);
+}

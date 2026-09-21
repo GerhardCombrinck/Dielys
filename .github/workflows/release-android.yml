@@ -1,7 +1,9 @@
 name: Release Android
 on:
   push:
-    tags: ['v*']
+    # android-v* only — web-v* (deploy-server.yml) is a separate release
+    # train, so tagging one never triggers the other's job.
+    tags: ['android-v*']
 
 jobs:
   build-signed-apk:
@@ -51,9 +53,43 @@ jobs:
         if: always()
         run: rm -f "$RUNNER_TEMP/release.keystore" android/app/google-services.json
 
-      - name: Attach APK and bundle to GitHub Release
+      # The R8 mapping file, so a crash stack trace from a release build can be
+      # retraced back to real names and line numbers (issue #70). Attached here
+      # for a sideloaded APK; the Play publish step below sends the same file
+      # to Play Console's own per-release "Deobfuscation files" slot.
+      - name: Attach APK, bundle, and mapping file to GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           files: |
             android/app/build/outputs/apk/release/*.apk
             android/app/build/outputs/bundle/release/*.aab
+            android/app/build/outputs/mapping/release/mapping.txt
+
+      # Publishes the same bundle to the internal testing track (up to 100
+      # testers, no Play review wait) so a tag lands on real phones without a
+      # manual Play Console upload. Runs after the GitHub Release step so a
+      # Play API failure still leaves the APK/bundle/mapping downloadable.
+      #
+      # The mapping file goes up here too — Play Console's "Deobfuscation
+      # files" upload is per-release, and without it crashes collected from
+      # installs come back as shrunk names (issue #70).
+      #
+      # Promoting internal -> production is still a Play Console action: this
+      # never touches the production track.
+      #
+      # `tracks` is a comma-separated list, and it must stay a single entry.
+      # Note that the action defaults to *production* when neither `track` nor
+      # `tracks` is set (action.yml declares no default, but validateTracks()
+      # returns ['production']), so deleting this line would not disable the
+      # publish — it would redirect it. The service account's Play Console
+      # grant is the backstop that would refuse it.
+      - name: Publish bundle to Play internal testing
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: za.co.dielys
+          releaseFiles: android/app/build/outputs/bundle/release/*.aab
+          mappingFile: android/app/build/outputs/mapping/release/mapping.txt
+          releaseName: ${{ github.ref_name }}
+          tracks: internal
+          status: completed

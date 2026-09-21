@@ -23,9 +23,11 @@ import {
   MAX_ID_LENGTH,
   MAX_PASSWORD_LENGTH,
   MAX_POSITION_LENGTH,
+  MAX_SYNC_INTERVAL_MINUTES,
   MAX_TITLE_LENGTH,
   MAX_URL_LENGTH,
   MIN_PASSWORD_LENGTH,
+  MIN_SYNC_INTERVAL_MINUTES,
   type Mutation,
   type RefreshRequest,
   type RegisterDeviceRequest,
@@ -33,6 +35,7 @@ import {
   type RequestAccountDeletionRequest,
   type RequestMagicLinkRequest,
   type SetListPositionRequest,
+  type SyncSettingsPatch,
   type TaskPatch,
   type VerifyMagicCodeRequest,
   type VerifyMagicLinkRequest,
@@ -389,6 +392,38 @@ export function validateSetListPositionRequest(input: unknown): Validated<SetLis
   if (!isBoundedString(input.position, MAX_POSITION_LENGTH)) return fail("position");
   if (input.position === "") return fail("position is empty");
   return { ok: true, value: { listId: input.listId, position: input.position } };
+}
+
+/**
+ * `PATCH /auth/sync-settings` (ADR 0010). Every key is optional — only the
+ * ones present are applied (same "bag" shape as `validateTaskPatch`) — but
+ * `intervalMinutes`, when present, is rejected outside its bound rather than
+ * clamped: unlike a fractional-index position, a bad value here would
+ * actually mis-schedule Android's background sync, so F3 answers `malformed`
+ * instead of silently correcting it.
+ */
+export function validateSyncSettingsPatch(input: unknown): Validated<SyncSettingsPatch> {
+  if (!isRecord(input)) return fail("patch is not an object");
+  const patch: Record<string, unknown> = {};
+
+  if ("enabled" in input) {
+    if (typeof input.enabled !== "boolean") return fail("enabled");
+    patch.enabled = input.enabled;
+  }
+  if ("intervalMinutes" in input) {
+    const minutes = input.intervalMinutes;
+    if (
+      typeof minutes !== "number" ||
+      !Number.isSafeInteger(minutes) ||
+      minutes < MIN_SYNC_INTERVAL_MINUTES ||
+      minutes > MAX_SYNC_INTERVAL_MINUTES
+    ) {
+      return fail("intervalMinutes");
+    }
+    patch.intervalMinutes = minutes;
+  }
+
+  return { ok: true, value: patch as SyncSettingsPatch };
 }
 
 /**

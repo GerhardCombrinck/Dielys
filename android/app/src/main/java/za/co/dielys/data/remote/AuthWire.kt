@@ -175,6 +175,31 @@ data class MembershipsResponse(
     val memberships: List<Membership>,
 )
 
+/** Mirrors `MIN_SYNC_INTERVAL_MINUTES`/`MAX_SYNC_INTERVAL_MINUTES` in
+ * `protocol/src/auth.ts` — the server enforces this bound too (F3); this is
+ * what lets the settings screen reject a bad value before it ever sends one. */
+const val MIN_SYNC_INTERVAL_MINUTES = 15L
+const val MAX_SYNC_INTERVAL_MINUTES = 10_080L
+
+/**
+ * `GET`/`PATCH /auth/sync-settings` (ADR 0010) — the account's background-sync
+ * preference. Effect is mobile-only, but held server-side so `web/` can read
+ * and change it too; this is the resulting state either method answers with.
+ */
+@Serializable
+data class SyncSettings(
+    val enabled: Boolean,
+    val intervalMinutes: Long,
+)
+
+/** `PATCH /auth/sync-settings` — an absent key means "leave alone", the same
+ * as [TaskPatch] ([DielysJson.outbound]). */
+@Serializable
+data class SyncSettingsPatch(
+    val enabled: Boolean? = null,
+    val intervalMinutes: Long? = null,
+)
+
 object MembershipRole {
     const val OWNER = "owner"
     const val MEMBER = "member"

@@ -29,6 +29,7 @@ import {
   toEnvelope,
 } from "../storage/changes.js";
 import {
+  countActiveTasks,
   readRoomMeta,
   selectFieldMeta,
   selectList,
@@ -157,6 +158,27 @@ export class ListRoom extends DurableObject {
     this.closeAllSockets("membership-changed");
   }
 
+  /**
+   * Admin-only aggregate counts (#84): whether this list is (soft-)deleted,
+   * and how many of its tasks are not. No auth of its own (see the class
+   * docstring) — reached only from the Worker's ADMIN_TOKEN-gated
+   * `/admin/stats` handler, the same way `erase`/`disconnectAll` above are
+   * reached only from the account-deletion path.
+   *
+   * A list this room has never actually been given a `lists` row for (the
+   * membership was claimed, but no "list" mutation has landed yet) counts as
+   * not deleted with zero tasks, rather than being excluded — it exists to
+   * whoever claimed it, even if nothing has synced yet.
+   */
+  async stats(): Promise<{ deleted: boolean; taskCount: number }> {
+    const listId = this.listId();
+    const list = listId === null ? null : selectList(this.sql, listId);
+    return {
+      deleted: list !== null && list.deletedAt !== null,
+      taskCount: countActiveTasks(this.sql),
+    };
+  }
+
   /** 1012 ("service restart"): the client's reconnect loop treats it as
    * transient and comes straight back, which is the whole point. */
   private closeAllSockets(reason: string): void {
@@ -188,6 +210,9 @@ export class ListRoom extends DurableObject {
     }
     if (!SUPPORTED_PROTOCOL_VERSIONS.includes(mutation.value.protocolVersion)) {
       return jsonError("unsupported-protocol-version", 400, mutation.value.idempotencyKey);
+    }
+    if (!this.bindListId(mutation.value.listId)) {
+      return jsonError("list-mismatch", 409, mutation.value.idempotencyKey);
     }
 
     if (!mayApply(parseRole(new URL(request.url).searchParams.get("role")), mutation.value)) {
@@ -285,7 +310,12 @@ export class ListRoom extends DurableObject {
     // Nothing to persist — the cursor lives on the client (F5.8) and
     // hibernation handles the socket itself.
     log("debug", "listroom.ws.close", { code });
-    ws.close(code === 1006 ? 1000 : code);
+    // 1005 ("no status received") and 1006 (abnormal closure) are reserved:
+    // the runtime reports them, but the WebSocket spec forbids sending them
+    // back out, and workerd throws rather than silently ignoring it. A plain
+    // `ws.close()` with no arguments — routine from a browser — reports as
+    // 1005, so this is not just a 1006 edge case.
+    ws.close(code === 1005 || code === 1006 ? 1000 : code);
   }
 
   private onHello(ws: WebSocket, raw: unknown): void {

@@ -13,6 +13,7 @@ import za.co.dielys.data.DeleteAccountResult
 import za.co.dielys.data.SessionRepository
 import za.co.dielys.data.local.LocalePrefs
 import za.co.dielys.data.local.StringProvider
+import za.co.dielys.data.local.SyncPrefs
 import za.co.dielys.data.local.UiPrefs
 import javax.inject.Inject
 
@@ -43,6 +44,7 @@ class SettingsViewModel
         private val accounts: AccountRepository,
         private val uiPrefs: UiPrefs,
         private val localePrefs: LocalePrefs,
+        private val syncPrefs: SyncPrefs,
         private val strings: StringProvider,
     ) : ViewModel() {
         val state: SettingsUiState
@@ -51,6 +53,17 @@ class SettingsViewModel
         val newItemsOnTop: StateFlow<Boolean> = uiPrefs.newItemsOnTop
 
         fun setNewItemsOnTop(value: Boolean) = uiPrefs.setNewItemsOnTop(value)
+
+        val syncEnabled: StateFlow<Boolean> = syncPrefs.syncEnabled
+        val syncIntervalMinutes: StateFlow<Long> = syncPrefs.syncIntervalMinutes
+
+        /** [za.co.dielys.data.sync.WorkManagerSyncScheduler] watches both of
+         *  these and re-applies them to `WorkManager` itself — this view
+         *  model only writes the preference (E1.2: never reaches into
+         *  `WorkManager` directly). */
+        fun setSyncEnabled(value: Boolean) = syncPrefs.setSyncEnabled(value)
+
+        fun setSyncIntervalMinutes(minutes: Long) = syncPrefs.setSyncIntervalMinutes(minutes)
 
         /** Null means "follow the phone's own language" — read fresh rather
          *  than watched, since choosing one recreates every Activity (the
