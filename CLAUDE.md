@@ -7,3 +7,4 @@ Index of folder-level notes:
 - [protocol/AGENTS.md](protocol/AGENTS.md)
 - [android/app/src/main/java/za/co/dielys/data/sync/AGENTS.md](android/app/src/main/java/za/co/dielys/data/sync/AGENTS.md)
 - [scripts/AGENTS.md](scripts/AGENTS.md)
+- [web/AGENTS.md](web/AGENTS.md)

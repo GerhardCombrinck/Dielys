@@ -1,9 +1,13 @@
 package za.co.dielys.ui.tasks
 
+import androidx.lifecycle.viewModelScope
 import app.cash.turbine.test
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.job
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -59,6 +63,14 @@ class TaskListViewModelTest {
 
     @After
     fun tearDown() {
+        // Everything the view model started is over before the database closes and
+        // `Dispatchers.Main` is put back, or a Room query still in flight resumes
+        // into whatever the next test has made Main. Cancelling is not enough:
+        // the coroutine still has to come back to notice.
+        runBlocking {
+            viewModel.viewModelScope.coroutineContext.job
+                .cancelAndJoin()
+        }
         phone.close()
         Dispatchers.resetMain()
     }

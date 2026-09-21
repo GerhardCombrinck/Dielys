@@ -11,6 +11,7 @@ import za.co.dielys.data.local.DeviceIdentity
 import za.co.dielys.data.local.DielysDatabase
 import za.co.dielys.data.local.FirstSync
 import za.co.dielys.data.local.PushTokenStore
+import za.co.dielys.data.local.SyncPrefs
 import za.co.dielys.data.sync.ChangeApplier
 import za.co.dielys.data.sync.FakeSyncApi
 import za.co.dielys.data.sync.OutboxFactory
@@ -33,7 +34,8 @@ class DeviceStack(
     val applier = ChangeApplier(db)
     val push = FakePushTokens()
     val sweeps = FakeSweeps()
-    val engine = SyncEngine(db, api, applier, push, sweeps, clock)
+    val syncPrefs = FakeSyncPrefs()
+    val engine = SyncEngine(db, api, applier, push, sweeps, clock, syncPrefs)
     val sharing = SharingRepository(api, scheduler)
     val invites = PendingInvite()
 
@@ -63,6 +65,48 @@ class FakePushTokens(
     override var pushToken: String? = null,
     override var pushTokenSent: String? = null,
 ) : PushTokenStore
+
+/**
+ * In-memory [SyncPrefs] — a JVM test needs neither the `Context` real
+ * preferences would, nor `WorkManager` to observe them.
+ *
+ * [lastSyncedEnabled]/[lastSyncedIntervalMinutes] start null, the same "never
+ * synced" state a fresh install has, so a test's first [SyncEngine.sync] call
+ * pulls rather than pushing [enabled]/[intervalMinutes]'s constructor
+ * defaults over whatever the fake server already holds.
+ */
+class FakeSyncPrefs(
+    enabled: Boolean = true,
+    intervalMinutes: Long = SyncPrefs.DEFAULT_INTERVAL_MINUTES,
+) : SyncPrefs {
+    private val _syncEnabled = MutableStateFlow(enabled)
+    override val syncEnabled: StateFlow<Boolean> = _syncEnabled.asStateFlow()
+
+    override fun setSyncEnabled(value: Boolean) {
+        _syncEnabled.value = value
+    }
+
+    private val _syncIntervalMinutes = MutableStateFlow(intervalMinutes)
+    override val syncIntervalMinutes: StateFlow<Long> = _syncIntervalMinutes.asStateFlow()
+
+    override fun setSyncIntervalMinutes(minutes: Long) {
+        _syncIntervalMinutes.value = minutes
+    }
+
+    override var lastSyncedEnabled: Boolean? = null
+        private set
+
+    override var lastSyncedIntervalMinutes: Long? = null
+        private set
+
+    override fun setLastSynced(
+        enabled: Boolean,
+        intervalMinutes: Long,
+    ) {
+        lastSyncedEnabled = enabled
+        lastSyncedIntervalMinutes = intervalMinutes
+    }
+}
 
 /** When the last full catch-up ran, in memory, and whether one ever has (#66). */
 class FakeSweeps(

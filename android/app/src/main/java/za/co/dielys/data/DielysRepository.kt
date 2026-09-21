@@ -7,6 +7,7 @@ import za.co.dielys.data.local.DielysDatabase
 import za.co.dielys.data.local.ListAccentEntity
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.local.ListItemCount
+import za.co.dielys.data.local.ListWithAccent
 import za.co.dielys.data.local.OutboxEntity
 import za.co.dielys.data.local.TaskEntity
 import za.co.dielys.data.remote.ListPatch
@@ -46,7 +47,8 @@ class DielysRepository
         private val scheduler: SyncScheduler,
         private val clock: Clock,
     ) {
-        fun observeLists(): Flow<List<ListEntity>> = db.lists().observeAll()
+        /** Each live list with its colour, read together — see [ListAccentDao.observeLists]. */
+        fun observeLists(): Flow<List<ListWithAccent>> = db.listAccents().observeLists()
 
         fun observeList(listId: String): Flow<ListEntity?> = db.lists().observe(listId)
 

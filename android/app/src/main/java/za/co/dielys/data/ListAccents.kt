@@ -3,7 +3,6 @@ package za.co.dielys.data
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import za.co.dielys.data.local.DielysDatabase
 import za.co.dielys.data.local.ListAccentEntity
@@ -38,13 +37,6 @@ class ListAccents
         @ApplicationScope private val scope: CoroutineScope,
     ) {
         private var job: Job? = null
-
-        /**
-         * Each list's colour, by id. A list missing from the map has none yet;
-         * the UI draws the hashed fallback for those rather than waiting.
-         */
-        fun observeAll(): Flow<Map<String, Int>> =
-            db.listAccents().observeAll().map { rows -> rows.associate { it.listId to it.accent } }
 
         fun observe(listId: String): Flow<Int?> = db.listAccents().observe(listId)
 

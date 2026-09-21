@@ -8,7 +8,7 @@
 #
 #   scripts/verify.sh              # everything
 #   scripts/verify.sh protocol     # one component
-#   scripts/verify.sh server android
+#   scripts/verify.sh server android web
 #   FAST=1 scripts/verify.sh       # skip android (the slow one)
 #   CLEAN=1 scripts/verify.sh      # reinstall node deps from the lockfile
 #   DIELYS_TEST_TIMEOUT=300 ...    # seconds one node test leg may take (default 45)
@@ -81,6 +81,13 @@ ensure_node_deps() {
 verify_node_component() {
   name=$1
   dir="$REPO_ROOT/$name"
+  # server/'s tests exercise server/public/, which is web/'s build merged
+  # with server/public-static/ (scripts/build-web-public.sh) — it has to
+  # exist, and be current, before server's own steps below run.
+  if [ "$name" = "server" ]; then
+    step "server: build web into public"
+    sh "$REPO_ROOT/scripts/build-web-public.sh" || return 1
+  fi
   ensure_node_deps "$dir"
   ok=0
   # Same three commands as the workflow, in the same order.
@@ -136,29 +143,32 @@ verify_android() {
   JAVA_HOME="$java_home"
   ANDROID_HOME="$android_home"
   export JAVA_HOME ANDROID_HOME
-  (cd "$REPO_ROOT/android" && ./gradlew ktlintCheck detekt testDebugUnitTest)
+  # assembleRelease runs R8, which nothing else here does — the check after it
+  # is what catches a keep rule that compiles fine and breaks sync at runtime.
+  (cd "$REPO_ROOT/android" && ./gradlew ktlintCheck detekt testDebugUnitTest assembleRelease)
+  sh "$REPO_ROOT/scripts/check-r8-keeps.sh"
 }
 
 TARGETS=$*
 if [ -z "$TARGETS" ]; then
   if [ "${FAST:-0}" = "1" ]; then
-    TARGETS="protocol server"
+    TARGETS="protocol server web"
   else
-    TARGETS="protocol server android"
+    TARGETS="protocol server web android"
   fi
 fi
 
 START=$(date +%s)
 for target in $TARGETS; do
   case "$target" in
-    protocol | server)
+    protocol | server | web)
       run "$target" verify_node_component "$target" || true
       ;;
     android)
       run "android" verify_android || true
       ;;
     *)
-      printf '%sunknown target:%s %s (expected protocol, server or android)\n' \
+      printf '%sunknown target:%s %s (expected protocol, server, web or android)\n' \
         "$RED" "$RESET" "$target"
       exit 2
       ;;

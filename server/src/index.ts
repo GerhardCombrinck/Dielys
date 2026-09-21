@@ -14,6 +14,7 @@ import { clientAddress, clientKey } from "./auth/ratelimit.js";
 import { ListRoom } from "./do/ListRoom.js";
 import { listRoom, usersRoom } from "./do/rooms.js";
 import { UsersRoom } from "./do/UsersRoom.js";
+import { obscureEmail } from "./domain/redact.js";
 import {
   parseJson,
   validateAcceptInviteRequest,
@@ -27,6 +28,7 @@ import {
   validateRequestAccountDeletionRequest,
   validateRequestMagicLinkRequest,
   validateSetListPositionRequest,
+  validateSyncSettingsPatch,
   validateVerifyMagicCodeRequest,
   validateVerifyMagicLinkRequest,
 } from "./domain/validate.js";
@@ -44,120 +46,184 @@ const MEMBERS_ROUTE = /^\/lists\/([^/]+)\/members$/;
 /** `/lists/{listId}/members/{userId}` — take one person off it (#60). */
 const MEMBER_ROUTE = /^\/lists\/([^/]+)\/members\/([^/]+)$/;
 
+/**
+ * Bearer-token auth (L1), not cookies — nothing here is sent automatically by
+ * a browser the way a cookie is, so a page on another origin gains nothing
+ * from a permissive origin that it would not already need the token itself
+ * to get. A deployed `web/` is same-origin with this Worker (both served
+ * from here — see scripts/build-web-public.sh), but `npm run dev`'s Vite
+ * server (localhost:5173) is not, and needs this to reach a real deployment.
+ */
+const CORS_HEADERS: Record<string, string> = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, POST, PATCH, DELETE, OPTIONS",
+  "access-control-allow-headers": "authorization, content-type",
+};
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-    // D3: one clock reading per request, passed down.
-    const now = Date.now();
-
-    try {
-      if (url.pathname === "/health") {
-        return Response.json({ ok: true, environment: env.ENVIRONMENT });
-      }
-
-      // Served ahead of the signing-key gate below: Android's App Link
-      // verifier fetches this before anyone has a session, and it carries no
-      // user content (ADR 0005) — there is nothing for the gate to protect.
-      if (url.pathname === "/.well-known/assetlinks.json") {
-        return Response.json(androidAssetLinks(env));
-      }
-
-      // Fail closed on a missing or weak signing key. Without this the Worker
-      // would sign and verify tokens with the literal string "undefined" —
-      // valid-looking sessions anyone could forge. A deployment that has not
-      // had `wrangler secret put JWT_SIGNING_KEY` run against it must serve
-      // nothing but /health.
-      if (!isUsableSigningKey(env.JWT_SIGNING_KEY)) {
-        log("error", "worker.signing-key.unusable", { path: url.pathname });
-        return errorResponse("internal", 503);
-      }
-
-      switch (url.pathname) {
-        case "/auth/register":
-          return await handleRegister(request, env, now);
-        case "/auth/login":
-          return await handleLogin(request, env, now);
-        case "/auth/magic/request":
-          return await handleRequestMagicLink(request, env, now);
-        case "/auth/magic/verify":
-          return await handleVerifyMagicLink(request, env, now);
-        case "/auth/magic/verify-code":
-          return await handleVerifyMagicCode(request, env, now);
-        case "/auth/magic/status":
-          return await handleMagicLinkStatus(request, env, url, now);
-        case "/magic":
-          return magicLinkFallbackPage();
-        case "/invite":
-          return inviteLinkFallbackPage();
-        case "/auth/refresh":
-          return await handleRefresh(request, env, now);
-        case "/auth/memberships":
-          return await handleMemberships(request, env);
-        case "/auth/memberships/position":
-          return await handleSetListPosition(request, env);
-        case "/devices/token":
-          return await handleRegisterDevice(request, env, now);
-        case "/admin/users":
-          return await handleCreateUser(request, env, now);
-        case "/invites/accept":
-          return await handleAcceptInvite(request, env, now);
-        case "/account":
-          return await handleDeleteAccount(request, env);
-        case "/account/deletion/request":
-          return await handleRequestAccountDeletion(request, env, url, now);
-        case "/account/deletion/confirm":
-          return await handleConfirmAccountDeletion(request, env, now);
-      }
-
-      const invite = INVITE_ROUTE.exec(url.pathname);
-      if (invite !== null) {
-        return await handleCreateInvite(request, env, decodeURIComponent(invite[1] as string), now);
-      }
-
-      // Both ahead of LIST_ROUTE, which only knows ws/changes/mutate and would
-      // answer these with a 404 before they were ever tried.
-      const members = MEMBERS_ROUTE.exec(url.pathname);
-      if (members !== null) {
-        return await handleListMembers(request, env, decodeURIComponent(members[1] as string));
-      }
-
-      const member = MEMBER_ROUTE.exec(url.pathname);
-      if (member !== null) {
-        return await handleRemoveMember(
-          request,
-          env,
-          decodeURIComponent(member[1] as string),
-          decodeURIComponent(member[2] as string),
-        );
-      }
-
-      const claim = LIST_ROOT_ROUTE.exec(url.pathname);
-      if (claim !== null) {
-        return await handleClaimList(request, env, decodeURIComponent(claim[1] as string), now);
-      }
-
-      const route = LIST_ROUTE.exec(url.pathname);
-      if (route === null) return errorResponse("malformed", 404);
-
-      // Checked by the regex: groups 1 and 2 exist whenever it matches.
-      const listId = decodeURIComponent(route[1] as string);
-      const action = route[2] as string;
-
-      const auth = await authorizeListAccess(request, env, listId);
-      if (!auth.ok) {
-        log("info", "worker.denied", { listId, action, code: auth.code });
-        return errorResponse(auth.code, auth.status);
-      }
-
-      const stub = listRoom(env, listId);
-      return await stub.fetch(doRequest(request, url, listId, action, auth.value.membership.role));
-    } catch (error) {
-      // D4: never leak a stack or an internal message to a client.
-      log("error", "worker.unhandled", { path: url.pathname, error: String(error) });
-      return errorResponse("internal", 500);
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
+
+    const response = await handle(request, env);
+    // A WebSocket upgrade (101) carries a `webSocket` the runtime attaches to
+    // this exact Response object — reconstructing it to add headers would
+    // lose that. CORS does not apply to the upgrade itself in any case.
+    if (response.status === 101) return response;
+
+    const headers = new Headers(response.headers);
+    for (const [key, value] of Object.entries(CORS_HEADERS)) headers.set(key, value);
+    return new Response(response.body, { status: response.status, headers });
   },
 } satisfies ExportedHandler<Env>;
+
+async function handle(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  // D3: one clock reading per request, passed down.
+  const now = Date.now();
+
+  try {
+    if (url.pathname === "/health") {
+      return Response.json({ ok: true, environment: env.ENVIRONMENT });
+    }
+
+    // Served ahead of the signing-key gate below: Android's App Link
+    // verifier fetches this before anyone has a session, and it carries no
+    // user content (ADR 0005) — there is nothing for the gate to protect.
+    if (url.pathname === "/.well-known/assetlinks.json") {
+      return Response.json(androidAssetLinks(env));
+    }
+
+    // Fail closed on a missing or weak signing key. Without this the Worker
+    // would sign and verify tokens with the literal string "undefined" —
+    // valid-looking sessions anyone could forge. A deployment that has not
+    // had `wrangler secret put JWT_SIGNING_KEY` run against it must serve
+    // nothing but /health.
+    if (!isUsableSigningKey(env.JWT_SIGNING_KEY)) {
+      log("error", "worker.signing-key.unusable", { path: url.pathname });
+      return errorResponse("internal", 503);
+    }
+
+    switch (url.pathname) {
+      case "/auth/register":
+        return await handleRegister(request, env, now);
+      case "/auth/login":
+        return await handleLogin(request, env, now);
+      case "/auth/magic/request":
+        return await handleRequestMagicLink(request, env, now);
+      case "/auth/magic/verify":
+        return await handleVerifyMagicLink(request, env, now);
+      case "/auth/magic/verify-code":
+        return await handleVerifyMagicCode(request, env, now);
+      case "/auth/magic/status":
+        return await handleMagicLinkStatus(request, env, url, now);
+      case "/magic":
+        return await spaShell(env, request);
+      case "/invite":
+        return await spaShell(env, request);
+      case "/auth/refresh":
+        return await handleRefresh(request, env, now);
+      case "/auth/memberships":
+        return await handleMemberships(request, env);
+      case "/auth/memberships/position":
+        return await handleSetListPosition(request, env);
+      case "/auth/ws-ticket":
+        return await handleMintWsTicket(request, env, now);
+      case "/auth/sync-settings":
+        return await handleSyncSettings(request, env);
+      case "/devices/token":
+        return await handleRegisterDevice(request, env, now);
+      case "/admin/users":
+        return await handleCreateUser(request, env, now);
+      case "/admin/stats":
+        return await handleAdminStats(request, env);
+      case "/invites/accept":
+        return await handleAcceptInvite(request, env, now);
+      case "/account":
+        return await handleDeleteAccount(request, env);
+      case "/account/deletion/request":
+        return await handleRequestAccountDeletion(request, env, url, now);
+      case "/account/deletion/confirm":
+        return await handleConfirmAccountDeletion(request, env, now);
+    }
+
+    const invite = INVITE_ROUTE.exec(url.pathname);
+    if (invite !== null) {
+      return await handleCreateInvite(request, env, decodeURIComponent(invite[1] as string), now);
+    }
+
+    // Both ahead of LIST_ROUTE, which only knows ws/changes/mutate and would
+    // answer these with a 404 before they were ever tried.
+    const members = MEMBERS_ROUTE.exec(url.pathname);
+    if (members !== null) {
+      return await handleListMembers(request, env, decodeURIComponent(members[1] as string));
+    }
+
+    const member = MEMBER_ROUTE.exec(url.pathname);
+    if (member !== null) {
+      return await handleRemoveMember(
+        request,
+        env,
+        decodeURIComponent(member[1] as string),
+        decodeURIComponent(member[2] as string),
+      );
+    }
+
+    const claim = LIST_ROOT_ROUTE.exec(url.pathname);
+    if (claim !== null) {
+      // GET here is a browser opening a list, `web/`'s own ListPage.tsx
+      // route — the Worker action of the same shape (claim/invite by QR
+      // code) is POST-only (handleClaimList).
+      if (request.method === "GET") return await spaShell(env, request);
+      return await handleClaimList(request, env, decodeURIComponent(claim[1] as string), now);
+    }
+
+    const route = LIST_ROUTE.exec(url.pathname);
+    if (route === null) {
+      // Anything else a browser GETs — /settings, a nonsense path — is the
+      // web client's own job to make sense of (or fall back to, per
+      // App.tsx's default route). Not GET means whatever reached here is not
+      // a browser navigation and 404 is the honest answer.
+      if (request.method === "GET") return await spaShell(env, request);
+      return errorResponse("malformed", 404);
+    }
+
+    // Checked by the regex: groups 1 and 2 exist whenever it matches.
+    const listId = decodeURIComponent(route[1] as string);
+    const action = route[2] as string;
+
+    const auth = await authorizeListAccess(
+      request,
+      env,
+      listId,
+      action === "ws" ? { url, now } : undefined,
+    );
+    if (!auth.ok) {
+      log("info", "worker.denied", { listId, action, code: auth.code });
+      return errorResponse(auth.code, auth.status);
+    }
+
+    const stub = listRoom(env, listId);
+    return await stub.fetch(
+      doRequest(
+        request,
+        url,
+        listId,
+        action,
+        auth.value.membership.role,
+        // A ticket's bound device id is trustworthy; a client-supplied
+        // ?deviceId= alongside a bearer token is not cross-checked against
+        // the token today and this does not change that (out of scope).
+        auth.value.viaTicket ? auth.value.principal.deviceId : undefined,
+      ),
+    );
+  } catch (error) {
+    // D4: never leak a stack or an internal message to a client.
+    log("error", "worker.unhandled", { path: url.pathname, error: String(error) });
+    return errorResponse("internal", 500);
+  }
+}
 
 // --- auth routes ----------------------------------------------------------
 
@@ -439,33 +505,17 @@ function androidAssetLinks(env: Env): unknown[] {
 }
 
 /**
- * `GET /magic` (ADR 0005). Reached only when the App Link did not open the
- * app directly — Android has not verified the domain yet, or the link was
- * opened somewhere without Dielys installed. A minimal page beats a bare 404;
- * it carries no token handling of its own, since the token in the query
- * string is only useful to the app's own `/auth/magic/verify` call.
+ * The web client's shell for a browser GET this Worker does not otherwise
+ * recognise: `/magic`, `/invite` (also reached from Android's App Link
+ * fallback — the domain not yet verified, or opened without Dielys
+ * installed), `/settings`, `/lists/{id}`, and anything else that falls
+ * through every route below. `server/wrangler.jsonc`'s assets layer already
+ * tried a matching static file before the Worker ran at all (F1's routing
+ * comment there); this is `web/dist/index.html`, and `web/src/router.tsx`
+ * takes it from here.
  */
-function magicLinkFallbackPage(): Response {
-  return htmlPage("<p>Open this link on your phone with Die Lys installed.</p>");
-}
-
-/**
- * `GET /invite` (L3), the same App Link fallback as `/magic` above for a
- * tapped invite link: reached only when Android has not verified the domain
- * yet, or the link was opened somewhere without Dielys installed. The invite
- * token in the query string is a bearer credential (L3) with nothing for this
- * page to do with it — only the app's own `JoinDialog`/accept flow redeems it.
- */
-function inviteLinkFallbackPage(): Response {
-  return htmlPage("<p>Open this link on your phone with Die Lys installed to join the list.</p>");
-}
-
-function htmlPage(body: string): Response {
-  return new Response(
-    `<!doctype html><html><head><meta charset="utf-8"><title>Die Lys</title></head>` +
-      `<body>${body}</body></html>`,
-    { status: 200, headers: { "content-type": "text/html; charset=utf-8" } },
-  );
+async function spaShell(env: Env, request: Request): Promise<Response> {
+  return env.ASSETS.fetch(new URL("/index.html", request.url));
 }
 
 async function handleRefresh(request: Request, env: Env, now: number): Promise<Response> {
@@ -478,9 +528,10 @@ async function handleRefresh(request: Request, env: Env, now: number): Promise<R
   const result = await usersRoom(env).rotateRefreshToken(
     refresh.value.refreshToken,
     refresh.value.deviceId,
+    await bucketKey(request, env),
     now,
   );
-  if (!result.ok) return errorResponse(result.code, 401);
+  if (!result.ok) return errorResponse(result.code, result.code === "rate-limited" ? 429 : 401);
 
   return Response.json(
     await tokenPair(
@@ -530,6 +581,60 @@ async function handleSetListPosition(request: Request, env: Env): Promise<Respon
 }
 
 /**
+ * `GET`/`PATCH /auth/sync-settings` (ADR 0010, PROTOCOL.md "Background sync
+ * setting"). One route for both methods, like the split `MEMBER_ROUTE`
+ * handlers below use — the path names the resource, the method names the
+ * verb.
+ */
+async function handleSyncSettings(request: Request, env: Env): Promise<Response> {
+  const auth = await authenticate(request, env);
+  if (!auth.ok) return errorResponse(auth.code, auth.status);
+
+  if (request.method === "GET") {
+    const result = await usersRoom(env).getSyncSettings(auth.value.userId);
+    if (!result.ok) return errorResponse(result.code, 404);
+    return Response.json(result.value);
+  }
+
+  if (request.method === "PATCH") {
+    const body = await readJson(request);
+    if (body === null) return errorResponse("malformed", 400);
+
+    const parsed = validateSyncSettingsPatch(body);
+    if (!parsed.ok) return errorResponse("malformed", 400);
+
+    const result = await usersRoom(env).setSyncSettings(auth.value.userId, parsed.value);
+    if (!result.ok) return errorResponse(result.code, 404);
+    return Response.json(result.value);
+  }
+
+  return errorResponse("malformed", 405);
+}
+
+/**
+ * `POST /auth/ws-ticket` (ADR 0009). Mints the one-time credential a browser
+ * puts on `GET /lists/{listId}/ws?ticket=...`, since it cannot set
+ * `Authorization` on that upgrade the way every other route can. No body —
+ * the caller's own bearer token, and the device id inside it, are the input.
+ */
+async function handleMintWsTicket(request: Request, env: Env, now: number): Promise<Response> {
+  if (request.method !== "POST") return errorResponse("malformed", 405);
+
+  const auth = await authenticate(request, env);
+  if (!auth.ok) return errorResponse(auth.code, auth.status);
+
+  const result = await usersRoom(env).mintWsTicket(
+    auth.value.userId,
+    auth.value.deviceId,
+    await bucketKey(request, env),
+    now,
+  );
+  if (!result.ok) return errorResponse(result.code, result.code === "rate-limited" ? 429 : 400);
+
+  return Response.json(result.value);
+}
+
+/**
  * Account creation (L2). There is no public registration endpoint — this is
  * guarded by ADMIN_TOKEN and reached only by scripts/create-user.ts.
  */
@@ -550,6 +655,56 @@ async function handleCreateUser(request: Request, env: Env, now: number): Promis
   if (!result.ok) return errorResponse(result.code, result.code === "already-exists" ? 409 : 400);
 
   return Response.json({ userId: result.value }, { status: 201 });
+}
+
+/**
+ * `GET /admin/stats` (#84) — total accounts (with each account's email, its
+ * domain obscured — curiosity about who signed up, not a directory), plus
+ * lists and items across every list anyone has a membership on. `UsersRoom`
+ * answers what it knows directly; the per-list deleted/task-count numbers
+ * live in each list's own `ListRoom`, so this fans out to all of them the
+ * same way `eraseAccount` does for account deletion, and sums what comes
+ * back. A single list whose `ListRoom` fails to answer is logged and
+ * excluded rather than failing the whole page — one bad room should not
+ * hide every other number.
+ */
+async function handleAdminStats(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET") return errorResponse("malformed", 405);
+  if (!authorizeAdmin(request, env)) {
+    log("warn", "worker.admin.denied", {});
+    return errorResponse("unauthorized", 401);
+  }
+
+  const [emails, listIds] = await Promise.all([
+    usersRoom(env).userEmails(),
+    usersRoom(env).listIds(),
+  ]);
+
+  const perList = await Promise.all(
+    listIds.map((listId) =>
+      listRoom(env, listId)
+        .stats()
+        .catch((error: unknown) => {
+          log("error", "worker.admin.stats.list-failed", { listId, error: String(error) });
+          return null;
+        }),
+    ),
+  );
+
+  let lists = 0;
+  let items = 0;
+  for (const stat of perList) {
+    if (stat === null || stat.deleted) continue;
+    lists += 1;
+    items += stat.taskCount;
+  }
+
+  return Response.json({
+    users: emails.length,
+    lists,
+    items,
+    emails: emails.map(obscureEmail),
+  });
 }
 
 /**
@@ -878,11 +1033,13 @@ function doRequest(
   listId: string,
   action: string,
   role: MembershipRole,
+  deviceId?: string,
 ): Request {
   const target = new URL(url);
   target.pathname = `/${action}`;
   target.searchParams.set("listId", listId);
   target.searchParams.set("role", role);
+  if (deviceId !== undefined) target.searchParams.set("deviceId", deviceId);
   return new Request(target, request);
 }
 

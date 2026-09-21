@@ -117,6 +117,7 @@
     <string name="settings_sign_out">Tswa</string>
     <string name="settings_language">Puo</string>
     <string name="settings_language_system_default">Tlwaelo ya sistimi</string>
+    <string name="settings_privacy_policy">Pholisi ya Lekunutu</string>
 
     <string name="settings_delete_account">Hlakola akhaonto</string>
     <string name="settings_deleting_account">E hlakola akhaonto…</string>
@@ -130,4 +131,7 @@
     <string name="auth_sign_in_with_code">Kena ka khoutu</string>
     <string name="error_magic_code_invalid">Khoutu eo e fosahetse kapa e fetile nako. Sheba imeile, kapa o romele kgokahanyo e ntjha.</string>
     <string name="error_magic_code_locked">Dikhoutu tse ngata haholo tse fosahetseng. Tobetsa kgokahanyo e imeileng ho e na le hoo, kapa o leke hape hosane.</string>
+    <!-- Play in-app updates (#88) -->
+    <string name="update_ready">Ntlafatso e loketse.</string>
+    <string name="update_restart">Qala hape</string>
 </resources>

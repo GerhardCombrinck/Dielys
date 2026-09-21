@@ -10,7 +10,7 @@
     "fix": "biome check --write ."
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.12",
+    "@biomejs/biome": "^2.5.13",
     "typescript": "^7.0.2",
     "vitest": "^5.0.0"
   }
