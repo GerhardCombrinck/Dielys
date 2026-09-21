@@ -50,6 +50,13 @@ export function upsertTask(sql: SqlStorage, task: Task): void {
   );
 }
 
+/** Live items only — the same filter `web/`'s and Android's own item counts
+ *  use, so an admin total means what a member sees, not a changelog size. */
+export function countActiveTasks(sql: SqlStorage): number {
+  const row = sql.exec("SELECT COUNT(*) AS n FROM tasks WHERE deleted_at IS NULL").one();
+  return Number(row.n);
+}
+
 export function selectList(sql: SqlStorage, id: string): TaskList | null {
   const rows = [
     ...sql.exec(

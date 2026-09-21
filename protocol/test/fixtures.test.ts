@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import type { WsTicketResponse } from "../src/auth.js";
 import { PUSH_TYPE_SYNC } from "../src/push.js";
 import {
   type ChangeEnvelope,
@@ -17,7 +18,10 @@ import { PROTOCOL_VERSION } from "../src/version.js";
  * suite must run the same check against the same files.
  *
  * `fixtures/changes/` holds ChangeEnvelope payloads; `fixtures/messages/`
- * holds whole wire messages, which carry a `type` discriminator.
+ * holds whole wire messages, which carry a `type` discriminator;
+ * `fixtures/auth/` holds plain-HTTP auth request/response shapes (ADR 0009 is
+ * the first of these — most of `auth.ts` predates this directory and has no
+ * fixture yet).
  */
 
 const fixturesDir = join(import.meta.dirname, "..", "fixtures");
@@ -35,6 +39,7 @@ function load(subdir: string): Array<{ file: string; raw: string; parsed: unknow
 const changeFixtures = load("changes");
 const messageFixtures = load("messages");
 const pushFixtures = load("push");
+const authFixtures = load("auth");
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -46,7 +51,12 @@ describe("protocol fixtures round-trip (F4)", () => {
     expect(messageFixtures.length).toBeGreaterThan(0);
   });
 
-  for (const { file, parsed } of [...changeFixtures, ...messageFixtures, ...pushFixtures]) {
+  for (const { file, parsed } of [
+    ...changeFixtures,
+    ...messageFixtures,
+    ...pushFixtures,
+    ...authFixtures,
+  ]) {
     it(`${file} round-trips through JSON without data loss`, () => {
       expect(JSON.parse(JSON.stringify(parsed))).toEqual(parsed);
     });
@@ -75,6 +85,22 @@ describe("wake push fixtures carry nothing but a hint to sync (M1)", () => {
       // it, so `seq` is a decimal string the client parses back.
       expect(typeof payload.seq).toBe("string");
       expect(Number.isSafeInteger(Number(payload.seq))).toBe(true);
+    });
+  }
+});
+
+describe("auth fixtures have their declared shape", () => {
+  it("has a fixture", () => {
+    expect(authFixtures.length).toBeGreaterThan(0);
+  });
+
+  for (const { file, parsed } of authFixtures) {
+    it(file, () => {
+      expect(isRecord(parsed)).toBe(true);
+      const response = parsed as WsTicketResponse;
+      expect(Object.keys(response).sort()).toEqual(["expiresIn", "ticket"]);
+      expect(typeof response.ticket).toBe("string");
+      expect(typeof response.expiresIn).toBe("number");
     });
   }
 });

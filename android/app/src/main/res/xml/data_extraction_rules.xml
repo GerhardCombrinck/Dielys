@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 12+ (API 31+) backup/transfer scope. SessionStore's
+    "dielys-session" SharedPreferences holds the refresh token and device id
+    in plain text (an accepted design against a local reinstall, see
+    SessionStore.kt) — excluded here so Auto Backup to a Google account, or a
+    device-to-device transfer, cannot hand a restored copy of it to whatever
+    device the backup lands on next.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="dielys-session.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="dielys-session.xml" />
+    </device-transfer>
+</data-extraction-rules>

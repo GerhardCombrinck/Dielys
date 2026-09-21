@@ -118,6 +118,7 @@
     <string name="settings_sign_out">Phuma</string>
     <string name="settings_language">Ilimi</string>
     <string name="settings_language_system_default">Okuzenzakalelako kwesistimu</string>
+    <string name="settings_privacy_policy">Inqubomgomo Yobumfihlo</string>
 
     <string name="settings_delete_account">Susa i-akhawunti</string>
     <string name="settings_deleting_account">Isusa i-akhawunti…</string>
@@ -131,4 +132,7 @@
     <string name="auth_sign_in_with_code">Ngena ngekhowudi</string>
     <string name="error_magic_code_invalid">Ikhowudi leyo ayikalungi namkha iphelelwe sikhathi. Hlola i-imeyili, namkha uthumele isixhumanisi esitjha.</string>
     <string name="error_magic_code_locked">Iinkhowudi ezinengi ezingakalungi. Thinta isixhumanisi ku-imeyili kunalokho, namkha uzame godu kusasa.</string>
+    <!-- Play in-app updates (#88) -->
+    <string name="update_ready">Itjhugululo ilungile.</string>
+    <string name="update_restart">Thoma godu</string>
 </resources>

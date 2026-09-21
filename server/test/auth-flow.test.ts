@@ -1,12 +1,14 @@
-import { SELF } from "cloudflare:test";
+import { env, SELF } from "cloudflare:test";
 import type {
   AcceptInviteResponse,
   CreateInviteResponse,
   ListMembersResponse,
   RemoveMemberResponse,
   TokenPair,
+  WsTicketResponse,
 } from "@dielys/protocol";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { usersRoom } from "../src/do/rooms.js";
 
 /**
  * The whole auth path through the real Worker and real UsersRoom (H1).
@@ -58,6 +60,16 @@ async function get(path: string, token?: string): Promise<Response> {
   const headers: Record<string, string> = {};
   if (token !== undefined) headers.Authorization = `Bearer ${token}`;
   return SELF.fetch(`https://dielys.test${path}`, { headers });
+}
+
+async function patch(path: string, body: unknown, token?: string): Promise<Response> {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (token !== undefined) headers.Authorization = `Bearer ${token}`;
+  return SELF.fetch(`https://dielys.test${path}`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify(body),
+  });
 }
 
 async function createUser(email: string): Promise<string> {
@@ -165,6 +177,131 @@ describe("account creation (L2)", () => {
   it("refuses a password under the minimum length", async () => {
     const response = await post("/admin/users", { email: uniqueEmail(), password: "short" }, ADMIN);
     expect(response.status).toBe(400);
+  });
+});
+
+async function mutateTask(
+  listId: string,
+  entityId: string,
+  patch: Record<string, unknown>,
+  token: string,
+): Promise<void> {
+  const response = await post(
+    `/lists/${listId}/mutate`,
+    {
+      type: "mutate",
+      protocolVersion: 2,
+      listId,
+      entityType: "task",
+      entityId,
+      idempotencyKey: crypto.randomUUID(),
+      deviceId: "device-a",
+      patch,
+    },
+    token,
+  );
+  expect(response.status).toBe(200);
+}
+
+describe("admin stats (#84)", () => {
+  it("refuses without the admin token", async () => {
+    const response = await get("/admin/stats");
+    expect(response.status).toBe(401);
+  });
+
+  it("counts accounts, lists, and active items — deleted ones aside", async () => {
+    // Storage is shared across this whole file (H1: real DO storage, not
+    // reset per test), so other describe blocks' users and lists are still
+    // there — assert the delta this test itself adds, not an absolute count.
+    const before = (await (await get("/admin/stats", ADMIN)).json()) as {
+      users: number;
+      lists: number;
+      items: number;
+      emails: string[];
+    };
+
+    const ownerEmail = uniqueEmail();
+    const otherEmail = uniqueEmail();
+    await createUser(ownerEmail);
+    await createUser(otherEmail);
+    const owner = await login(ownerEmail);
+
+    // A kept list: two active tasks and one deleted one, which must not count.
+    const keptListId = crypto.randomUUID();
+    await post(`/lists/${keptListId}`, {}, owner.accessToken);
+    await mutateTask(
+      keptListId,
+      crypto.randomUUID(),
+      { title: "Melk", position: "a0" },
+      owner.accessToken,
+    );
+    await mutateTask(
+      keptListId,
+      crypto.randomUUID(),
+      { title: "Brood", position: "a1" },
+      owner.accessToken,
+    );
+    const removedTask = crypto.randomUUID();
+    await mutateTask(
+      keptListId,
+      removedTask,
+      { title: "Eiers", position: "a2" },
+      owner.accessToken,
+    );
+    await mutateTask(
+      keptListId,
+      removedTask,
+      { deletedAt: new Date().toISOString() },
+      owner.accessToken,
+    );
+
+    // A second list, deleted outright — neither it nor its task should count.
+    const deletedListId = crypto.randomUUID();
+    await post(`/lists/${deletedListId}`, {}, owner.accessToken);
+    await mutateTask(
+      deletedListId,
+      crypto.randomUUID(),
+      { title: "Botter", position: "a0" },
+      owner.accessToken,
+    );
+    async function mutateList(patch: Record<string, unknown>): Promise<Response> {
+      return post(
+        `/lists/${deletedListId}/mutate`,
+        {
+          type: "mutate",
+          protocolVersion: 2,
+          listId: deletedListId,
+          entityType: "list",
+          entityId: deletedListId,
+          idempotencyKey: crypto.randomUUID(),
+          deviceId: "device-a",
+          patch,
+        },
+        owner.accessToken,
+      );
+    }
+    // A list entity only exists once something has named it (apply.ts's
+    // "incomplete-create") — deleting it is a second mutation, not the first.
+    expect((await mutateList({ title: "Vullis" })).status).toBe(200);
+    expect((await mutateList({ deletedAt: new Date().toISOString() })).status).toBe(200);
+
+    const response = await get("/admin/stats", ADMIN);
+    expect(response.status).toBe(200);
+    const stats = (await response.json()) as {
+      users: number;
+      lists: number;
+      items: number;
+      emails: string[];
+    };
+    expect(stats.users - before.users).toBe(2);
+    expect(stats.lists - before.lists).toBe(1);
+    expect(stats.items - before.items).toBe(2);
+
+    const domain = ownerEmail.slice(ownerEmail.indexOf("@"));
+    expect(stats.emails).not.toContain(ownerEmail);
+    expect(stats.emails).toContain(`${ownerEmail.slice(0, ownerEmail.indexOf("@"))}@…`);
+    expect(stats.emails).not.toContain(otherEmail);
+    expect(stats.emails.some((e) => e.endsWith(domain))).toBe(false);
   });
 });
 
@@ -496,6 +633,128 @@ describe("list access (L3)", () => {
     const listId = crypto.randomUUID();
     expect((await get(`/lists/${listId}/changes?since=0`)).status).toBe(401);
     expect((await get(`/lists/${listId}/changes?since=0`, "forged.token.here")).status).toBe(401);
+  });
+});
+
+describe("WebSocket ticket auth (ADR 0009)", () => {
+  async function ownerWithList() {
+    const email = uniqueEmail();
+    await createUser(email);
+    const tokens = await login(email, "device-a");
+    const listId = crypto.randomUUID();
+    await post(`/lists/${listId}`, {}, tokens.accessToken);
+    return { tokens, listId };
+  }
+
+  async function mintTicket(token?: string, address?: string): Promise<Response> {
+    return post("/auth/ws-ticket", {}, token, address);
+  }
+
+  /** The upgrade itself, through the real Worker routing — a browser cannot
+   * set Authorization on this one request, which is the whole reason a
+   * ticket exists. */
+  function upgrade(listId: string, query: string, headers: Record<string, string> = {}) {
+    return SELF.fetch(`https://dielys.test/lists/${listId}/ws?${query}`, {
+      headers: { Upgrade: "websocket", ...headers },
+    });
+  }
+
+  function acceptAndClose(response: Response) {
+    const ws = response.webSocket as WebSocket;
+    ws.accept();
+    ws.close();
+  }
+
+  it("mints a ticket and opens a socket with no Authorization header at all", async () => {
+    const { tokens, listId } = await ownerWithList();
+    const minted = await mintTicket(tokens.accessToken);
+    expect(minted.status).toBe(200);
+    const { ticket, expiresIn } = (await minted.json()) as WsTicketResponse;
+    expect(expiresIn).toBe(60);
+
+    const response = await upgrade(listId, `ticket=${ticket}`);
+    expect(response.status).toBe(101);
+    acceptAndClose(response);
+  });
+
+  it("cannot be redeemed a second time", async () => {
+    const { tokens, listId } = await ownerWithList();
+    const { ticket } = (await (await mintTicket(tokens.accessToken)).json()) as WsTicketResponse;
+
+    acceptAndClose(await upgrade(listId, `ticket=${ticket}`));
+
+    const replay = await upgrade(listId, `ticket=${ticket}`);
+    expect(replay.status).toBe(401);
+  });
+
+  it("refuses a ticket nobody minted", async () => {
+    const { listId } = await ownerWithList();
+    const response = await upgrade(listId, "ticket=not-a-ticket-anyone-minted");
+    expect(response.status).toBe(401);
+  });
+
+  it("still enforces membership — a ticket does not bypass L3", async () => {
+    const strangerEmail = uniqueEmail();
+    await createUser(strangerEmail);
+    const stranger = await login(strangerEmail, "device-b");
+    const { listId } = await ownerWithList();
+
+    const { ticket } = (await (await mintTicket(stranger.accessToken)).json()) as WsTicketResponse;
+    const response = await upgrade(listId, `ticket=${ticket}`);
+    // 403, not 404, same as every other list route (L3).
+    expect(response.status).toBe(403);
+  });
+
+  it("a bearer header on the upgrade still works, unchanged (Android's path)", async () => {
+    const { tokens, listId } = await ownerWithList();
+    const response = await upgrade(listId, "deviceId=device-a", {
+      Authorization: `Bearer ${tokens.accessToken}`,
+    });
+    expect(response.status).toBe(101);
+    // The Worker's CORS wrapper (worker.test.ts) must not reconstruct a 101
+    // response — doing so would lose the `webSocket` the runtime attached to
+    // it. No CORS header is the proof it took the short-circuit, not the
+    // rebuild path every other response goes through.
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    acceptAndClose(response);
+  });
+
+  it("a mismatched ?deviceId= on the URL does not break or get trusted over the ticket", async () => {
+    const { tokens, listId } = await ownerWithList();
+    const { ticket } = (await (await mintTicket(tokens.accessToken)).json()) as WsTicketResponse;
+
+    // The Worker overwrites ?deviceId= with the ticket's bound value before
+    // forwarding, the same way it already overwrites ?role= (ADR 0006) — a
+    // claimed device on the URL is not the one that reaches the DO.
+    const response = await upgrade(listId, `ticket=${ticket}&deviceId=someone-elses-device`);
+    expect(response.status).toBe(101);
+    acceptAndClose(response);
+  });
+
+  it("expires — checked directly, since a real 60s wait does not belong in a test", async () => {
+    const users = usersRoom(env);
+    const minted = await users.mintWsTicket("user-x", "device-x", "client-x", 1_000);
+    expect(minted.ok).toBe(true);
+    if (!minted.ok) return;
+
+    const redeemed = await users.redeemWsTicket(minted.value.ticket, 1_000 + 61_000);
+    expect(redeemed).toEqual({ ok: false, code: "token-expired" });
+  });
+
+  it("mint requires a token", async () => {
+    expect((await mintTicket()).status).toBe(401);
+  });
+
+  it("is rate-limited as a volumetric backstop, not a guessing defence", async () => {
+    const { tokens } = await ownerWithList();
+    const client = "198.51.100.88";
+
+    for (let i = 0; i < 60; i += 1) {
+      expect((await mintTicket(tokens.accessToken, client)).status).toBe(200);
+    }
+    const refused = await mintTicket(tokens.accessToken, client);
+    expect(refused.status).toBe(429);
+    expect(await refused.json()).toMatchObject({ code: "rate-limited" });
   });
 });
 
@@ -1027,6 +1286,70 @@ describe("memberships", () => {
     expect((await post("/auth/memberships/position", { listId: "x", position: "a0" })).status).toBe(
       401,
     );
+  });
+});
+
+describe("background sync setting (ADR 0010)", () => {
+  it("defaults to enabled, 30 minutes", async () => {
+    const email = uniqueEmail();
+    await createUser(email);
+    const tokens = await login(email);
+
+    const response = await get("/auth/sync-settings", tokens.accessToken);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ enabled: true, intervalMinutes: 30 });
+  });
+
+  it("applies only the fields a patch carries", async () => {
+    const email = uniqueEmail();
+    await createUser(email);
+    const tokens = await login(email);
+
+    const first = await patch("/auth/sync-settings", { intervalMinutes: 60 }, tokens.accessToken);
+    expect(first.status).toBe(200);
+    expect(await first.json()).toEqual({ enabled: true, intervalMinutes: 60 });
+
+    const second = await patch("/auth/sync-settings", { enabled: false }, tokens.accessToken);
+    expect(second.status).toBe(200);
+    // intervalMinutes from the first patch survives — this one never named it.
+    expect(await second.json()).toEqual({ enabled: false, intervalMinutes: 60 });
+
+    expect(await (await get("/auth/sync-settings", tokens.accessToken)).json()).toEqual({
+      enabled: false,
+      intervalMinutes: 60,
+    });
+  });
+
+  it("is one user's own — setting it does not touch another account's", async () => {
+    const ownerEmail = uniqueEmail();
+    const otherEmail = uniqueEmail();
+    await createUser(ownerEmail);
+    await createUser(otherEmail);
+    const owner = await login(ownerEmail);
+    const other = await login(otherEmail);
+
+    await patch("/auth/sync-settings", { enabled: false, intervalMinutes: 120 }, owner.accessToken);
+
+    expect(await (await get("/auth/sync-settings", other.accessToken)).json()).toEqual({
+      enabled: true,
+      intervalMinutes: 30,
+    });
+  });
+
+  it("rejects an interval outside the bound", async () => {
+    const email = uniqueEmail();
+    await createUser(email);
+    const tokens = await login(email);
+
+    for (const intervalMinutes of [0, 14, 10_081, 1.5]) {
+      const response = await patch("/auth/sync-settings", { intervalMinutes }, tokens.accessToken);
+      expect(response.status).toBe(400);
+    }
+  });
+
+  it("needs a token", async () => {
+    expect((await get("/auth/sync-settings")).status).toBe(401);
+    expect((await patch("/auth/sync-settings", { enabled: false })).status).toBe(401);
   });
 });
 

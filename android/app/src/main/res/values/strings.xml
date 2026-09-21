@@ -137,6 +137,22 @@
     <string name="settings_sign_out">Sign out</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_system_default">System default</string>
+    <string name="settings_privacy_policy">Privacy policy</string>
+
+    <string name="settings_background_sync">Background sync</string>
+    <string name="settings_background_sync_frequency">Frequency</string>
+    <string name="settings_sync_frequency_dialog_title">Sync frequency</string>
+    <string name="settings_sync_frequency_unit_minutes">Minutes</string>
+    <string name="settings_sync_frequency_unit_hours">Hours</string>
+    <string name="settings_sync_frequency_minimum">Shortest is 15 minutes, longest is 1 week.</string>
+    <plurals name="settings_sync_frequency_every_minutes">
+        <item quantity="one">Every %d minute</item>
+        <item quantity="other">Every %d minutes</item>
+    </plurals>
+    <plurals name="settings_sync_frequency_every_hours">
+        <item quantity="one">Every %d hour</item>
+        <item quantity="other">Every %d hours</item>
+    </plurals>
 
     <!-- Deleting the account (ADR 0007). -->
     <string name="settings_delete_account">Delete account</string>
@@ -152,4 +168,7 @@
     <string name="auth_sign_in_with_code">Sign in with code</string>
     <string name="error_magic_code_invalid">That code is wrong or has expired. Check the email, or send a new link.</string>
     <string name="error_magic_code_locked">Too many wrong codes. Tap the link in the email instead, or try again tomorrow.</string>
+    <!-- Play in-app updates (#88) -->
+    <string name="update_ready">An update is ready.</string>
+    <string name="update_restart">Restart</string>
 </resources>

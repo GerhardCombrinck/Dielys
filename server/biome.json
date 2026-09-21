@@ -18,6 +18,13 @@
     }
   },
   "files": {
-    "includes": ["**", "!**/.wrangler", "!**/node_modules", "!**/dist"]
+    "includes": [
+      "**",
+      "!**/.wrangler",
+      "!**/node_modules",
+      "!**/dist",
+      "!public/assets",
+      "!public/index.html"
+    ]
   }
 }

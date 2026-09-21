@@ -1,5 +1,12 @@
 import { DurableObject } from "cloudflare:workers";
-import type { AuthErrorCode, ListMember, Membership, MembershipRole } from "@dielys/protocol";
+import type {
+  AuthErrorCode,
+  ListMember,
+  Membership,
+  MembershipRole,
+  SyncSettings,
+  SyncSettingsPatch,
+} from "@dielys/protocol";
 import { INVITE_TOKEN_TTL_SECONDS, signInviteToken } from "../auth/jwt.js";
 import { generateMagicCode, hashMagicCode } from "../auth/magiccode.js";
 import {
@@ -24,8 +31,10 @@ import {
   MAGIC_STATUS_PER_CLIENT,
   MAGIC_VERIFY_PER_CLIENT,
   type RateLimit,
+  REFRESH_PER_CLIENT,
   REGISTER_GLOBAL,
   REGISTER_PER_CLIENT,
+  WS_TICKET_MINT_PER_CLIENT,
 } from "../auth/ratelimit.js";
 import { normalizeMagicCode } from "../domain/magiccode.js";
 import {
@@ -56,6 +65,7 @@ import {
   deleteExpiredAccountDeletionRequests,
   deleteExpiredMagicLinks,
   deleteExpiredRefreshTokens,
+  deleteExpiredWsTickets,
   deleteListHead,
   deleteMagicLink,
   deleteMagicLinksForEmail,
@@ -70,10 +80,14 @@ import {
   insertMembership,
   insertRefreshToken,
   insertUser,
+  insertWsTicket,
   markRefreshTokenUsed,
+  markWsTicketUsed,
   recordListHead,
   selectAccountDeletionRequest,
   selectDevicesForList,
+  selectDistinctListIds,
+  selectEmailsNewestFirst,
   selectListMembers,
   selectLongestOtherMember,
   selectMagicLink,
@@ -84,10 +98,13 @@ import {
   selectRateLimit,
   selectRefreshToken,
   selectRolesForUser,
+  selectSyncSettings,
   selectUserByEmail,
   selectUserById,
+  selectWsTicket,
   updateMembershipPosition,
   updateMembershipRole,
+  updateSyncSettings,
   updateUserPassword,
   upsertDevice,
   upsertRateLimit,
@@ -95,6 +112,10 @@ import {
 
 /** 30 days (L1). */
 export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Long enough to cover mint-then-upgrade, short enough that a ticket sitting
+ * in a server or proxy log is useless within a minute (ADR 0009). */
+export const WS_TICKET_TTL_MS = 60 * 1000;
 
 /** 15 minutes (ADR 0005). Long enough to switch to a mail app and find the
  * message, short enough that a link sitting unread in an inbox stops being
@@ -628,8 +649,13 @@ export class UsersRoom extends DurableObject {
   async rotateRefreshToken(
     refreshToken: string,
     deviceId: string,
+    clientKey: string,
     now: number,
   ): Promise<UsersResult<Session>> {
+    if (!this.consume(REFRESH_PER_CLIENT, clientKey, now)) {
+      return { ok: false, code: "rate-limited" };
+    }
+
     const tokenHash = await hashRefreshToken(refreshToken);
     const row = selectRefreshToken(this.sql, tokenHash);
 
@@ -675,6 +701,71 @@ export class UsersRoom extends DurableObject {
     });
 
     return { ok: true, value: { userId: row.userId, refreshToken: token } };
+  }
+
+  /**
+   * A short-lived, single-use credential a browser can put in the WebSocket
+   * upgrade's query string, since it cannot set `Authorization` on that
+   * request the way OkHttp can (ADR 0009). Bound to the device that asked for
+   * it, the same as a refresh token — [redeemWsTicket] hands that binding
+   * back rather than trusting whatever `?deviceId=` a socket connects with.
+   */
+  async mintWsTicket(
+    userId: string,
+    deviceId: string,
+    clientKey: string,
+    now: number,
+  ): Promise<UsersResult<{ ticket: string; expiresIn: number }>> {
+    if (!this.consume(WS_TICKET_MINT_PER_CLIENT, clientKey, now)) {
+      return { ok: false, code: "rate-limited" };
+    }
+
+    const ticket = generateRefreshToken(); // 256 random bits — the name is generic in practice
+    const ticketHash = await hashRefreshToken(ticket);
+    const nowIso = new Date(now).toISOString();
+
+    this.ctx.storage.transactionSync(() => {
+      insertWsTicket(this.sql, {
+        ticketHash,
+        userId,
+        deviceId,
+        issuedAt: nowIso,
+        expiresAt: new Date(now + WS_TICKET_TTL_MS).toISOString(),
+        usedAt: null,
+      });
+      deleteExpiredWsTickets(this.sql, nowIso);
+    });
+
+    return { ok: true, value: { ticket, expiresIn: WS_TICKET_TTL_MS / 1000 } };
+  }
+
+  /**
+   * Redeems a ticket exactly once (ADR 0009). Unlike a refresh token there is
+   * no reuse-detection fallout: a ws ticket's only job is to cross the wire
+   * once, in a URL, so a second presentation is just refused, not treated as
+   * a signal to revoke anything. Not rate-limited itself — [mintWsTicket]
+   * already gates how many of these can exist, and the value being presented
+   * is 256 random bits, not a guess.
+   */
+  async redeemWsTicket(
+    ticket: string,
+    now: number,
+  ): Promise<UsersResult<{ userId: string; deviceId: string }>> {
+    const ticketHash = await hashRefreshToken(ticket);
+    const row = selectWsTicket(this.sql, ticketHash);
+
+    if (row === null || row.usedAt !== null) {
+      return { ok: false, code: "invalid-token" };
+    }
+    if (Date.parse(row.expiresAt) <= now) {
+      return { ok: false, code: "token-expired" };
+    }
+
+    this.ctx.storage.transactionSync(() => {
+      markWsTicketUsed(this.sql, ticketHash, new Date(now).toISOString());
+    });
+
+    return { ok: true, value: { userId: row.userId, deviceId: row.deviceId } };
   }
 
   /**
@@ -892,6 +983,39 @@ export class UsersRoom extends DurableObject {
     return { ok: true, value: { listId, position } };
   }
 
+  /** The caller's background-sync setting (ADR 0010, PROTOCOL.md
+   *  "Background sync setting"). `not-found` for a userId that does not
+   *  exist — the access token was valid, so this would mean the account was
+   *  deleted mid-session, not a caller error. */
+  async getSyncSettings(userId: string): Promise<UsersResult<SyncSettings>> {
+    const settings = selectSyncSettings(this.sql, userId);
+    if (settings === null) return { ok: false, code: "not-found" };
+    return { ok: true, value: settings };
+  }
+
+  /**
+   * Applies whichever fields `patch` carries onto the caller's current
+   * setting and writes the result back whole — last-write-wins on a value
+   * only this user ever writes, the same reasoning [setListPosition] gives
+   * for skipping an idempotency key (F5.2 does not apply).
+   */
+  async setSyncSettings(
+    userId: string,
+    patch: SyncSettingsPatch,
+  ): Promise<UsersResult<SyncSettings>> {
+    const current = selectSyncSettings(this.sql, userId);
+    if (current === null) return { ok: false, code: "not-found" };
+
+    const next: SyncSettings = {
+      enabled: patch.enabled ?? current.enabled,
+      intervalMinutes: patch.intervalMinutes ?? current.intervalMinutes,
+    };
+    this.ctx.storage.transactionSync(() => {
+      updateSyncSettings(this.sql, userId, next);
+    });
+    return { ok: true, value: next };
+  }
+
   /**
    * Idempotent by design (L3): accepting an invite twice is a no-op rather
    * than an error, matching the spirit of F5.2.
@@ -1087,6 +1211,20 @@ export class UsersRoom extends DurableObject {
    * bootstrapping a second time without an explicit token. */
   async userCount(): Promise<number> {
     return countUsers(this.sql);
+  }
+
+  /** Every list id any membership here points at (#84) — the admin stats
+   *  route fans out to each one over RPC for its own item count, the same
+   *  way [deleteAccount]'s result hands the Worker a list of ids to act on
+   *  rather than this room reaching into ListRoom itself. */
+  async listIds(): Promise<string[]> {
+    return selectDistinctListIds(this.sql);
+  }
+
+  /** Every account's email, newest first (#84) — raw; the Worker obscures
+   *  the domain before it ever reaches a response body. */
+  async userEmails(): Promise<string[]> {
+    return selectEmailsNewestFirst(this.sql);
   }
 
   /**

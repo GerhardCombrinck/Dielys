@@ -189,6 +189,16 @@ cd android
 ./gradlew assembleDebug
 ```
 
+**Web:**
+
+```bash
+cd web
+npm ci
+npm run dev   # Vite, http://localhost:5173, pointed at the server above
+```
+
+See `web/README.md` and `web/AGENTS.md` for more.
+
 ### Project Layout
 
 | Path        | What                                                      |
@@ -196,7 +206,7 @@ cd android
 | `server/`   | Cloudflare Workers + Durable Objects backend (TypeScript)  |
 | `protocol/` | The wire contract — types and fixtures shared by both sides |
 | `android/`  | Kotlin + Compose + Room Android client                     |
-| `web/`      | Deferred web client — not yet built (priority 3)           |
+| `web/`      | React + Vite + TypeScript web client, local-first           |
 | `docs/`     | Coding standard, ADRs, sync design                          |
 | `scripts/`  | One-off and maintenance scripts                              |
 
@@ -223,12 +233,14 @@ neither is present. See `scripts/AGENTS.md`.
 ### Deploying
 
 Push to `main` auto-deploys `server/` to the `dev` Cloudflare environment
-(`dielys-dev`). Tagging `v*` deploys `prod` (`dielys-prod`, gated on a required
-reviewer) and builds a signed Android release APK attached to the GitHub Release.
+(`dielys-dev`). Web and Android ship on separate tags, so one doesn't force the
+other out: tagging `web-v*` deploys `prod` (`dielys-prod`, gated on a required
+reviewer), and tagging `android-v*` builds a signed Android release APK
+attached to the GitHub Release.
 
 ### Rolling Back
 
-Server: `wrangler rollback` from `server/`, or redeploy the previous `v*` tag through the
+Server: `wrangler rollback` from `server/`, or redeploy the previous `web-v*` tag through the
 `deploy-server.yml` workflow. Migrations are lazy per Durable Object and forward-only — rolling
 back code does not roll back schema (see [G1](docs/CODE_STANDARD.md#standard-g1)).
 

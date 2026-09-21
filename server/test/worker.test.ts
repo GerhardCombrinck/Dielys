@@ -16,9 +16,17 @@ describe("Worker routing", () => {
     expect(await response.json()).toMatchObject({ ok: true });
   });
 
-  it("404s a path that is not a route", async () => {
-    const response = await SELF.fetch("https://dielys.test/whatever");
+  it("404s a non-GET request to a path that is not a route", async () => {
+    const response = await SELF.fetch("https://dielys.test/whatever", { method: "POST" });
     expect(response.status).toBe(404);
+  });
+
+  // A GET to the same shape of path is a browser navigation, so it gets
+  // web/'s SPA shell instead of a 404 — see pages.test.ts for that behavior.
+  it("serves the SPA shell for a GET to a path that is not a route", async () => {
+    const response = await SELF.fetch("https://dielys.test/whatever");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/html");
   });
 
   for (const path of ["ws", "changes", "mutate"]) {
@@ -65,6 +73,25 @@ describe("Worker routing", () => {
       body: "{not json",
     });
     expect(response.status).toBe(400);
+  });
+});
+
+describe("CORS — the browser client is cross-origin from this Worker", () => {
+  it("answers a preflight without reaching a route handler", async () => {
+    const response = await SELF.fetch("https://dielys.test/auth/login", { method: "OPTIONS" });
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    expect(response.headers.get("access-control-allow-methods")).toContain("POST");
+    expect(response.headers.get("access-control-allow-headers")).toContain("authorization");
+  });
+
+  it("carries CORS headers on a normal response too, success or error", async () => {
+    const ok = await SELF.fetch("https://dielys.test/health");
+    expect(ok.headers.get("access-control-allow-origin")).toBe("*");
+
+    const denied = await SELF.fetch("https://dielys.test/lists/list-1/changes");
+    expect(denied.status).toBe(401);
+    expect(denied.headers.get("access-control-allow-origin")).toBe("*");
   });
 });
 

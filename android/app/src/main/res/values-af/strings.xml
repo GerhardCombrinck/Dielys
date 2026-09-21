@@ -123,6 +123,7 @@
     <string name="settings_sign_out">Meld af</string>
     <string name="settings_language">Taal</string>
     <string name="settings_language_system_default">Stelselverstek</string>
+    <string name="settings_privacy_policy">Privaatheidsbeleid</string>
 
     <string name="settings_delete_account">Skrap rekening</string>
     <string name="settings_deleting_account">Skrap tans rekening…</string>
@@ -136,4 +137,7 @@
     <string name="auth_sign_in_with_code">Meld aan met kode</string>
     <string name="error_magic_code_invalid">Daardie kode is verkeerd of het verval. Kyk weer na die e-pos, of stuur \'n nuwe skakel.</string>
     <string name="error_magic_code_locked">Te veel verkeerde kodes. Tik eerder op die skakel in die e-pos, of probeer môre weer.</string>
+    <!-- Play in-app updates (#88) -->
+    <string name="update_ready">’n Opdatering is gereed.</string>
+    <string name="update_restart">Herbegin</string>
 </resources>

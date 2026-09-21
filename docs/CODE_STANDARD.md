@@ -42,7 +42,7 @@ per-commit. Everything below is decided once, here, before the first line of pro
 | Server     | `server/`   | TypeScript — Cloudflare Workers + DO  | 1        |
 | Protocol   | `protocol/` | TypeScript types + JSON fixtures      | 1        |
 | Android    | `android/`  | Kotlin — Jetpack Compose + Room       | 1        |
-| Web client | `web/`      | TypeScript — deferred, not yet built  | 3        |
+| Web client | `web/`      | TypeScript — React + Vite, local-first  | 3      |
 
 **Out of scope:** iOS. The protocol MUST NOT acquire Android-specific assumptions that would
 block an iOS client later, but no iOS code is written or maintained.
@@ -1005,7 +1005,11 @@ A PR that changes sync behaviour MUST state in **How to test** which of these it
 | Environment | Worker name       | Trigger                  | Protection             |
 |-------------|-------------------|--------------------------|------------------------|
 | `dev`       | `dielys-dev`   | push to `main`           | none — auto-deploys    |
-| `prod`      | `dielys-prod`  | tag `v*`                 | required reviewer      |
+| `prod`      | `dielys-prod`  | tag `web-v*`             | required reviewer      |
+
+`web-v*` is its own release train, independent of Android's `android-v*` ([J4](#standard-j4)) —
+tagging one never triggers the other's workflow, so a web-only fix doesn't force an Android
+release and vice versa.
 
 #### Rules
 
@@ -1108,10 +1112,17 @@ jobs:
 
 #### Rules
 
-- Tagging `v*` MUST build a signed release APK and attach it to a GitHub Release.
+- Tagging `android-v*` MUST build a signed release APK and attach it to a GitHub Release.
+  This is a separate tag prefix from `prod`'s `web-v*` ([J1](#standard-j1)) specifically so an
+  Android release can't be triggered by a web-only deploy or vice versa.
 - The signing keystore MUST come from a GitHub environment secret, base64-decoded at build
   time and never written to a path that a later step archives.
 - `versionCode` MUST increase monotonically. Derive it from the run number, not by hand.
+- The bundle MUST be published to Play's `internal` track by the same job, using a service
+  account credential from a GitHub environment secret. The job MUST NOT write any other
+  track — promotion to production stays a deliberate Play Console action. The track MUST be
+  named explicitly: the upload action falls back to `production` when the input is absent,
+  so an omitted track is a misdirected release rather than a skipped one.
 - Losing the keystore means no upgrade path for installed apps. It MUST be backed up outside
   this repo, encrypted, before the first release.
 
@@ -1620,6 +1631,7 @@ Use to verify the repo before first release, and to audit periodically.
 | J3.1 | Scoped API token, not a global key                 |        |
 | J3.2 | Rollback documented in README                      |        |
 | J4.1 | `versionCode` derived, monotonic                   |        |
+| J4.2 | Publishes to Play `internal` track only            |        |
 
 ### K: Evaluate Documentation
 

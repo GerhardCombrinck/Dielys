@@ -67,6 +67,20 @@ export interface TokenPair {
 }
 
 /**
+ * `POST /auth/ws-ticket` (ADR 0009). No request type — the caller's own
+ * bearer token is the input, nothing else. A browser cannot set
+ * `Authorization` on a WebSocket upgrade the way every other request (and
+ * OkHttp's upgrade) can, so it exchanges its access token for one of these
+ * first and opens `GET /lists/{listId}/ws?ticket=...` instead.
+ */
+export interface WsTicketResponse {
+  ticket: string;
+  /** Seconds until the ticket expires — short, and it is single-use besides.
+   * Not a timestamp (F5.9). */
+  expiresIn: number;
+}
+
+/**
  * `email` scopes the invite (L3): only an account whose own email matches
  * this one, normalized, may accept it. `listTitle` is display text for the
  * invite email — `UsersRoom`, where invites are minted, never talks to
@@ -193,6 +207,41 @@ export interface SetListPositionRequest {
 export interface SetListPositionResponse {
   listId: string;
   position: string;
+}
+
+/**
+ * The account's background-sync preference (ADR 0010): whether periodic
+ * background sync runs at all, and how often. Effect is mobile-only — the
+ * web client has no background worker to schedule (web/AGENTS.md) — but the
+ * setting itself is held here, server-side, so it can be read and changed
+ * from either client, not just the phone it actually governs.
+ */
+export interface SyncSettings {
+  enabled: boolean;
+  intervalMinutes: number;
+}
+
+/** The floor Android's own `PeriodicWorkRequest` enforces regardless —
+ * checked here too so a bad value never reaches it. */
+export const MIN_SYNC_INTERVAL_MINUTES = 15;
+/** A week — generous, but still a bound (F3): nothing needs to sync less
+ * often than that for a value this cheap to fetch. */
+export const MAX_SYNC_INTERVAL_MINUTES = 10_080;
+export const DEFAULT_SYNC_INTERVAL_MINUTES = 30;
+
+/**
+ * `GET /auth/sync-settings` → `SyncSettings`.
+ *
+ * `PATCH /auth/sync-settings`: `SyncSettingsPatch` → `SyncSettings`, the
+ * resulting state. Whichever field is present is the one being changed — the
+ * same partial-patch shape `ListPatch`/`TaskPatch` use, but without an
+ * idempotency key: like `SetListPositionRequest`, this is last-write-wins on
+ * a value the caller alone owns, so a retried identical body is the same
+ * state and F5.2 does not apply.
+ */
+export interface SyncSettingsPatch {
+  enabled?: boolean;
+  intervalMinutes?: number;
 }
 
 export type AuthErrorCode =

@@ -42,6 +42,55 @@ interface DoneSectionPrefs {
 }
 
 /**
+ * Whether the half-hourly `WorkManager` floor (H3.12) runs at all, and how
+ * often — the socket and push are still best-effort either way, so turning
+ * this off or stretching it out trades away the guarantee that a change
+ * shows up even when both of those miss, not correctness of the change
+ * itself. Its own interface for the same reason [NewTaskPlacement] has one:
+ * [za.co.dielys.data.sync.WorkManagerSyncScheduler] needs to read it without
+ * pulling in a `Context`.
+ */
+interface SyncPrefs {
+    val syncEnabled: StateFlow<Boolean>
+
+    fun setSyncEnabled(value: Boolean)
+
+    val syncIntervalMinutes: StateFlow<Long>
+
+    fun setSyncIntervalMinutes(minutes: Long)
+
+    /**
+     * The `{enabled, intervalMinutes}` this device last confirmed with the
+     * server (ADR 0010), as opposed to [syncEnabled]/[syncIntervalMinutes]
+     * themselves, which are what `WorkManager` schedules from right now.
+     * [za.co.dielys.data.sync.SyncEngine] compares the live values against
+     * this snapshot to tell "changed here since we last agreed" (push wins)
+     * from "nothing moved locally, only check what the server has" (pull
+     * wins). Null means never synced — a fresh install, or an existing one
+     * from before this setting synced at all — so the first run always pulls
+     * rather than pushing this device's defaults over whatever another
+     * device (or `web/`) already set.
+     */
+    val lastSyncedEnabled: Boolean?
+    val lastSyncedIntervalMinutes: Long?
+
+    fun setLastSynced(
+        enabled: Boolean,
+        intervalMinutes: Long,
+    )
+
+    companion object {
+        /** `PeriodicWorkRequest` refuses anything shorter than this itself. */
+        const val MIN_INTERVAL_MINUTES = 15L
+
+        /** One week — the server's own bound (`MAX_SYNC_INTERVAL_MINUTES`), which
+         *  answers anything longer with a 400. */
+        const val MAX_INTERVAL_MINUTES = 10_080L
+        const val DEFAULT_INTERVAL_MINUTES = 30L
+    }
+}
+
+/**
  * The app's display language (#42), as a BCP-47 tag ("af", "zu", …) — null
  * means "follow the phone's own language", same as never having chosen one.
  * Its own interface for the same reason [NewTaskPlacement] has one: the
@@ -95,6 +144,7 @@ class UiPrefs
         @ApplicationContext private val context: Context,
     ) : NewTaskPlacement,
         DoneSectionPrefs,
+        SyncPrefs,
         LocalePrefs {
         private val prefs: SharedPreferences =
             context.getSharedPreferences(UI_PREFS_FILE, Context.MODE_PRIVATE)
@@ -120,6 +170,65 @@ class UiPrefs
             expanded: Boolean,
         ) {
             prefs.edit().putBoolean(KEY_DONE_EXPANDED_PREFIX + listId, expanded).apply()
+        }
+
+        private val _syncEnabled = MutableStateFlow(prefs.getBoolean(KEY_SYNC_ENABLED, true))
+
+        override val syncEnabled: StateFlow<Boolean> = _syncEnabled.asStateFlow()
+
+        override fun setSyncEnabled(value: Boolean) {
+            prefs.edit().putBoolean(KEY_SYNC_ENABLED, value).apply()
+            _syncEnabled.value = value
+        }
+
+        private val _syncIntervalMinutes =
+            MutableStateFlow(
+                // Clamped on read too, so a value stored before the upper
+                // bound existed is healed rather than pushed and rejected.
+                prefs
+                    .getLong(KEY_SYNC_INTERVAL_MINUTES, SyncPrefs.DEFAULT_INTERVAL_MINUTES)
+                    .coerceIn(SyncPrefs.MIN_INTERVAL_MINUTES, SyncPrefs.MAX_INTERVAL_MINUTES),
+            )
+
+        override val syncIntervalMinutes: StateFlow<Long> = _syncIntervalMinutes.asStateFlow()
+
+        override fun setSyncIntervalMinutes(minutes: Long) {
+            val clamped =
+                minutes.coerceIn(SyncPrefs.MIN_INTERVAL_MINUTES, SyncPrefs.MAX_INTERVAL_MINUTES)
+            prefs.edit().putLong(KEY_SYNC_INTERVAL_MINUTES, clamped).apply()
+            _syncIntervalMinutes.value = clamped
+        }
+
+        override val lastSyncedEnabled: Boolean?
+            get() =
+                if (prefs.contains(KEY_LAST_SYNCED_ENABLED)) {
+                    prefs.getBoolean(KEY_LAST_SYNCED_ENABLED, true)
+                } else {
+                    null
+                }
+
+        override val lastSyncedIntervalMinutes: Long?
+            get() =
+                if (prefs.contains(KEY_LAST_SYNCED_INTERVAL_MINUTES)) {
+                    prefs.getLong(
+                        KEY_LAST_SYNCED_INTERVAL_MINUTES,
+                        SyncPrefs.DEFAULT_INTERVAL_MINUTES,
+                    )
+                } else {
+                    null
+                }
+
+        override fun setLastSynced(
+            enabled: Boolean,
+            intervalMinutes: Long,
+        ) {
+            // One `edit()` for both — a torn write here would make the next
+            // sync compare against a pair that never actually existed.
+            prefs
+                .edit()
+                .putBoolean(KEY_LAST_SYNCED_ENABLED, enabled)
+                .putLong(KEY_LAST_SYNCED_INTERVAL_MINUTES, intervalMinutes)
+                .apply()
         }
 
         // Two stores, because two platforms. From API 33 the system owns this:
@@ -158,5 +267,10 @@ class UiPrefs
         private companion object {
             const val KEY_NEW_ITEMS_ON_TOP = "new-items-on-top"
             const val KEY_DONE_EXPANDED_PREFIX = "done-expanded-"
+            const val KEY_SYNC_ENABLED = "sync-enabled"
+            const val KEY_SYNC_INTERVAL_MINUTES = "sync-interval-minutes"
+            const val KEY_LAST_SYNCED_ENABLED = "sync-settings-last-synced-enabled"
+            const val KEY_LAST_SYNCED_INTERVAL_MINUTES =
+                "sync-settings-last-synced-interval-minutes"
         }
     }

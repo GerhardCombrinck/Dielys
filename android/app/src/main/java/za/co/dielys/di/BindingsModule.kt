@@ -17,6 +17,7 @@ import za.co.dielys.data.local.PushTokenStore
 import za.co.dielys.data.local.SessionSignal
 import za.co.dielys.data.local.SessionStore
 import za.co.dielys.data.local.StringProvider
+import za.co.dielys.data.local.SyncPrefs
 import za.co.dielys.data.local.UiPrefs
 import za.co.dielys.data.remote.AccessTokens
 import za.co.dielys.data.remote.AccountApi
@@ -112,6 +113,11 @@ abstract class BindingsModule {
     @Binds
     @Singleton
     abstract fun localePrefs(impl: UiPrefs): LocalePrefs
+
+    /** Same reason as [newTaskPlacement] — one seam, four faces of [UiPrefs]. */
+    @Binds
+    @Singleton
+    abstract fun syncPrefs(impl: UiPrefs): SyncPrefs
 
     /** Tested on the JVM the same way as the rest of this module — and a
      *  ViewModel may not hold the `Context` this needs directly (E1). */

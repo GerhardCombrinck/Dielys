@@ -3,7 +3,7 @@
  * reads and writes rows; it does not decide whether a password is right or
  * whether a token may be rotated.
  */
-import type { ListMember, Membership, MembershipRole } from "@dielys/protocol";
+import type { ListMember, Membership, MembershipRole, SyncSettings } from "@dielys/protocol";
 import type { PasswordHash } from "../auth/password.js";
 
 export interface UserRow {
@@ -86,6 +86,39 @@ export function countUsers(sql: SqlStorage): number {
   return Number(row.n);
 }
 
+/** Newest account first (#84) — "who signed up" reads top-down like an
+ *  activity feed, not alphabetically. */
+export function selectEmailsNewestFirst(sql: SqlStorage): string[] {
+  return [...sql.exec("SELECT email FROM users ORDER BY created_at DESC")].map((row) =>
+    String(row.email),
+  );
+}
+
+/** `null` for a user id that does not exist — the caller (`UsersRoom`) turns
+ * that into `not-found`; this layer just reports what it saw (D1). */
+export function selectSyncSettings(sql: SqlStorage, userId: string): SyncSettings | null {
+  const rows = [
+    ...sql.exec(`SELECT sync_enabled, sync_interval_minutes FROM users WHERE id = ?`, userId),
+  ];
+  const row = rows[0];
+  if (row === undefined) return null;
+  return {
+    enabled: Number(row.sync_enabled) !== 0,
+    intervalMinutes: Number(row.sync_interval_minutes),
+  };
+}
+
+/** Always writes both columns — the caller has already merged the patch onto
+ * the current row, so this is a plain overwrite, not a partial one. */
+export function updateSyncSettings(sql: SqlStorage, userId: string, settings: SyncSettings): void {
+  sql.exec(
+    `UPDATE users SET sync_enabled = ?, sync_interval_minutes = ? WHERE id = ?`,
+    settings.enabled ? 1 : 0,
+    settings.intervalMinutes,
+    userId,
+  );
+}
+
 function firstUser(cursor: SqlStorageCursor<Record<string, SqlStorageValue>>): UserRow | null {
   const rows = [...cursor];
   const row = rows[0];
@@ -161,6 +194,59 @@ export function deleteExpiredRefreshTokens(sql: SqlStorage, before: string): voi
   sql.exec("DELETE FROM refresh_tokens WHERE expires_at < ?", before);
 }
 
+export interface WsTicketRow {
+  ticketHash: string;
+  userId: string;
+  deviceId: string;
+  issuedAt: string;
+  expiresAt: string;
+  usedAt: string | null;
+}
+
+export function insertWsTicket(sql: SqlStorage, row: WsTicketRow): void {
+  sql.exec(
+    `INSERT INTO ws_tickets (ticket_hash, user_id, device_id, issued_at, expires_at, used_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    row.ticketHash,
+    row.userId,
+    row.deviceId,
+    row.issuedAt,
+    row.expiresAt,
+    row.usedAt,
+  );
+}
+
+export function selectWsTicket(sql: SqlStorage, ticketHash: string): WsTicketRow | null {
+  const rows = [
+    ...sql.exec(
+      `SELECT ticket_hash, user_id, device_id, issued_at, expires_at, used_at
+         FROM ws_tickets WHERE ticket_hash = ?`,
+      ticketHash,
+    ),
+  ];
+  const row = rows[0];
+  if (row === undefined) return null;
+  return {
+    ticketHash: String(row.ticket_hash),
+    userId: String(row.user_id),
+    deviceId: String(row.device_id),
+    issuedAt: String(row.issued_at),
+    expiresAt: String(row.expires_at),
+    usedAt: row.used_at === null ? null : String(row.used_at),
+  };
+}
+
+/** Marks a ticket spent. The row stays, on the same reasoning as a refresh
+ * token, though nothing currently reads a used row back. */
+export function markWsTicketUsed(sql: SqlStorage, ticketHash: string, usedAt: string): void {
+  sql.exec("UPDATE ws_tickets SET used_at = ? WHERE ticket_hash = ?", usedAt, ticketHash);
+}
+
+/** Housekeeping, same reasoning as [deleteExpiredRefreshTokens]. */
+export function deleteExpiredWsTickets(sql: SqlStorage, before: string): void {
+  sql.exec("DELETE FROM ws_tickets WHERE expires_at < ?", before);
+}
+
 export function insertMembership(
   sql: SqlStorage,
   userId: string,
@@ -200,6 +286,14 @@ export function selectMembership(
   const row = rows[0];
   if (row === undefined) return null;
   return toMembership(row);
+}
+
+/** Every list anyone still has a membership on (#84) — the full set this
+ *  room can name, for the admin stats route to fan out to. */
+export function selectDistinctListIds(sql: SqlStorage): string[] {
+  return [...sql.exec("SELECT DISTINCT list_id FROM memberships")].map((row) =>
+    String(row.list_id),
+  );
 }
 
 /** How many people are on a list at all. Zero means it is unclaimed. */

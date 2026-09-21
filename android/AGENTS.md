@@ -102,3 +102,42 @@ content (M1), so anything shown to the user is composed from Room after the
 sync it triggers. Registration is sent from `SyncEngine.sync()` rather than
 from wherever the token arrived, so it inherits the backoff instead of
 needing a retry path of its own.
+
+## R8 (release minification)
+
+`release` has `isMinifyEnabled = true` and `isShrinkResources = true`
+(`proguard-rules.pro`, issue #70). Room, WorkManager, Hilt, hilt-work, and
+kotlinx.serialization all ship their own consumer R8 rules, so `proguard-rules.pro`
+only adds a belt-and-braces keep for `data/remote`'s sealed wire hierarchies
+(`ChangeEnvelope`/`Mutation`/`ServerMessage` in `Wire.kt`) — nothing in the
+unit tests runs against a shrunk build, so a missing keep rule compiles fine
+and fails at runtime, most likely as a sync or sign-in that silently does
+nothing.
+
+A library's own consumer rule is not proof: WorkManager 2.9.1 keeps
+`InputMerger` subclasses without members, which in R8 full mode drops the
+no-arg constructor it instantiates by name — 0.5.6 shipped with every sync job
+failing that way. `scripts/check-r8-keeps.sh` (run by `verify.sh` and CI after
+`assembleRelease`) checks R8's `seeds.txt` for everything reached by
+reflection; add an entry there whenever something new is created by name.
+
+**Before approving an `android-v*` release:** install the release APK over an
+existing install on a real phone, make one edit, and check it shows on web.
+The R8 check only covers what it lists; this covers what it does not.
+
+`release-android.yml` attaches `mapping.txt` to the GitHub Release alongside
+the APK and bundle, so a crash from a sideloaded APK can be retraced. The same
+job then publishes the `.aab` and `mapping.txt` to Play's **internal testing**
+track via `r0adkll/upload-google-play`, using the `PLAY_SERVICE_ACCOUNT_JSON`
+secret on the `prod` environment — so nothing is uploaded to Play Console by
+hand any more.
+
+That step only ever writes the `internal` track. Promoting a build to
+production is still a deliberate Play Console action, and the release is
+approved by a human first (see the release check above). The service account
+is granted "Release to testing tracks" in Play Console and nothing more, so
+this can't reach production even by accident.
+
+`versionCode` comes from the workflow's run number, and Play rejects a bundle
+whose `versionCode` it has already seen — so a re-run of a failed release job
+produces a *new* version code rather than a duplicate, which is the intent.
