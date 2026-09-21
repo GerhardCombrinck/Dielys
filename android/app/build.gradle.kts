@@ -151,7 +151,7 @@ dependencies {
     ksp("androidx.hilt:hilt-compiler:1.4.0")
     implementation("com.google.dagger:hilt-android:2.60.1")
     ksp("com.google.dagger:hilt-android-compiler:2.60.1")
-    implementation("com.google.firebase:firebase-messaging-ktx:24.0.1")
+    implementation("com.google.firebase:firebase-messaging-ktx:24.1.2")
     // Play in-app updates. Only does anything in a build Play installed; a
     // sideloaded or debug build gets UpdateAvailability.UPDATE_NOT_AVAILABLE
     // and the prompt simply never appears.
