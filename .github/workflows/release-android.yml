@@ -65,10 +65,13 @@ jobs:
             android/app/build/outputs/bundle/release/*.aab
             android/app/build/outputs/mapping/release/mapping.txt
 
-      # Publishes the same bundle to the open testing track (Play API name
-      # `beta`) — public opt-in via the store listing, so a tag reaches
-      # testers without a manual Play Console upload. Open testing goes
-      # through Play review, so it isn't instant the way internal testing was.
+      # Publishes the same bundle to the internal testing track — the only
+      # track Play does not hold for review, so a tag is installable within
+      # minutes. It went to open testing (`beta`) from 0.5.17 to 0.5.19, and
+      # came back: an open-testing release waits days in review, which left
+      # test phones stuck on the last internal build. Putting a build in front
+      # of wider testers is now a promote in Play Console, from the bundle this
+      # already uploaded — no rebuild, no second tag.
       # Runs after the GitHub Release step so a Play API failure still leaves
       # the APK/bundle/mapping downloadable.
       #
@@ -76,8 +79,8 @@ jobs:
       # files" upload is per-release, and without it crashes collected from
       # installs come back as shrunk names (issue #70).
       #
-      # Promoting open testing -> production is still a Play Console action: this
-      # never touches the production track.
+      # Promoting internal -> closed/open testing -> production is still a Play
+      # Console action: this never touches the production track.
       #
       # `tracks` is a comma-separated list, and it must stay a single entry.
       # Note that the action defaults to *production* when neither `track` nor
@@ -85,7 +88,7 @@ jobs:
       # returns ['production']), so deleting this line would not disable the
       # publish — it would redirect it. The service account's Play Console
       # grant is the backstop that would refuse it.
-      - name: Publish bundle to Play open testing
+      - name: Publish bundle to Play internal testing
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
@@ -93,5 +96,5 @@ jobs:
           releaseFiles: android/app/build/outputs/bundle/release/*.aab
           mappingFile: android/app/build/outputs/mapping/release/mapping.txt
           releaseName: ${{ github.ref_name }}
-          tracks: beta
+          tracks: internal
           status: completed
