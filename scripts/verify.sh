@@ -145,7 +145,7 @@ verify_android() {
   export JAVA_HOME ANDROID_HOME
   # assembleRelease runs R8, which nothing else here does — the check after it
   # is what catches a keep rule that compiles fine and breaks sync at runtime.
-  (cd "$REPO_ROOT/android" && ./gradlew ktlintCheck detekt testDebugUnitTest assembleRelease)
+  (cd "$REPO_ROOT/android" && ./gradlew ktlintCheck detekt testDebugUnitTest assembleRelease) || return 1
   sh "$REPO_ROOT/scripts/check-r8-keeps.sh"
 }
 
