@@ -65,16 +65,18 @@ jobs:
             android/app/build/outputs/bundle/release/*.aab
             android/app/build/outputs/mapping/release/mapping.txt
 
-      # Publishes the same bundle to the internal testing track (up to 100
-      # testers, no Play review wait) so a tag lands on real phones without a
-      # manual Play Console upload. Runs after the GitHub Release step so a
-      # Play API failure still leaves the APK/bundle/mapping downloadable.
+      # Publishes the same bundle to the open testing track (Play API name
+      # `beta`) — public opt-in via the store listing, so a tag reaches
+      # testers without a manual Play Console upload. Open testing goes
+      # through Play review, so it isn't instant the way internal testing was.
+      # Runs after the GitHub Release step so a Play API failure still leaves
+      # the APK/bundle/mapping downloadable.
       #
       # The mapping file goes up here too — Play Console's "Deobfuscation
       # files" upload is per-release, and without it crashes collected from
       # installs come back as shrunk names (issue #70).
       #
-      # Promoting internal -> production is still a Play Console action: this
+      # Promoting open testing -> production is still a Play Console action: this
       # never touches the production track.
       #
       # `tracks` is a comma-separated list, and it must stay a single entry.
@@ -83,7 +85,7 @@ jobs:
       # returns ['production']), so deleting this line would not disable the
       # publish — it would redirect it. The service account's Play Console
       # grant is the backstop that would refuse it.
-      - name: Publish bundle to Play internal testing
+      - name: Publish bundle to Play open testing
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
@@ -91,5 +93,5 @@ jobs:
           releaseFiles: android/app/build/outputs/bundle/release/*.aab
           mappingFile: android/app/build/outputs/mapping/release/mapping.txt
           releaseName: ${{ github.ref_name }}
-          tracks: internal
+          tracks: beta
           status: completed

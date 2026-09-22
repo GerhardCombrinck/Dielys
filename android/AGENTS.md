@@ -127,12 +127,12 @@ The R8 check only covers what it lists; this covers what it does not.
 
 `release-android.yml` attaches `mapping.txt` to the GitHub Release alongside
 the APK and bundle, so a crash from a sideloaded APK can be retraced. The same
-job then publishes the `.aab` and `mapping.txt` to Play's **internal testing**
-track via `r0adkll/upload-google-play`, using the `PLAY_SERVICE_ACCOUNT_JSON`
+job then publishes the `.aab` and `mapping.txt` to Play's **open testing**
+track (API name `beta`) via `r0adkll/upload-google-play`, using the `PLAY_SERVICE_ACCOUNT_JSON`
 secret on the `prod` environment — so nothing is uploaded to Play Console by
 hand any more.
 
-That step only ever writes the `internal` track. Promoting a build to
+That step only ever writes the `beta` (open testing) track. Promoting a build to
 production is still a deliberate Play Console action, and the release is
 approved by a human first (see the release check above). The service account
 is granted "Release to testing tracks" in Play Console and nothing more, so
