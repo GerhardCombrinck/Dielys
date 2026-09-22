@@ -625,32 +625,29 @@ body.reordering * {
   padding: 0.5rem 0.625rem;
 }
 
-/* The list row's title button has no padding or border of its own (see
-   `.list-row .row-title` above) — the rename input has to match that exact
-   box model, or swapping it in mid-row changes the card's height. A border
-   would add back the height it just gave up, so the "editing" affordance is
-   an inset underline instead, which paints without taking layout space. */
-.list-row .inline-edit.text-input {
-  padding: 0;
+/* The row's title button has no padding or border of its own (see
+   `.list-row .row-title` / `.task-row .row-title` above), so the rename input
+   has to occupy that exact box, or swapping it in mid-row changes the card's
+   height. It gets a padded field look anyway: the padding is cancelled by an
+   equal negative margin, and the ring is a box-shadow, so neither takes layout
+   space and the text stays exactly where the title was. */
+.list-row .inline-edit.text-input,
+.task-row .inline-edit.text-input {
+  display: block;
+  width: calc(100% + 20px);
+  padding: 6px 10px;
+  margin: -6px -10px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
+  font: inherit;
   font-size: 15.5px;
-  font-weight: 500;
-  background: transparent;
-  box-shadow: inset 0 -2px 0 0 var(--color-accent-blue);
+  line-height: inherit;
+  background: rgba(var(--on-surface-rgb), 0.06);
+  box-shadow: 0 0 0 1.5px var(--color-accent-blue);
 }
 
-/* Same reasoning for a task row: `.task-row .row-title` is stripped to 0
-   padding too now (to fix the list/task row height mismatch — see
-   .list-row, .task-row's shared min-height), so the rename input matches
-   that, not the base .row-title padding it used to carry. */
-.task-row .inline-edit.text-input {
-  padding: 0;
-  border: none;
-  border-radius: 6px;
-  font-size: 15.5px;
-  background: transparent;
-  box-shadow: inset 0 -2px 0 0 var(--color-accent-blue);
+.list-row .inline-edit.text-input {
+  font-weight: 500;
 }
 
 /* Icon buttons */
