@@ -403,6 +403,9 @@ input {
 /* Page shell (Lists / Items) */
 
 .page {
+  /* A flex item in .app-main's column: without an explicit width, the auto
+     margins would shrink it to its content instead of filling up to 640px. */
+  width: 100%;
   max-width: 640px;
   margin: 0 auto;
   padding: 2.5rem 1.5rem 5rem;
