@@ -150,4 +150,30 @@ export const nr: Messages = {
     "Ayikghonanga ukususa i-akhawunti yakho. Hlola ukuxhumana kwakho bese ulinga godu.",
 
   "play.getApp": "Fumana i-app ku-Google Play",
+
+  "sharing.note":
+    "Ngileyo ikheli le-imeyili kwaphela engakghona ukujoyina. Lisebenza amalanga alikhomba.",
+  "help.title": "Isizo",
+  "help.listsTitle": "Amarhelo",
+  "help.listsBody":
+    "Tlola ibizo ebhoksini engezansi bona wenze irhelo, bese uthinta irhelo bona ulivule. Donsa amarhelo bona utjhugulule ukulandelana kwawo — efowunini, gandelela ubambe kokuthoma. Imenyu ethi {menu} eceleni kwerhelo ngalinye iyalithiya kabutjha, itjhugulule umbala walo, yabelane ngalo namkha ilisuse. Imibala ikudivayisi yakho kwaphela; loyo owabelana naye uzikhethela okwakhe.",
+  "help.itemsTitle": "Izinto",
+  "help.itemsBody":
+    "Tlola ebhoksini engezansi kwerhelo bona ungezelele into. Tshwaya into nayiqediwe — iya esigabeni esithi Kwenziwe, lapho ungayibuyisela khona. Faka inkwenkwezi entweni bona ihlale phezulu. Ezilungiselelweni ungakhetha bona izinto ezitjha ziya phezulu namkha phasi.",
+  "help.sharingTitle": "Ukwabelana ngerhelo",
+  "help.sharingBody":
+    "Ngumuntu owenze irhelo kwaphela ongabelana ngalo. Vula imenyu ethi {menu}, khetha u-Yabelana bese utlola ikheli le-imeyili lomunye umuntu. Bafumana i-imeyili enesihlanganisi sesimemo. Isihlanganisi sisebenza amalanga alikhomba begodu ngileyo ikheli le-imeyili kwaphela elingasamukela, ngalokho kufuze bangene ngekheli elifanako — ewebhu namkha ku-app ye-Android.",
+  "help.togetherTitle": "Ukusebenzisa irhelo elabelwanako",
+  "help.togetherBody":
+    "Woke umuntu osererhelweni elabelwanako angangezelela, atshwaye, ahlele, afake inkwenkwezi begodu ahlele kabutjha izinto, begodu amatjhuguluko avela kiwo woke umuntu emizuzwaneni embalwa. Isithombe sabantu eceleni kwerhelo sitjengisa bona labelwana nabani.",
+  "help.leavingTitle": "Ukutjhiya nokususa",
+  "help.leavingBody":
+    "Nanyana ngubani angatjhiya irhelo elabelwanako ngemenyu yalo ethi {menu}, begodu umnikazi angasusa abantu ngesithombe sabantu. Ngumnikazi kwaphela ongasusa irhelo, begodu ukulisusa kulisusa kiwo woke umuntu. Nanyana ngubani otjhiyako namkha osuswako utlhoga isimemo esitjha bona abuye.",
+  "help.offlineTitle": "Ngaphandle kokuhlanganiswa",
+  "help.offlineBody":
+    "I-Die Lys isebenza ngaphandle kokuhlanganiswa. Amatjhuguluko wakho agcinwa kudivayisi yakho begodu athunyelwa msinyana nawubuyela ku-inthanethi.",
+  "help.accountTitle": "I-akhawunti yakho",
+  "help.accountBody":
+    "Ayikho iphasiwedi. Ngena ngekheli lakho le-imeyili begodu sikuthumelela isihlanganisi nekhodi yeenomboro ezi-6 — sebenzisa nanyana ngiyiphi elula. Ngena nge-imeyili efanako efowunini yakho neewebhu bona ubone amarhelo afanako.",
+  "sharing.howItWorks": "Ukwabelana kusebenza njani",
 };

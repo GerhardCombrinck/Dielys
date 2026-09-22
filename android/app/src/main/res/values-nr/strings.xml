@@ -135,4 +135,21 @@
     <!-- Play in-app updates (#88) -->
     <string name="update_ready">Itjhugululo ilungile.</string>
     <string name="update_restart">Thoma godu</string>
+
+    <string name="help_title">Isizo</string>
+    <string name="help_lists_title">Amarhelo</string>
+    <string name="help_lists_body">Tlola ibizo ebhoksini engezansi bona wenze irhelo, bese uthinta irhelo bona ulivule. Donsa amarhelo bona utjhugulule ukulandelana kwawo — efowunini, gandelela ubambe kokuthoma. Imenyu ethi %1$s eceleni kwerhelo ngalinye iyalithiya kabutjha, itjhugulule umbala walo, yabelane ngalo namkha ilisuse. Imibala ikudivayisi yakho kwaphela; loyo owabelana naye uzikhethela okwakhe.</string>
+    <string name="help_items_title">Izinto</string>
+    <string name="help_items_body">Tlola ebhoksini engezansi kwerhelo bona ungezelele into. Tshwaya into nayiqediwe — iya esigabeni esithi Kwenziwe, lapho ungayibuyisela khona. Faka inkwenkwezi entweni bona ihlale phezulu. Ezilungiselelweni ungakhetha bona izinto ezitjha ziya phezulu namkha phasi.</string>
+    <string name="help_sharing_title">Ukwabelana ngerhelo</string>
+    <string name="help_sharing_body">Ngumuntu owenze irhelo kwaphela ongabelana ngalo. Vula imenyu ethi %1$s, khetha u-Yabelana bese utlola ikheli le-imeyili lomunye umuntu. Bafumana i-imeyili enesihlanganisi sesimemo. Isihlanganisi sisebenza amalanga alikhomba begodu ngileyo ikheli le-imeyili kwaphela elingasamukela, ngalokho kufuze bangene ngekheli elifanako — ewebhu namkha ku-app ye-Android.</string>
+    <string name="help_together_title">Ukusebenzisa irhelo elabelwanako</string>
+    <string name="help_together_body">Woke umuntu osererhelweni elabelwanako angangezelela, atshwaye, ahlele, afake inkwenkwezi begodu ahlele kabutjha izinto, begodu amatjhuguluko avela kiwo woke umuntu emizuzwaneni embalwa. Isithombe sabantu eceleni kwerhelo sitjengisa bona labelwana nabani.</string>
+    <string name="help_leaving_title">Ukutjhiya nokususa</string>
+    <string name="help_leaving_body">Nanyana ngubani angatjhiya irhelo elabelwanako ngemenyu yalo ethi %1$s, begodu umnikazi angasusa abantu ngesithombe sabantu. Ngumnikazi kwaphela ongasusa irhelo, begodu ukulisusa kulisusa kiwo woke umuntu. Nanyana ngubani otjhiyako namkha osuswako utlhoga isimemo esitjha bona abuye.</string>
+    <string name="help_offline_title">Ngaphandle kokuhlanganiswa</string>
+    <string name="help_offline_body">I-Die Lys isebenza ngaphandle kokuhlanganiswa. Amatjhuguluko wakho agcinwa kudivayisi yakho begodu athunyelwa msinyana nawubuyela ku-inthanethi.</string>
+    <string name="help_account_title">I-akhawunti yakho</string>
+    <string name="help_account_body">Ayikho iphasiwedi. Ngena ngekheli lakho le-imeyili begodu sikuthumelela isihlanganisi nekhodi yeenomboro ezi-6 — sebenzisa nanyana ngiyiphi elula. Ngena nge-imeyili efanako efowunini yakho neewebhu bona ubone amarhelo afanako.</string>
+    <string name="share_how_it_works">Ukwabelana kusebenza njani</string>
 </resources>

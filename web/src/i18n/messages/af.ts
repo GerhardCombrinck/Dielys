@@ -141,4 +141,29 @@ export const af: Messages = {
     "Kon nie jou rekening skrap nie. Gaan jou verbinding na en probeer weer.",
 
   "play.getApp": "Kry die toep op Google Play",
+
+  "sharing.note": "Net daardie e-posadres sal kan aansluit. Dit werk vir sewe dae.",
+  "help.title": "Hulp",
+  "help.listsTitle": "Lyste",
+  "help.listsBody":
+    "Tik 'n naam in die blokkie onderaan om 'n lys te maak, en tik op 'n lys om dit oop te maak. Sleep lyste om hul volgorde te verander — op 'n foon druk en hou jy eers. Die {menu}-kieslys langs elke lys hernoem dit, verander sy kleur, deel dit of vee dit uit. Kleure is net op jou toestel; enigiemand met wie jy deel, kies hul eie.",
+  "help.itemsTitle": "Items",
+  "help.itemsBody":
+    "Tik in die blokkie onderaan 'n lys om 'n item by te voeg. Merk 'n item af wanneer dit klaar is — dit skuif na die Klaar-afdeling, waar jy dit weer kan terugmerk. Gee 'n item 'n ster om dit bo te hou. In Instellings kies jy of nuwe items bo of onder bygevoeg word.",
+  "help.sharingTitle": "'n Lys deel",
+  "help.sharingBody":
+    "Net die persoon wat 'n lys gemaak het, kan dit deel. Maak die {menu}-kieslys oop, kies Deel en tik die ander persoon se e-posadres in. Hulle kry 'n e-pos met 'n uitnodigingskakel. Die skakel werk vir sewe dae en net daardie e-posadres kan dit aanvaar, so hulle moet met dieselfde adres aanmeld — op die web of in die Android-toep.",
+  "help.togetherTitle": "'n Gedeelde lys gebruik",
+  "help.togetherBody":
+    "Almal op 'n gedeelde lys kan items byvoeg, afmerk, wysig, 'n ster gee en herrangskik, en veranderinge wys binne sekondes vir almal. Die mense-ikoon langs 'n lys wys met wie dit gedeel is.",
+  "help.leavingTitle": "Verlaat en uitvee",
+  "help.leavingBody":
+    "Enigiemand kan 'n gedeelde lys via sy {menu}-kieslys verlaat, en die eienaar kan mense via die mense-ikoon verwyder. Net die eienaar kan 'n lys uitvee, en dan verdwyn dit vir almal. Wie verlaat of verwyder word, het 'n nuwe uitnodiging nodig om terug te kom.",
+  "help.offlineTitle": "Sonder verbinding",
+  "help.offlineBody":
+    "Die Lys werk sonder 'n verbinding. Jou veranderinge word op jou toestel gehou en gestuur sodra jy weer aanlyn is.",
+  "help.accountTitle": "Jou rekening",
+  "help.accountBody":
+    "Daar is geen wagwoord nie. Meld aan met jou e-posadres en ons stuur vir jou 'n skakel en 'n 6-syferkode — gebruik wat ook al makliker is. Meld op jou foon en op die web met dieselfde e-pos aan om dieselfde lyste te sien.",
+  "sharing.howItWorks": "Hoe deel werk",
 };

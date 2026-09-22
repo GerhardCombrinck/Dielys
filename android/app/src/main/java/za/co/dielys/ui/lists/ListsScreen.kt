@@ -63,9 +63,11 @@ import kotlinx.coroutines.delay
 import za.co.dielys.R
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.ui.ConfirmPrompt
+import za.co.dielys.ui.HelpButton
 import za.co.dielys.ui.Loading
 import za.co.dielys.ui.SettingsButton
 import za.co.dielys.ui.TextPrompt
+import za.co.dielys.ui.help.HelpSection
 import za.co.dielys.ui.reorder.ReorderState
 import za.co.dielys.ui.reorder.draftStillWanted
 import za.co.dielys.ui.reorder.moved
@@ -78,6 +80,7 @@ import za.co.dielys.ui.theme.listAccent
 fun ListsScreen(
     onOpen: (String) -> Unit,
     onSettings: () -> Unit,
+    onHelp: (HelpSection) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ListsViewModel,
     // Its own view model (#60): the sheet is a live conversation with the
@@ -147,7 +150,10 @@ fun ListsScreen(
                 // Sync status used to live here. It is on each row now (#60),
                 // where it can say *which* list is shared rather than that some
                 // list somewhere is.
-                actions = { SettingsButton(onClick = onSettings) },
+                actions = {
+                    HelpButton(onClick = { onHelp(HelpSection.Lists) })
+                    SettingsButton(onClick = onSettings)
+                },
             )
         },
     ) { padding ->
@@ -271,6 +277,7 @@ fun ListsScreen(
             state = state,
             onSend = viewModel::sendInvite,
             onDismiss = viewModel::dismissInvite,
+            onHowItWorks = { onHelp(HelpSection.Sharing) },
         )
     }
 }

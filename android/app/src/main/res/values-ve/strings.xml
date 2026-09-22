@@ -134,4 +134,21 @@
     <!-- Play in-app updates (#88) -->
     <string name="update_ready">Mvusuludzo yo lugela.</string>
     <string name="update_restart">Thoma hafhu</string>
+
+    <string name="help_title">Thuso</string>
+    <string name="help_lists_title">Mitevhe</string>
+    <string name="help_lists_body">Ṅwalani dzina kha bogisi ḽi re fhasi u ita mutevhe, nahone ni kwame mutevhe u u vula. Kokodzani mitevhe u shandukisa u tevhekana hayo — kha founi, tsindelani ni fare u thoma. Mutevhe wa %1$s tsini ha mutevhe muṅwe na muṅwe u u ṋea dzina ḽiswa, u shandukisa muvhala wawo, u u kovhekana kana u u phumula. Mivhala i kha tshishumiswa tshaṋu fhedzi; muṅwe na muṅwe ane na kovhekana nae u ḓinangela yawe.</string>
+    <string name="help_items_title">Zwithu</string>
+    <string name="help_items_body">Ṅwalani kha bogisi ḽi re fhasi ha mutevhe u engedza tshithu. Swayani tshithu musi tsho fhela — tshi ya kha tshipiḓa tsha Zwo itwa, hune na nga tshi vhuedzedza hone. Ṋeani tshithu naledzi uri tshi dzule nṱha. Kha Mivhekanyo ni nga nanga arali zwithu zwiswa zwi tshi ya nṱha kana fhasi.</string>
+    <string name="help_sharing_title">U kovhekana mutevhe</string>
+    <string name="help_sharing_body">Ndi muthu we a ita mutevhe fhedzi ane a nga u kovhekana. Vulani mutevhe wa %1$s, nangani Kovhekana nahone ni ṅwale adresi ya imeili ya muṅwe muthu. Vha wana imeili i re na vhukwamani ha u ramba. Vhukwamani vhu shuma maḓuvha a sumbe nahone ndi yeneyo adresi ya imeili fhedzi ine ya nga vhu ṱanganedza, ngauralo vha fanela u dzhena nga adresi i fanaho — kha webu kana kha app ya Android.</string>
+    <string name="help_together_title">U shumisa mutevhe wo kovhekanwaho</string>
+    <string name="help_together_body">Muṅwe na muṅwe o re kha mutevhe wo kovhekanwaho a nga engedza, swaya, shandukisa, ṋea naledzi na u dzudzanya zwithu hafhu, nahone tshanduko dzi vhonala kha vhoṱhe nga miniṱhinyana. Tshiga tsha vhathu tsini ha mutevhe tshi sumbedza uri wo kovhekanwa na nnyi.</string>
+    <string name="help_leaving_title">U litsha na u phumula</string>
+    <string name="help_leaving_body">Muṅwe na muṅwe a nga litsha mutevhe wo kovhekanwaho nga mutevhe wawo wa %1$s, nahone muṋe a nga bvisa vhathu nga tshiga tsha vhathu. Ndi muṋe fhedzi ane a nga phumula mutevhe, nahone u u phumula zwi u bvisa kha vhoṱhe. Muṅwe na muṅwe ane a litsha kana a bviswa u ṱoḓa u rambwa hafhu u itela u vhuya.</string>
+    <string name="help_offline_title">Hu si na vhukwamani</string>
+    <string name="help_offline_body">Die Lys i shuma hu si na vhukwamani. Tshanduko dzaṋu dzi vhulungwa kha tshishumiswa tshaṋu nahone dzi rumelwa musi ni tshi vhuyelela kha inthanethe.</string>
+    <string name="help_account_title">Akhaunthu yaṋu</string>
+    <string name="help_account_body">A hu na phasiwede. Dzhenani nga adresi yaṋu ya imeili nahone ri ni rumela vhukwamani na khoudu ya nomboro dza 6 — shumisani iṅwe na iṅwe i leluwaho. Dzhenani nga imeili i fanaho kha founi yaṋu na kha webu u vhona mitevhe i fanaho.</string>
+    <string name="share_how_it_works">Nḓila ine u kovhekana ha shuma ngayo</string>
 </resources>

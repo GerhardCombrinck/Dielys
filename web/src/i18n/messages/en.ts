@@ -139,6 +139,31 @@ export const en = {
     "Could not delete your account. Check your connection and try again.",
 
   "play.getApp": "Get the app on Google Play",
+
+  "sharing.note": "Only that email address will be able to join. It works for seven days.",
+  "help.title": "Help",
+  "help.listsTitle": "Lists",
+  "help.listsBody":
+    "Type a name in the box at the bottom to make a list, and tap a list to open it. Drag lists to change their order — on a phone, press and hold first. The {menu} menu beside each list renames it, changes its colour, shares it or deletes it. Colours are only on your device; anyone you share with picks their own.",
+  "help.itemsTitle": "Items",
+  "help.itemsBody":
+    "Type in the box at the bottom of a list to add an item. Tick an item off when it is done — it moves to the Done section, where you can tick it back. Star an item to keep it at the top. In Settings you can choose whether new items go to the top or the bottom.",
+  "help.sharingTitle": "Sharing a list",
+  "help.sharingBody":
+    "Only the person who made a list can share it. Open the {menu} menu, choose Share and type the other person's email address. They get an email with an invite link. The link works for seven days and only that email address can accept it, so they must sign in with the same address — on the web or in the Android app.",
+  "help.togetherTitle": "Using a shared list",
+  "help.togetherBody":
+    "Everyone on a shared list can add, tick off, edit, star and reorder items, and changes show up for everyone within seconds. The people icon beside a list shows who it is shared with.",
+  "help.leavingTitle": "Leaving and deleting",
+  "help.leavingBody":
+    "Anyone can leave a shared list from its {menu} menu, and the owner can remove people from the people icon. Only the owner can delete a list, and deleting it removes it for everyone. Anyone who leaves or is removed needs a new invite to get back in.",
+  "help.offlineTitle": "Offline",
+  "help.offlineBody":
+    "Die Lys works without a connection. Your changes are kept on your device and sent as soon as you are back online.",
+  "help.accountTitle": "Your account",
+  "help.accountBody":
+    "There is no password. Sign in with your email address and we send you a link and a 6-digit code — use whichever is easier. Sign in with the same email on your phone and on the web to see the same lists.",
+  "sharing.howItWorks": "How sharing works",
 } as const;
 
 export type MessageKey = keyof typeof en;

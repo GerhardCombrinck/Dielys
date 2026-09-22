@@ -146,4 +146,30 @@ export const ss: Messages = {
     "Ayikhonanga kususa i-akhawunti yakho. Hlola luchumano lwakho bese uzama futsi.",
 
   "play.getApp": "Tfola i-app ku-Google Play",
+
+  "sharing.note":
+    "Ngulelo likheli le-imeyili kuphela lelingakhona kujoyina. Lisebenta emalanga lasikhombisa.",
+  "help.title": "Lusito",
+  "help.listsTitle": "Luhlu",
+  "help.listsBody":
+    "Bhala libito ebhokisini lengentasi kute wente luhlu, bese uthinta luhlu kute ulivule. Dvonsa luhlu kute ushintje kulandzelana — efonini, cindzetela ubambe kucala. Imenyu letsi {menu} eceleni kweluhlu ngalunye iyaletsa libito lelisha, ishintje umbala walo, yabelane ngalo nome iwusule. Imibala isedivayisini yakho kuphela; nobe ngubani lowabelana naye utikhetsela lokwakhe.",
+  "help.itemsTitle": "Tintfo",
+  "help.itemsBody":
+    "Bhala ebhokisini lengentasi kweluhlu kute wengete intfo. Maka intfo nayicedzile — iya esigabeni lesitsi Kwentiwe, lapho ungayibuyisela khona. Faka inkhanyeti entfweni kute ihlale etulu. Kuto tilungiselelo ungakhetsa kutsi tintfo letinsha tiya etulu nome phansi.",
+  "help.sharingTitle": "Kwabelana ngeluhlu",
+  "help.sharingBody":
+    "Ngumuntfu lowente luhlu kuphela longabelana ngalo. Vula imenyu letsi {menu}, khetsa Yabelana bese ubhala likheli le-imeyili lalomunye umuntfu. Batfola i-imeyili lenesichumanisi sesimemo. Sichumanisi sisebenta emalanga lasikhombisa futsi ngulelo likheli le-imeyili kuphela lelingasemukela, ngako kufanele bangene ngelikheli lelifanako — ewebhu nome ku-app ye-Android.",
+  "help.togetherTitle": "Kusebentisa luhlu lolwabelwene",
+  "help.togetherBody":
+    "Wonkhe umuntfu losoluhlwini lolwabelwene angengeta, amake, ahlele, afake inkhanyeti futsi ahlele kabusha tintfo, futsi tinguculo tivela kubo bonkhe emizuzwaneni lembalwa. Umfanekiso webantfu eceleni kweluhlu ukhombisa kutsi lwabelwene nabani.",
+  "help.leavingTitle": "Kushiya nekusula",
+  "help.leavingBody":
+    "Nome ngubani angashiya luhlu lolwabelwene ngemenyu yalo letsi {menu}, futsi umnikati angasusa bantfu ngemfanekiso webantfu. Ngumnikati kuphela longasula luhlu, futsi kulusula kulususa kubo bonkhe. Nome ngubani loshiyako nome losuswako udzinga simemo lesisha kute abuye.",
+  "help.offlineTitle": "Ngaphandle kwekuchumana",
+  "help.offlineBody":
+    "I-Die Lys isebenta ngaphandle kwekuchumana. Tinguculo takho tigcinwa edivayisini yakho futsi titfunyelwa nawubuyela ku-inthanethi.",
+  "help.accountTitle": "I-akhawunti yakho",
+  "help.accountBody":
+    "Ayikho iphasiwedi. Ngena ngelikheli lakho le-imeyili futsi sitakutfumelela sichumanisi nelikhodi lemanombolo la-6 — sebentisa nome ngukuphi lokulula. Ngena nge-imeyili lefanako efonini yakho nasewebhu kute ubone luhlu lolufanako.",
+  "sharing.howItWorks": "Kwabelana kusebenta njani",
 };

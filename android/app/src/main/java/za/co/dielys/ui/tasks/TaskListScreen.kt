@@ -101,6 +101,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import za.co.dielys.R
 import za.co.dielys.data.local.TaskEntity
 import za.co.dielys.domain.spotUnderStarred
+import za.co.dielys.ui.HelpButton
 import za.co.dielys.ui.Loading
 import za.co.dielys.ui.SettingsButton
 import za.co.dielys.ui.SyncStatus
@@ -128,6 +129,7 @@ fun TaskListScreen(
     listId: String,
     onBack: () -> Unit,
     onSettings: () -> Unit,
+    onHelp: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TaskListViewModel = viewModel(),
 ) {
@@ -280,6 +282,7 @@ fun TaskListScreen(
                     // The same control in the same place as the lists screen
                     // (#59), so crossing between the two does not rearrange the
                     // header under the thumb already reaching for it.
+                    HelpButton(onClick = onHelp)
                     SettingsButton(onClick = onSettings)
                 },
             )

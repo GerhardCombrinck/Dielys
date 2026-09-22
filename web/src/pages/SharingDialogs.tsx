@@ -8,6 +8,7 @@
  */
 import { useState } from "react";
 import { useI18n } from "../i18n/I18nContext.js";
+import { navigate } from "../router.js";
 import type { InviteState, Member, MembersState } from "../sync/useSharing.js";
 
 export function MembersDialog({
@@ -116,6 +117,7 @@ export function InviteDialog({
         {state.status === "entering" && (
           <>
             <p>{t("sharing.whoFor", { title: state.listTitle })}</p>
+            <p className="dialog-note">{t("sharing.note")}</p>
             <input
               className="text-input"
               type="email"
@@ -123,6 +125,16 @@ export function InviteDialog({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
+            <button
+              type="button"
+              className="text-button link dialog-help-link"
+              onClick={() => {
+                onDismiss();
+                navigate("/help#sharing");
+              }}
+            >
+              {t("sharing.howItWorks")}
+            </button>
           </>
         )}
         {state.status === "working" && (

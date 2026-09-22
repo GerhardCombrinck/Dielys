@@ -146,4 +146,30 @@ export const zu: Messages = {
     "Ayikwazanga ukususa i-akhawunti yakho. Hlola uxhumano lwakho bese uzama futhi.",
 
   "play.getApp": "Thola i-app ku-Google Play",
+
+  "sharing.note":
+    "Yileyo kheli le-imeyili kuphela elingakwazi ukujoyina. Lisebenza izinsuku eziyisikhombisa.",
+  "help.title": "Usizo",
+  "help.listsTitle": "Uhlu",
+  "help.listsBody":
+    "Bhala igama ebhokisini engezansi ukuze wenze uhlu, bese uthepha uhlu ukuze uluvule. Hudula uhlu ukuze ushintshe ukulandelana — efonini, cindezela bese ubamba kuqala. Imenyu ethi {menu} eceleni kohlu ngalunye iyaluqamba kabusha, ishintshe umbala walo, iyabelane ngalo noma ilususe. Imibala ikudivayisi yakho kuphela; noma ubani owabelana naye uzikhethela okwakhe.",
+  "help.itemsTitle": "Izinto",
+  "help.itemsBody":
+    "Bhala ebhokisini engezansi kohlu ukuze wengeze into. Maka into uma isiqediwe — iya esigabeni esithi Kwenziwe, lapho ungayibuyisela khona. Faka inkanyezi entweni ukuze ihlale phezulu. Ezilungiselelweni ungakhetha ukuthi izinto ezintsha ziya phezulu noma phansi.",
+  "help.sharingTitle": "Ukwabelana ngohlu",
+  "help.sharingBody":
+    "Umuntu owenze uhlu kuphela ongabelana ngalo. Vula imenyu ethi {menu}, khetha okuthi Yabelana bese ubhala ikheli le-imeyili lomunye umuntu. Bathola i-imeyili enesixhumanisi sesimemo. Isixhumanisi sisebenza izinsuku eziyisikhombisa futhi yileyo kheli le-imeyili kuphela elingasamukela, ngakho kufanele bangene ngekheli elifanayo — kuwebhu noma ku-app ye-Android.",
+  "help.togetherTitle": "Ukusebenzisa uhlu olwabelwene",
+  "help.togetherBody":
+    "Wonke umuntu osohlwini olwabelwene angangeza, amake, ahlele, afake inkanyezi futhi ahlele kabusha izinto, futhi izinguquko zivela kuwo wonke umuntu emizuzwaneni embalwa. Isithonjana sabantu eceleni kohlu sikhombisa ukuthi lwabelwene nobani.",
+  "help.leavingTitle": "Ukushiya nokususa",
+  "help.leavingBody":
+    "Noma ubani angashiya uhlu olwabelwene ngemenyu yalo ethi {menu}, futhi umnikazi angasusa abantu ngesithonjana sabantu. Umnikazi kuphela ongasusa uhlu, futhi ukulususa kulususa kuwo wonke umuntu. Noma ubani oshiyayo noma osuswayo udinga isimemo esisha ukuze abuye.",
+  "help.offlineTitle": "Ngaphandle kokuxhumeka",
+  "help.offlineBody":
+    "I-Die Lys isebenza ngaphandle kokuxhumeka. Izinguquko zakho zigcinwa kudivayisi yakho futhi zithunyelwa uma usuxhumekile futhi.",
+  "help.accountTitle": "I-akhawunti yakho",
+  "help.accountBody":
+    "Ayikho iphasiwedi. Ngena ngekheli lakho le-imeyili futhi sikuthumelela isixhumanisi nekhodi yezinombolo eziyi-6 — sebenzisa noma yikuphi okulula. Ngena nge-imeyili efanayo efonini yakho nakuwebhu ukuze ubone uhlu olufanayo.",
+  "sharing.howItWorks": "Kusebenza kanjani ukwabelana",
 };

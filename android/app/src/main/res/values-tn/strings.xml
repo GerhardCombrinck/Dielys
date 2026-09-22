@@ -134,4 +134,21 @@
     <!-- Play in-app updates (#88) -->
     <string name="update_ready">Tokafatso e siametse.</string>
     <string name="update_restart">Simolola gape</string>
+
+    <string name="help_title">Thuso</string>
+    <string name="help_lists_title">Manaane</string>
+    <string name="help_lists_body">Kwala leina mo lebokoseng le le kwa tlase go dira lenaane, mme o tobetse lenaane go le bula. Goga manaane go fetola tatelano ya one — mo mogaleng, tobetsa o tshware pele. Lenaane la %1$s fa thoko ga lenaane lengwe le lengwe le le naya leina le lešwa, le fetola mmala wa lone, le le abelana kgotsa le le phimola. Mebala e mo sedirisiweng sa gago fela; mongwe le mongwe yo o abelanang le ene o itlhophela ya gagwe.</string>
+    <string name="help_items_title">Dilo</string>
+    <string name="help_items_body">Kwala mo lebokoseng le le kwa tlase ga lenaane go oketsa selo. Tshwaya selo fa se weditswe — se ya kwa karolong ya Go dirilwe, kwa o ka se busetsang teng. Naya selo naledi gore se nne kwa godimo. Mo Dithulaganyong o ka tlhopha gore a dilo tse dišwa di ya kwa godimo kgotsa kwa tlase.</string>
+    <string name="help_sharing_title">Go abelana lenaane</string>
+    <string name="help_sharing_body">Ke motho yo o dirileng lenaane fela yo o ka le abelanang. Bula lenaane la %1$s, tlhopha Abelana mme o kwale aterese ya imeile ya motho yo mongwe. Ba amogela imeile e e nang le kgolagano ya taletso. Kgolagano e dira malatsi a le supa mme ke aterese eo fela ya imeile e e ka e amogelang, ka jalo ba tshwanetse go tsena ka aterese e e tshwanang — mo webong kgotsa mo app ya Android.</string>
+    <string name="help_together_title">Go dirisa lenaane le le abelanwang</string>
+    <string name="help_together_body">Mongwe le mongwe yo o mo lenaaneng le le abelanwang a ka oketsa, tshwaya, fetola, naya naledi le go rulaganya dilo sešwa, mme diphetogo di bonala mo go botlhe mo metsotswaneng. Letshwao la batho fa thoko ga lenaane le bontsha gore le abelanwa le mang.</string>
+    <string name="help_leaving_title">Go tlogela le go phimola</string>
+    <string name="help_leaving_body">Mongwe le mongwe a ka tlogela lenaane le le abelanwang ka lenaane la lone la %1$s, mme mong a ka ntsha batho ka letshwao la batho. Ke mong fela yo o ka phimolang lenaane, mme go le phimola go le tlosa mo go botlhe. Mongwe le mongwe yo o tlogelang kgotsa yo o ntshiwang o tlhoka taletso e ntšha go boa.</string>
+    <string name="help_offline_title">Kwa ntle ga kgolagano</string>
+    <string name="help_offline_body">Die Lys e dira kwa ntle ga kgolagano. Diphetogo tsa gago di bolokwa mo sedirisiweng sa gago mme di romelwa ka bonako fa o boetse mo inthaneteng.</string>
+    <string name="help_account_title">Akhaonto ya gago</string>
+    <string name="help_account_body">Ga go na lefoko la sephiri. Tsena ka aterese ya gago ya imeile mme re go romelela kgolagano le khoutu ya dinomore tse 6 — dirisa epe fela e e motlhofo. Tsena ka imeile e e tshwanang mo mogaleng wa gago le mo webong go bona manaane a a tshwanang.</string>
+    <string name="share_how_it_works">Kafa go abelana go dirang ka teng</string>
 </resources>

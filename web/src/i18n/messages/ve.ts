@@ -155,4 +155,30 @@ export const ve: Messages = {
     "Zwo kundelwa u thutha akhaunthu yaṋu. Sedzani vhukwamani hanu nahone ni lingedze hafhu.",
 
   "play.getApp": "Wanani app kha Google Play",
+
+  "sharing.note":
+    "Ndi yeneyo adresi ya imeili fhedzi ine ya do kona u dzhena. I shuma maduvha a sumbe.",
+  "help.title": "Thuso",
+  "help.listsTitle": "Mitevhe",
+  "help.listsBody":
+    "Ṅwalani dzina kha bogisi ḽi re fhasi u ita mutevhe, nahone ni kwame mutevhe u u vula. Kokodzani mitevhe u shandukisa u tevhekana hayo — kha founi, tsindelani ni fare u thoma. Mutevhe wa {menu} tsini ha mutevhe muṅwe na muṅwe u u ṋea dzina ḽiswa, u shandukisa muvhala wawo, u u kovhekana kana u u phumula. Mivhala i kha tshishumiswa tshaṋu fhedzi; muṅwe na muṅwe ane na kovhekana nae u ḓinangela yawe.",
+  "help.itemsTitle": "Zwithu",
+  "help.itemsBody":
+    "Ṅwalani kha bogisi ḽi re fhasi ha mutevhe u engedza tshithu. Swayani tshithu musi tsho fhela — tshi ya kha tshipiḓa tsha Zwo itwa, hune na nga tshi vhuedzedza hone. Ṋeani tshithu naledzi uri tshi dzule nṱha. Kha Mivhekanyo ni nga nanga arali zwithu zwiswa zwi tshi ya nṱha kana fhasi.",
+  "help.sharingTitle": "U kovhekana mutevhe",
+  "help.sharingBody":
+    "Ndi muthu we a ita mutevhe fhedzi ane a nga u kovhekana. Vulani mutevhe wa {menu}, nangani Kovhekana nahone ni ṅwale adresi ya imeili ya muṅwe muthu. Vha wana imeili i re na vhukwamani ha u ramba. Vhukwamani vhu shuma maḓuvha a sumbe nahone ndi yeneyo adresi ya imeili fhedzi ine ya nga vhu ṱanganedza, ngauralo vha fanela u dzhena nga adresi i fanaho — kha webu kana kha app ya Android.",
+  "help.togetherTitle": "U shumisa mutevhe wo kovhekanwaho",
+  "help.togetherBody":
+    "Muṅwe na muṅwe o re kha mutevhe wo kovhekanwaho a nga engedza, swaya, shandukisa, ṋea naledzi na u dzudzanya zwithu hafhu, nahone tshanduko dzi vhonala kha vhoṱhe nga miniṱhinyana. Tshiga tsha vhathu tsini ha mutevhe tshi sumbedza uri wo kovhekanwa na nnyi.",
+  "help.leavingTitle": "U litsha na u phumula",
+  "help.leavingBody":
+    "Muṅwe na muṅwe a nga litsha mutevhe wo kovhekanwaho nga mutevhe wawo wa {menu}, nahone muṋe a nga bvisa vhathu nga tshiga tsha vhathu. Ndi muṋe fhedzi ane a nga phumula mutevhe, nahone u u phumula zwi u bvisa kha vhoṱhe. Muṅwe na muṅwe ane a litsha kana a bviswa u ṱoḓa u rambwa hafhu u itela u vhuya.",
+  "help.offlineTitle": "Hu si na vhukwamani",
+  "help.offlineBody":
+    "Die Lys i shuma hu si na vhukwamani. Tshanduko dzaṋu dzi vhulungwa kha tshishumiswa tshaṋu nahone dzi rumelwa musi ni tshi vhuyelela kha inthanethe.",
+  "help.accountTitle": "Akhaunthu yaṋu",
+  "help.accountBody":
+    "A hu na phasiwede. Dzhenani nga adresi yaṋu ya imeili nahone ri ni rumela vhukwamani na khoudu ya nomboro dza 6 — shumisani iṅwe na iṅwe i leluwaho. Dzhenani nga imeili i fanaho kha founi yaṋu na kha webu u vhona mitevhe i fanaho.",
+  "sharing.howItWorks": "Nḓila ine u kovhekana ha shuma ngayo",
 };

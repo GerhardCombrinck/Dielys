@@ -20,6 +20,7 @@ import {
   ChevronDownIcon,
   DotsVerticalIcon,
   GearIcon,
+  HelpIcon,
   LogoMarkIcon,
   Spinner,
   StarIcon,
@@ -124,6 +125,14 @@ export function ListPage({ listId }: { listId: string }) {
             <h1>{board.list?.title ?? (board.loaded ? t("list.untitled") : "…")}</h1>
           </button>
         )}
+        <button
+          className="icon-button"
+          type="button"
+          aria-label={t("help.title")}
+          onClick={() => navigate("/help")}
+        >
+          <HelpIcon />
+        </button>
         <button
           type="button"
           className="icon-button"

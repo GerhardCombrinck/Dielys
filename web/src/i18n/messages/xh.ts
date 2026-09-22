@@ -151,4 +151,29 @@ export const xh: Messages = {
     "Ayikwazanga ukucima i-akhawunti yakho. Khangela uqhagamshelo lwakho uze uzame kwakhona.",
 
   "play.getApp": "Fumana i-app kuGoogle Play",
+
+  "sharing.note": "Yiloo dilesi ye-imeyile kuphela enokujoyina. Isebenza iintsuku ezisixhenxe.",
+  "help.title": "Uncedo",
+  "help.listsTitle": "Uluhlu",
+  "help.listsBody":
+    "Bhala igama kwibhokisi elingezantsi ukuze wenze uluhlu, uze ucofe uluhlu ukuze uluvule. Tsala uluhlu ukuze utshintshe ulandelelwano — kwifowuni, cofa uze ubambe kuqala. Imenyu ethi {menu} ecaleni koluhlu ngalunye iyaluthiya ngokutsha, itshintshe umbala walo, yabelane ngalo okanye iyalucima. Imibala ikwisixhobo sakho kuphela; nabani na owabelana naye uzikhethela ezakhe.",
+  "help.itemsTitle": "Izinto",
+  "help.itemsBody":
+    "Bhala kwibhokisi elingezantsi koluhlu ukuze wongeze into. Phawula into xa igqityiwe — iya kwicandelo elithi Kugqibile, apho unokuyibuyisela khona. Faka inkwenkwezi entweni ukuze ihlale phezulu. KuSeto ungakhetha ukuba izinto ezintsha ziya phezulu okanye ezantsi.",
+  "help.sharingTitle": "Ukwabelana ngoluhlu",
+  "help.sharingBody":
+    "Ngumntu owenze uluhlu kuphela onokwabelana ngalo. Vula imenyu ethi {menu}, ukhethe u-Yabelana uze ubhale idilesi ye-imeyile yomnye umntu. Bafumana i-imeyile enekhonkco lesimemo. Ikhonkco lisebenza iintsuku ezisixhenxe kwaye yiloo dilesi ye-imeyile kuphela enokulamkela, ngoko kufuneka bangene ngedilesi efanayo — kwiwebhu okanye kwi-app ye-Android.",
+  "help.togetherTitle": "Ukusebenzisa uluhlu olwabelwanayo",
+  "help.togetherBody":
+    "Wonke umntu okuluhlu olwabelwanayo unokongeza, aphawule, ahlele, afake inkwenkwezi aze alungelelanise ngokutsha izinto, kwaye utshintsho luvela kuwo wonke umntu kwimizuzwana embalwa. Umfanekiso wabantu ecaleni koluhlu ubonisa ukuba lwabelwana nabani.",
+  "help.leavingTitle": "Ukushiya nokucima",
+  "help.leavingBody":
+    "Nabani na unokushiya uluhlu olwabelwanayo ngemenyu yalo ethi {menu}, kwaye umnini unokususa abantu ngomfanekiso wabantu. Ngumnini kuphela onokucima uluhlu, kwaye ukulucima kulususa kuwo wonke umntu. Nabani na oshiyayo okanye osuswayo ufuna isimemo esitsha ukuze abuye.",
+  "help.offlineTitle": "Ngaphandle konxibelelwano",
+  "help.offlineBody":
+    "I-Die Lys isebenza ngaphandle konxibelelwano. Utshintsho lwakho lugcinwa kwisixhobo sakho kwaye luthunyelwa nje ukuba ubuyele kwi-intanethi.",
+  "help.accountTitle": "Iakhawunti yakho",
+  "help.accountBody":
+    "Akukho phaswedi. Ngena ngedilesi yakho ye-imeyile kwaye siya kukuthumela ikhonkco nekhowudi yamanani ama-6 — sebenzisa nokuba yeyiphi elula. Ngena nge-imeyile efanayo kwifowuni yakho nakwiwebhu ukuze ubone uluhlu olufanayo.",
+  "sharing.howItWorks": "Indlela ukwabelana okusebenza ngayo",
 };

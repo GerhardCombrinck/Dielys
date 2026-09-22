@@ -100,7 +100,7 @@ reaching them at all means there is no reason to expect a session.
 
 `src/router.tsx` is a few lines of `history.pushState` plus a `popstate` listener — the same call
 Android's Compose UI already made ("no navigation library — the back stack is one nullable list
-id", `docs/PLAN.md`). A handful of routes (`/`, `/magic`, `/invite`, `/settings`, list detail,
+id", `docs/PLAN.md`). A handful of routes (`/`, `/magic`, `/invite`, `/settings`, `/help`, list detail,
 `/account/delete`, `/account/delete/confirm`) do not earn a routing dependency (N1).
 
 ## Auth: magic-link + code only

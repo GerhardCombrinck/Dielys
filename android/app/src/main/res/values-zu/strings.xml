@@ -134,4 +134,21 @@
     <!-- Play in-app updates (#88) -->
     <string name="update_ready">Isibuyekezo silungile.</string>
     <string name="update_restart">Qala kabusha</string>
+
+    <string name="help_title">Usizo</string>
+    <string name="help_lists_title">Uhlu</string>
+    <string name="help_lists_body">Bhala igama ebhokisini engezansi ukuze wenze uhlu, bese uthepha uhlu ukuze uluvule. Hudula uhlu ukuze ushintshe ukulandelana — efonini, cindezela bese ubamba kuqala. Imenyu ethi %1$s eceleni kohlu ngalunye iyaluqamba kabusha, ishintshe umbala walo, iyabelane ngalo noma ilususe. Imibala ikudivayisi yakho kuphela; noma ubani owabelana naye uzikhethela okwakhe.</string>
+    <string name="help_items_title">Izinto</string>
+    <string name="help_items_body">Bhala ebhokisini engezansi kohlu ukuze wengeze into. Maka into uma isiqediwe — iya esigabeni esithi Kwenziwe, lapho ungayibuyisela khona. Faka inkanyezi entweni ukuze ihlale phezulu. Ezilungiselelweni ungakhetha ukuthi izinto ezintsha ziya phezulu noma phansi.</string>
+    <string name="help_sharing_title">Ukwabelana ngohlu</string>
+    <string name="help_sharing_body">Umuntu owenze uhlu kuphela ongabelana ngalo. Vula imenyu ethi %1$s, khetha okuthi Yabelana bese ubhala ikheli le-imeyili lomunye umuntu. Bathola i-imeyili enesixhumanisi sesimemo. Isixhumanisi sisebenza izinsuku eziyisikhombisa futhi yileyo kheli le-imeyili kuphela elingasamukela, ngakho kufanele bangene ngekheli elifanayo — kuwebhu noma ku-app ye-Android.</string>
+    <string name="help_together_title">Ukusebenzisa uhlu olwabelwene</string>
+    <string name="help_together_body">Wonke umuntu osohlwini olwabelwene angangeza, amake, ahlele, afake inkanyezi futhi ahlele kabusha izinto, futhi izinguquko zivela kuwo wonke umuntu emizuzwaneni embalwa. Isithonjana sabantu eceleni kohlu sikhombisa ukuthi lwabelwene nobani.</string>
+    <string name="help_leaving_title">Ukushiya nokususa</string>
+    <string name="help_leaving_body">Noma ubani angashiya uhlu olwabelwene ngemenyu yalo ethi %1$s, futhi umnikazi angasusa abantu ngesithonjana sabantu. Umnikazi kuphela ongasusa uhlu, futhi ukulususa kulususa kuwo wonke umuntu. Noma ubani oshiyayo noma osuswayo udinga isimemo esisha ukuze abuye.</string>
+    <string name="help_offline_title">Ngaphandle kokuxhumeka</string>
+    <string name="help_offline_body">I-Die Lys isebenza ngaphandle kokuxhumeka. Izinguquko zakho zigcinwa kudivayisi yakho futhi zithunyelwa uma usuxhumekile futhi.</string>
+    <string name="help_account_title">I-akhawunti yakho</string>
+    <string name="help_account_body">Ayikho iphasiwedi. Ngena ngekheli lakho le-imeyili futhi sikuthumelela isixhumanisi nekhodi yezinombolo eziyi-6 — sebenzisa noma yikuphi okulula. Ngena nge-imeyili efanayo efonini yakho nakuwebhu ukuze ubone uhlu olufanayo.</string>
+    <string name="share_how_it_works">Kusebenza kanjani ukwabelana</string>
 </resources>

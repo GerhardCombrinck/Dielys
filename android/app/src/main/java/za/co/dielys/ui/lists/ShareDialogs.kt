@@ -1,6 +1,7 @@
 package za.co.dielys.ui.lists
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -34,6 +35,7 @@ fun InviteDialog(
     state: InviteState,
     onSend: (listId: String, listTitle: String, email: String) -> Unit,
     onDismiss: () -> Unit,
+    onHowItWorks: () -> Unit,
 ) {
     // Hoisted here, not inside EmailEntry: the confirm button below needs the
     // typed value too, and a sibling slot of the same AlertDialog cannot read
@@ -57,7 +59,12 @@ fun InviteDialog(
         text = {
             when (state) {
                 is InviteState.EnteringEmail ->
-                    EmailEntry(state.listTitle, email, onEmailChange = { email = it })
+                    EmailEntry(
+                        state.listTitle,
+                        email,
+                        onEmailChange = { email = it },
+                        onHowItWorks = onHowItWorks,
+                    )
                 is InviteState.Working ->
                     Busy(stringResource(R.string.share_sending, state.listTitle))
                 is InviteState.Sent -> Sent(state.listTitle, state.email)
@@ -97,6 +104,7 @@ private fun EmailEntry(
     listTitle: String,
     email: String,
     onEmailChange: (String) -> Unit,
+    onHowItWorks: () -> Unit,
 ) {
     Column {
         Text(stringResource(R.string.share_who_for, listTitle))
@@ -112,6 +120,15 @@ private fun EmailEntry(
             label = { Text(stringResource(R.string.label_email)) },
             modifier = Modifier.fillMaxWidth(),
         )
+        // Leaves the invite open underneath: it lives in the view model, so
+        // backing out of Help lands on this dialog again.
+        TextButton(
+            onClick = onHowItWorks,
+            contentPadding = PaddingValues(0.dp),
+            modifier = Modifier.padding(top = 4.dp),
+        ) {
+            Text(stringResource(R.string.share_how_it_works))
+        }
     }
 }
 

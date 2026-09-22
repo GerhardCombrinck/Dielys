@@ -926,6 +926,30 @@ body.reordering * {
   color: rgba(var(--on-surface-rgb), 0.5);
 }
 
+.help-card {
+  scroll-margin-top: 1rem;
+}
+
+.help-card p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: rgba(var(--on-surface-rgb), 0.8);
+}
+
+.dialog-box p.dialog-note {
+  font-size: 13px;
+  color: rgba(var(--on-surface-rgb), 0.55);
+  margin: 0.375rem 0 0.75rem;
+}
+
+.dialog-help-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0;
+  font-size: 13.5px;
+}
+
 .settings-detail-label {
   color: var(--amber);
   font-size: 12px;

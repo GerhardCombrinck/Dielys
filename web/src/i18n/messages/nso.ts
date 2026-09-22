@@ -149,4 +149,30 @@ export const nso: Messages = {
     "E paletšwe go phumola akhaonto ya gago. Lekola kgokagano ya gago gomme o leke gape.",
 
   "play.getApp": "Hwetša app go Google Play",
+
+  "sharing.note":
+    "Ke aterese yeo fela ya imeile yeo e tla kgona go tsenela. E šoma matšatši a šupago.",
+  "help.title": "Thušo",
+  "help.listsTitle": "Mananeo",
+  "help.listsBody":
+    "Ngwala leina ka lepokising le le ka fase go dira lenaneo, gomme o kgotle lenaneo go le bula. Goga mananeo go fetola tatelano ya ona — mogaleng, gatelela o swaře pele. Lelokelelo la {menu} kgauswi le lenaneo le lengwe le le lengwe le le fa leina le lefsa, le fetola mmala wa lona, le le abelana goba le le phumola. Mebala e gona sedirišweng sa gago fela; mang le mang yo o abelanago le yena o ikgethela ya gagwe.",
+  "help.itemsTitle": "Dilo",
+  "help.itemsBody":
+    "Ngwala ka lepokising le le ka fase ga lenaneo go oketša selo. Swaya selo ge se dirilwe — se ya karolong ya E dirilwe, moo o ka se bušetšago. Tšea selo naledi gore se dule godimo. Ka Dipeakanyong o ka kgetha ge e ba dilo tše difsa di ya godimo goba fase.",
+  "help.sharingTitle": "Go abelana lenaneo",
+  "help.sharingBody":
+    "Ke motho yo a dirilego lenaneo fela yo a ka le abelanago. Bula lelokelelo la {menu}, kgetha Abelana gomme o ngwale aterese ya imeile ya motho yo mongwe. Ba hwetša imeile ye e nago le kgokagano ya taletšo. Kgokagano e šoma matšatši a šupago gomme ke aterese yeo fela ya imeile yeo e ka e amogelago, ka fao ba swanetše go tsena ka aterese ye e swanago — wepeng goba ka app ya Android.",
+  "help.togetherTitle": "Go diriša lenaneo leo le abelanwago",
+  "help.togetherBody":
+    "Mang le mang yo a lego lenaneong leo le abelanwago a ka oketša, swaya, fetoša, tšea naledi le go beakanya dilo lefsa, gomme diphetogo di bonala go bohle ka metsotswana. Leswao la batho kgauswi le lenaneo le bontšha gore le abelanwa le mang.",
+  "help.leavingTitle": "Go tlogela le go phumola",
+  "help.leavingBody":
+    "Mang le mang a ka tlogela lenaneo leo le abelanwago ka lelokelelo la lona la {menu}, gomme mong a ka ntšha batho ka leswao la batho. Ke mong fela yo a ka phumolago lenaneo, gomme go le phumola go le tloša go bohle. Mang le mang yo a tlogelago goba a ntšhwago o hloka taletšo ye mpsha go boa.",
+  "help.offlineTitle": "Ntle le kgokagano",
+  "help.offlineBody":
+    "Die Lys e šoma ntle le kgokagano. Diphetogo tša gago di bolokwa sedirišweng sa gago gomme di romelwa gang ge o boetše inthaneteng.",
+  "help.accountTitle": "Akhaonto ya gago",
+  "help.accountBody":
+    "Ga go na phasewete. Tsena ka aterese ya gago ya imeile gomme re go romela kgokagano le khoutu ya dinomoro tše 6 — diriša efe goba efe ye bonolo. Tsena ka imeile ye e swanago mogaleng wa gago le wepeng go bona mananeo a swanago.",
+  "sharing.howItWorks": "Kamoo go abelana go šomago ka gona",
 };

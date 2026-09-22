@@ -140,4 +140,21 @@
     <!-- Play in-app updates (#88) -->
     <string name="update_ready">’n Opdatering is gereed.</string>
     <string name="update_restart">Herbegin</string>
+
+    <string name="help_title">Hulp</string>
+    <string name="help_lists_title">Lyste</string>
+    <string name="help_lists_body">Tik \'n naam in die blokkie onderaan om \'n lys te maak, en tik op \'n lys om dit oop te maak. Sleep lyste om hul volgorde te verander — op \'n foon druk en hou jy eers. Die %1$s-kieslys langs elke lys hernoem dit, verander sy kleur, deel dit of vee dit uit. Kleure is net op jou toestel; enigiemand met wie jy deel, kies hul eie.</string>
+    <string name="help_items_title">Items</string>
+    <string name="help_items_body">Tik in die blokkie onderaan \'n lys om \'n item by te voeg. Merk \'n item af wanneer dit klaar is — dit skuif na die Klaar-afdeling, waar jy dit weer kan terugmerk. Gee \'n item \'n ster om dit bo te hou. In Instellings kies jy of nuwe items bo of onder bygevoeg word.</string>
+    <string name="help_sharing_title">\'n Lys deel</string>
+    <string name="help_sharing_body">Net die persoon wat \'n lys gemaak het, kan dit deel. Maak die %1$s-kieslys oop, kies Deel en tik die ander persoon se e-posadres in. Hulle kry \'n e-pos met \'n uitnodigingskakel. Die skakel werk vir sewe dae en net daardie e-posadres kan dit aanvaar, so hulle moet met dieselfde adres aanmeld — op die web of in die Android-toep.</string>
+    <string name="help_together_title">\'n Gedeelde lys gebruik</string>
+    <string name="help_together_body">Almal op \'n gedeelde lys kan items byvoeg, afmerk, wysig, \'n ster gee en herrangskik, en veranderinge wys binne sekondes vir almal. Die mense-ikoon langs \'n lys wys met wie dit gedeel is.</string>
+    <string name="help_leaving_title">Verlaat en uitvee</string>
+    <string name="help_leaving_body">Enigiemand kan \'n gedeelde lys via sy %1$s-kieslys verlaat, en die eienaar kan mense via die mense-ikoon verwyder. Net die eienaar kan \'n lys uitvee, en dan verdwyn dit vir almal. Wie verlaat of verwyder word, het \'n nuwe uitnodiging nodig om terug te kom.</string>
+    <string name="help_offline_title">Sonder verbinding</string>
+    <string name="help_offline_body">Die Lys werk sonder \'n verbinding. Jou veranderinge word op jou toestel gehou en gestuur sodra jy weer aanlyn is.</string>
+    <string name="help_account_title">Jou rekening</string>
+    <string name="help_account_body">Daar is geen wagwoord nie. Meld aan met jou e-posadres en ons stuur vir jou \'n skakel en \'n 6-syferkode — gebruik wat ook al makliker is. Meld op jou foon en op die web met dieselfde e-pos aan om dieselfde lyste te sien.</string>
+    <string name="share_how_it_works">Hoe deel werk</string>
 </resources>

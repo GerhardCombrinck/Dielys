@@ -134,4 +134,21 @@
     <!-- Play in-app updates (#88) -->
     <string name="update_ready">Uhlaziyo lulungile.</string>
     <string name="update_restart">Qala kwakhona</string>
+
+    <string name="help_title">Uncedo</string>
+    <string name="help_lists_title">Uluhlu</string>
+    <string name="help_lists_body">Bhala igama kwibhokisi elingezantsi ukuze wenze uluhlu, uze ucofe uluhlu ukuze uluvule. Tsala uluhlu ukuze utshintshe ulandelelwano — kwifowuni, cofa uze ubambe kuqala. Imenyu ethi %1$s ecaleni koluhlu ngalunye iyaluthiya ngokutsha, itshintshe umbala walo, yabelane ngalo okanye iyalucima. Imibala ikwisixhobo sakho kuphela; nabani na owabelana naye uzikhethela ezakhe.</string>
+    <string name="help_items_title">Izinto</string>
+    <string name="help_items_body">Bhala kwibhokisi elingezantsi koluhlu ukuze wongeze into. Phawula into xa igqityiwe — iya kwicandelo elithi Kugqibile, apho unokuyibuyisela khona. Faka inkwenkwezi entweni ukuze ihlale phezulu. KuSeto ungakhetha ukuba izinto ezintsha ziya phezulu okanye ezantsi.</string>
+    <string name="help_sharing_title">Ukwabelana ngoluhlu</string>
+    <string name="help_sharing_body">Ngumntu owenze uluhlu kuphela onokwabelana ngalo. Vula imenyu ethi %1$s, ukhethe u-Yabelana uze ubhale idilesi ye-imeyile yomnye umntu. Bafumana i-imeyile enekhonkco lesimemo. Ikhonkco lisebenza iintsuku ezisixhenxe kwaye yiloo dilesi ye-imeyile kuphela enokulamkela, ngoko kufuneka bangene ngedilesi efanayo — kwiwebhu okanye kwi-app ye-Android.</string>
+    <string name="help_together_title">Ukusebenzisa uluhlu olwabelwanayo</string>
+    <string name="help_together_body">Wonke umntu okuluhlu olwabelwanayo unokongeza, aphawule, ahlele, afake inkwenkwezi aze alungelelanise ngokutsha izinto, kwaye utshintsho luvela kuwo wonke umntu kwimizuzwana embalwa. Umfanekiso wabantu ecaleni koluhlu ubonisa ukuba lwabelwana nabani.</string>
+    <string name="help_leaving_title">Ukushiya nokucima</string>
+    <string name="help_leaving_body">Nabani na unokushiya uluhlu olwabelwanayo ngemenyu yalo ethi %1$s, kwaye umnini unokususa abantu ngomfanekiso wabantu. Ngumnini kuphela onokucima uluhlu, kwaye ukulucima kulususa kuwo wonke umntu. Nabani na oshiyayo okanye osuswayo ufuna isimemo esitsha ukuze abuye.</string>
+    <string name="help_offline_title">Ngaphandle konxibelelwano</string>
+    <string name="help_offline_body">I-Die Lys isebenza ngaphandle konxibelelwano. Utshintsho lwakho lugcinwa kwisixhobo sakho kwaye luthunyelwa nje ukuba ubuyele kwi-intanethi.</string>
+    <string name="help_account_title">Iakhawunti yakho</string>
+    <string name="help_account_body">Akukho phaswedi. Ngena ngedilesi yakho ye-imeyile kwaye siya kukuthumela ikhonkco nekhowudi yamanani ama-6 — sebenzisa nokuba yeyiphi elula. Ngena nge-imeyile efanayo kwifowuni yakho nakwiwebhu ukuze ubone uluhlu olufanayo.</string>
+    <string name="share_how_it_works">Indlela ukwabelana okusebenza ngayo</string>
 </resources>

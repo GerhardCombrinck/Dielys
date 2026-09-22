@@ -6,6 +6,7 @@ import {
   ConfirmAccountDeletionPage,
   RequestAccountDeletionPage,
 } from "./pages/DeleteAccountPage.js";
+import { HelpPage } from "./pages/HelpPage.js";
 import { HomePage } from "./pages/HomePage.js";
 import { InvitePage } from "./pages/InvitePage.js";
 import { ListPage } from "./pages/ListPage.js";
@@ -34,6 +35,8 @@ function Routed() {
   if (path === "/account/delete/confirm") return <ConfirmAccountDeletionPage />;
   // Gated by ADMIN_TOKEN on the server, not a session — see AdminPage.tsx.
   if (path === "/admin") return <AdminPage />;
+  // Needs nothing from the replica, and is as useful before signing in as after.
+  if (path === "/help") return <HelpPage />;
 
   if (session.status === "loading") return <p>{t("common.loading")}</p>;
   if (session.status === "signed-out") return <SignInPage />;

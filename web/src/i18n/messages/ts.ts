@@ -157,4 +157,30 @@ export const ts: Messages = {
     "Swi tsandzekile ku susa akhawunti ya wena. Languta vuhlanganisi bya wena kutani u ringeta nakambe.",
 
   "play.getApp": "Kuma app eka Google Play",
+
+  "sharing.note":
+    "I adirese yoleyo ntsena ya imeyili leyi nga ta kota ku joyina. Yi tirha masiku ya nkombo.",
+  "help.title": "Mpfuno",
+  "help.listsTitle": "Minxaxamelo",
+  "help.listsBody":
+    "Tsala vito eka bokisi ra le hansi ku endla nxaxamelo, kutani u tshikelela nxaxamelo ku wu pfula. Koka minxaxamelo ku cinca ku landzelelana ka yona — eka riqingho, tshikelela u khoma ku sungula. Menyu ya {menu} etlhelo ka nxaxamelo wun'wana na wun'wana yi wu nyika vito lerintshwa, yi cinca muhlovo wa wona, yi wu avelana kumbe yi wu sula. Mihlovo yi le ka xitirhisiwa xa wena ntsena; un'wana na un'wana loyi u avelanaka na yena u tihlawulela ya yena.",
+  "help.itemsTitle": "Swilo",
+  "help.itemsBody":
+    "Tsala eka bokisi ra le hansi ka nxaxamelo ku engetela xilo. Funga xilo loko xi herile — xi ya eka xiyenge xa Swi endliwile, laha u nga xi tlherisaka kona. Nyika xilo nyeleti leswaku xi tshama ehenhla. Eka Swiyimiso u nga hlawula loko swilo leswintshwa swi ya ehenhla kumbe ehansi.",
+  "help.sharingTitle": "Ku avelana nxaxamelo",
+  "help.sharingBody":
+    "I munhu loyi a endleke nxaxamelo ntsena loyi a nga wu avelanaka. Pfula menyu ya {menu}, hlawula Avelana kutani u tsala adirese ya imeyili ya munhu un'wana. Va kuma imeyili leyi nga na xihlanganisi xa xirhambo. Xihlanganisi xi tirha masiku ya nkombo naswona i adirese yoleyo ntsena ya imeyili leyi nga xi amukelaka, hikokwalaho va fanele ku nghena hi adirese yo fana — eka webu kumbe eka app ya Android.",
+  "help.togetherTitle": "Ku tirhisa nxaxamelo lowu avelaniwaka",
+  "help.togetherBody":
+    "Un'wana na un'wana loyi a nga eka nxaxamelo lowu avelaniwaka a nga engetela, funga, lulamisa, nyika nyeleti no hlela swilo nakambe, naswona ku cinca ku humelela eka hinkwavo hi masekoni. Xikombiso xa vanhu etlhelo ka nxaxamelo xi komba leswaku wu avelaniwa na mani.",
+  "help.leavingTitle": "Ku siya no sula",
+  "help.leavingBody":
+    "Un'wana na un'wana a nga siya nxaxamelo lowu avelaniwaka hi menyu ya wona ya {menu}, naswona n'wini a nga susa vanhu hi xikombiso xa vanhu. I n'wini ntsena loyi a nga sulaka nxaxamelo, naswona ku wu sula swi wu susa eka hinkwavo. Un'wana na un'wana loyi a siyaka kumbe a susiwaka u lava xirhambo lexintshwa ku vuya.",
+  "help.offlineTitle": "Handle ka vuhlanganisi",
+  "help.offlineBody":
+    "Die Lys yi tirha handle ka vuhlanganisi. Ku cinca ka wena ku hlayisiwa eka xitirhisiwa xa wena naswona ku rhumeriwa hi ku hatlisa loko u tlhelela eka inthanete.",
+  "help.accountTitle": "Akhawunti ya wena",
+  "help.accountBody":
+    "A ku na phasiwedi. Nghena hi adirese ya wena ya imeyili kutani hi ku rhumela xihlanganisi na khodi ya tinomboro ta 6 — tirhisa xin'wana na xin'wana lexi olovaka. Nghena hi imeyili yo fana eka riqingho ra wena na le ka webu ku vona minxaxamelo yo fana.",
+  "sharing.howItWorks": "Ndlela leyi ku avelana ku tirhaka ha yona",
 };

@@ -10,6 +10,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import za.co.dielys.ui.auth.AuthScreen
 import za.co.dielys.ui.auth.SessionViewModel
+import za.co.dielys.ui.help.HelpScreen
+import za.co.dielys.ui.help.HelpSection
 import za.co.dielys.ui.lists.InvitationDialog
 import za.co.dielys.ui.lists.JoiningDialog
 import za.co.dielys.ui.lists.ListsScreen
@@ -53,14 +55,26 @@ fun DielysApp() {
     // whole subtree leaves composition when there is no session.
     var openList by rememberSaveable { mutableStateOf<String?>(null) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
+    // Help sits over whichever screen opened it, and says which card to open at.
+    var helpAt by rememberSaveable { mutableStateOf<HelpSection?>(null) }
     // One level at a time. Settings can be opened from either screen now (#59),
     // so closing both at once would answer back from Settings by returning to
     // the lists rather than to the list that was open behind it.
-    BackHandler(enabled = openList != null || settingsOpen) {
-        if (settingsOpen) settingsOpen = false else openList = null
+    BackHandler(enabled = openList != null || settingsOpen || helpAt != null) {
+        when {
+            helpAt != null -> helpAt = null
+            settingsOpen -> settingsOpen = false
+            else -> openList = null
+        }
     }
 
     when {
+        helpAt != null ->
+            HelpScreen(
+                onBack = { helpAt = null },
+                startAt = helpAt ?: HelpSection.Lists,
+            )
+
         settingsOpen ->
             SettingsScreen(
                 onBack = { settingsOpen = false },
@@ -77,6 +91,7 @@ fun DielysApp() {
                     listId = listId,
                     onBack = { openList = null },
                     onSettings = { settingsOpen = true },
+                    onHelp = { helpAt = HelpSection.Lists },
                 )
             }
         }
@@ -85,6 +100,7 @@ fun DielysApp() {
             ListsScreen(
                 onOpen = { openList = it },
                 onSettings = { settingsOpen = true },
+                onHelp = { helpAt = it },
                 viewModel = lists,
             )
     }

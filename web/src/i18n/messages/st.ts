@@ -147,4 +147,30 @@ export const st: Messages = {
     "E hlolehile ho hlakola akhaonto ya hao. Sheba khokahano ya hao mme o leke hape.",
 
   "play.getApp": "Fumana app ho Google Play",
+
+  "sharing.note":
+    "Ke aterese eo feela ya imeile e tla kgona ho kena. E sebetsa matsatsi a supileng.",
+  "help.title": "Thuso",
+  "help.listsTitle": "Manane",
+  "help.listsBody":
+    "Ngola lebitso lebokoseng le ka tlase ho etsa lenane, ebe o tobetsa lenane ho le bula. Hula manane ho fetola tatellano ya ona — fonong, tobetsa o tshware pele. Lenane la {menu} pela lenane ka leng le le fa lebitso le letjha, le fetola mmala wa lona, le le arolelana kapa le le hlakola. Mebala e teng sesebedisweng sa hao feela; mang kapa mang eo o arolelanang le yena o ikgethela ya hae.",
+  "help.itemsTitle": "Dintho",
+  "help.itemsBody":
+    "Ngola lebokoseng le ka tlase ho lenane ho eketsa ntho. Tshwaya ntho ha e phethilwe — e ya karolong ya E entswe, moo o ka e kgutlisang. Beha ntho naledi hore e dule hodimo. Ho Disetting o ka kgetha hore na dintho tse ntjha di ya hodimo kapa tlase.",
+  "help.sharingTitle": "Ho arolelana lenane",
+  "help.sharingBody":
+    "Ke motho ya entseng lenane feela ya ka le arolelanang. Bula lenane la {menu}, kgetha Arolelana ebe o ngola aterese ya imeile ya motho e mong. Ba fumana imeile e nang le lehokela la memo. Lehokela le sebetsa matsatsi a supileng mme ke aterese eo feela ya imeile e ka le amohelang, kahoo ba tlameha ho kena ka aterese e tshwanang — webong kapa ho app ya Android.",
+  "help.togetherTitle": "Ho sebedisa lenane le arolelanweng",
+  "help.togetherBody":
+    "Mang kapa mang ya lenaneng le arolelanweng a ka eketsa, tshwaya, fetola, beha naledi le ho hlophisa dintho botjha, mme diphetoho di hlaha ho bohle ka metsotswana. Letshwao la batho pela lenane le bontsha hore le arolelanwa le mang.",
+  "help.leavingTitle": "Ho tlohela le ho hlakola",
+  "help.leavingBody":
+    "Mang kapa mang a ka tlohela lenane le arolelanweng ka lenane la lona la {menu}, mme mong a ka tlosa batho ka letshwao la batho. Ke mong feela ya ka hlakolang lenane, mme ho le hlakola ho le tlosa ho bohle. Mang kapa mang ya tlohelang kapa ya tloswang o hloka memo e ntjha ho kgutla.",
+  "help.offlineTitle": "Ntle le kgokahano",
+  "help.offlineBody":
+    "Die Lys e sebetsa ntle le kgokahano. Diphetoho tsa hao di bolokwa sesebedisweng sa hao mme di romelwa hang ha o kgutlela inthaneteng.",
+  "help.accountTitle": "Akhaonto ya hao",
+  "help.accountBody":
+    "Ha ho na phasewete. Kena ka aterese ya hao ya imeile mme re o romella lehokela le khoutu ya dinomoro tse 6 — sebedisa efe kapa efe e bonolo. Kena ka imeile e tshwanang fonong ya hao le webong ho bona manane a tshwanang.",
+  "sharing.howItWorks": "Kamoo ho arolelana ho sebetsang kateng",
 };

@@ -13,7 +13,7 @@ import { useI18n } from "../i18n/I18nContext.js";
 import { navigate } from "../router.js";
 import { type ListRow, useListsOverview } from "../sync/useListsOverview.js";
 import { useSharing } from "../sync/useSharing.js";
-import { GearIcon, PeopleIcon, Spinner } from "../ui/icons.js";
+import { GearIcon, HelpIcon, PeopleIcon, Spinner } from "../ui/icons.js";
 import { useDragReorder } from "../ui/useDragReorder.js";
 import { InviteDialog, MembersDialog } from "./SharingDialogs.js";
 
@@ -94,6 +94,14 @@ export function HomePage() {
           <h1>Die Lys</h1>
           <div className="page-tagline">{t("home.tagline")}</div>
         </div>
+        <button
+          className="icon-button"
+          type="button"
+          aria-label={t("help.title")}
+          onClick={() => navigate("/help")}
+        >
+          <HelpIcon />
+        </button>
         <button
           className="icon-button"
           type="button"
