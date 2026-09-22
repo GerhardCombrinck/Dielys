@@ -172,7 +172,7 @@ export function HomePage() {
                   </button>
                 )}
 
-                {row.itemCount > 0 && <span className="row-count">{row.itemCount}</span>}
+                <span className="row-count">{row.itemCount > 0 ? row.itemCount : ""}</span>
 
                 <button
                   type="button"

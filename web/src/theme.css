@@ -658,6 +658,11 @@ body.reordering * {
   font-weight: 500;
   padding: 0 6px;
   flex-shrink: 0;
+  /* Fixed two-digit column so the people icon beside it doesn't shift
+     between "3" and "14". */
+  min-width: calc(2ch + 12px);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .inline-edit {

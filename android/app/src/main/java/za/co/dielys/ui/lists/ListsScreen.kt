@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -53,6 +54,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -467,10 +469,13 @@ private fun ListRow(
 
         Text(
             row.itemCount.toString(),
-            style = MaterialTheme.typography.bodyMedium,
+            // Fixed two-digit column so the people icon doesn't shift between
+            // "3" and "14".
+            style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = ALPHA_MUTED),
-            modifier = Modifier.padding(end = 4.dp),
+            textAlign = TextAlign.End,
+            modifier = Modifier.padding(end = 4.dp).widthIn(min = 20.dp),
         )
 
         Box {
