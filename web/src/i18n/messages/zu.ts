@@ -144,4 +144,6 @@ export const zu: Messages = {
     "Ayikwazanga ukususa i-akhawunti yakho: {code}. Akukho okushintshile.",
   "settings.deleteAccountNetworkError":
     "Ayikwazanga ukususa i-akhawunti yakho. Hlola uxhumano lwakho bese uzama futhi.",
+
+  "play.getApp": "Thola i-app ku-Google Play",
 };

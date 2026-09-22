@@ -147,4 +147,6 @@ export const nso: Messages = {
     "E paletšwe go phumola akhaonto ya gago: {code}. Ga go selo seo se fetogilego.",
   "settings.deleteAccountNetworkError":
     "E paletšwe go phumola akhaonto ya gago. Lekola kgokagano ya gago gomme o leke gape.",
+
+  "play.getApp": "Hwetša app go Google Play",
 };

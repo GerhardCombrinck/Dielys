@@ -146,4 +146,6 @@ export const tn: Messages = {
     "Go paletswe go phimola akhaonto ya gago: {code}. Ga go sepe se se fetogileng.",
   "settings.deleteAccountNetworkError":
     "Go paletswe go phimola akhaonto ya gago. Leba kgokagano ya gago mme o leke gape.",
+
+  "play.getApp": "Bona app mo Google Play",
 };

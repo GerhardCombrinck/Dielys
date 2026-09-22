@@ -144,4 +144,6 @@ export const ss: Messages = {
     "Ayikhonanga kususa i-akhawunti yakho: {code}. Kute lokutjintjile.",
   "settings.deleteAccountNetworkError":
     "Ayikhonanga kususa i-akhawunti yakho. Hlola luchumano lwakho bese uzama futsi.",
+
+  "play.getApp": "Tfola i-app ku-Google Play",
 };

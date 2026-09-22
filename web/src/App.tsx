@@ -13,6 +13,7 @@ import { MagicLinkPage } from "./pages/MagicLinkPage.js";
 import { SettingsPage } from "./pages/SettingsPage.js";
 import { SignInPage } from "./pages/SignInPage.js";
 import { usePath } from "./router.js";
+import { AppFooter } from "./ui/AppFooter.js";
 
 const LIST_PATH = /^\/lists\/([^/]+)$/;
 
@@ -58,7 +59,12 @@ export function App() {
   return (
     <I18nProvider>
       <SessionProvider>
-        <Routed />
+        <div className="app-shell">
+          <main className="app-main">
+            <Routed />
+          </main>
+          <AppFooter />
+        </div>
       </SessionProvider>
     </I18nProvider>
   );

@@ -155,4 +155,6 @@ export const ts: Messages = {
     "Swi tsandzekile ku susa akhawunti ya wena: {code}. A ku na lexi cinciweke.",
   "settings.deleteAccountNetworkError":
     "Swi tsandzekile ku susa akhawunti ya wena. Languta vuhlanganisi bya wena kutani u ringeta nakambe.",
+
+  "play.getApp": "Kuma app eka Google Play",
 };

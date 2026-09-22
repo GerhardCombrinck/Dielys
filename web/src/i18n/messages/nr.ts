@@ -148,4 +148,6 @@ export const nr: Messages = {
     "Ayikghonanga ukususa i-akhawunti yakho: {code}. Akukho okutjhugulukileko.",
   "settings.deleteAccountNetworkError":
     "Ayikghonanga ukususa i-akhawunti yakho. Hlola ukuxhumana kwakho bese ulinga godu.",
+
+  "play.getApp": "Fumana i-app ku-Google Play",
 };

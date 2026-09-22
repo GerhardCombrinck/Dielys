@@ -149,4 +149,6 @@ export const xh: Messages = {
     "Ayikwazanga ukucima i-akhawunti yakho: {code}. Akukho nto itshintshileyo.",
   "settings.deleteAccountNetworkError":
     "Ayikwazanga ukucima i-akhawunti yakho. Khangela uqhagamshelo lwakho uze uzame kwakhona.",
+
+  "play.getApp": "Fumana i-app kuGoogle Play",
 };

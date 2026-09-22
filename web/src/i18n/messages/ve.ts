@@ -153,4 +153,6 @@ export const ve: Messages = {
     "Zwo kundelwa u thutha akhaunthu yaṋu: {code}. A hu na zwo shandukaho.",
   "settings.deleteAccountNetworkError":
     "Zwo kundelwa u thutha akhaunthu yaṋu. Sedzani vhukwamani hanu nahone ni lingedze hafhu.",
+
+  "play.getApp": "Wanani app kha Google Play",
 };

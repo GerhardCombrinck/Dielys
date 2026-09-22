@@ -139,4 +139,6 @@ export const af: Messages = {
   "settings.deleteAccountFailed": "Kon nie jou rekening skrap nie: {code}. Niks is verander nie.",
   "settings.deleteAccountNetworkError":
     "Kon nie jou rekening skrap nie. Gaan jou verbinding na en probeer weer.",
+
+  "play.getApp": "Kry die toep op Google Play",
 };

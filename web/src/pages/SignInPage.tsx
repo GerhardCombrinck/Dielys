@@ -12,6 +12,7 @@ import { magicLinkStatus, requestMagicLink, verifyMagicCode } from "../api/auth.
 import { ApiError } from "../api/client.js";
 import { useSession } from "../auth/SessionContext.js";
 import { useI18n } from "../i18n/I18nContext.js";
+import { GooglePlayLink } from "../ui/AppFooter.js";
 import { LogoMarkIcon, Spinner } from "../ui/icons.js";
 
 const POLL_INTERVAL_MS = 10_000;
@@ -144,6 +145,9 @@ export function SignInPage() {
                 <span>{busyEmail ? t("signin.sending") : t("signin.emailMeALink")}</span>
               </button>
             </form>
+
+            <div className="auth-divider" />
+            <GooglePlayLink className="pill-button secondary full-width play-button" />
           </div>
         )}
 

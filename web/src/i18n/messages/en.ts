@@ -137,6 +137,8 @@ export const en = {
   "settings.deleteAccountFailed": "Could not delete your account: {code}. Nothing was changed.",
   "settings.deleteAccountNetworkError":
     "Could not delete your account. Check your connection and try again.",
+
+  "play.getApp": "Get the app on Google Play",
 } as const;
 
 export type MessageKey = keyof typeof en;

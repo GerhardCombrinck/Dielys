@@ -145,4 +145,6 @@ export const st: Messages = {
     "E hlolehile ho hlakola akhaonto ya hao: {code}. Ha ho se fetohileng.",
   "settings.deleteAccountNetworkError":
     "E hlolehile ho hlakola akhaonto ya hao. Sheba khokahano ya hao mme o leke hape.",
+
+  "play.getApp": "Fumana app ho Google Play",
 };

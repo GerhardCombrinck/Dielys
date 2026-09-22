@@ -131,6 +131,47 @@ input {
   padding: 3.75rem 0;
 }
 
+/* App shell: the footer sits at the bottom of the viewport on a short page
+   and after the content on a long one. `.auth-page` grows into the main
+   area (rather than claiming 100vh itself) so centering its card doesn't
+   push the footer off-screen. */
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-footer {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 1.25rem 1.5rem;
+}
+
+.app-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(var(--on-surface-rgb), 0.6);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.app-footer-link:hover {
+  color: var(--color-on-surface);
+  text-decoration: underline;
+}
+
+.play-button {
+  text-decoration: none;
+}
+
 /* Buttons */
 
 .pill-button {
@@ -229,7 +270,7 @@ input {
 /* Auth / delete-account card shell */
 
 .auth-page {
-  min-height: 100vh;
+  flex: 1;
   width: 100%;
   display: flex;
   align-items: center;
