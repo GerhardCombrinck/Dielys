@@ -956,7 +956,17 @@ private fun TaskRow(
     // The same light, held longer: a task that was just typed stays lit while the
     // eye finds it, then fades rather than switching off.
     LaunchedEffect(highlighted) {
-        if (!highlighted) return@LaunchedEffect
+        if (!highlighted) {
+            // A row adopted fast enough after another (only one id is ever "the
+            // highlighted one" at a time) retargets this LaunchedEffect before
+            // the 2s fade below finishes, cancelling the animateTo mid-flight —
+            // which used to leave glow frozen at whatever alpha it had reached,
+            // a highlight stuck on an old row for good. Snap it closed instead,
+            // so a superseded fade always lands at 0 rather than wherever it
+            // was cut off.
+            glow.snapTo(0f)
+            return@LaunchedEffect
+        }
         glow.snapTo(1f)
         glow.animateTo(
             targetValue = 0f,
