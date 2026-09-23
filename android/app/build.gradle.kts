@@ -32,6 +32,19 @@ android {
         versionName = "0.5.20"
     }
 
+    // Play's app bundle otherwise delivers only the resource split matching the
+    // device's *system* language at install time (#42's in-app picker is a
+    // no-op for every other language: the strings for it were never installed).
+    // Per-app language preferences need every language on the device from the
+    // start, so language splitting is off — the trade is a few hundred KB of
+    // string resources in every install, for all eleven languages to actually
+    // work.
+    bundle {
+        language {
+            enableSplit = false
+        }
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true

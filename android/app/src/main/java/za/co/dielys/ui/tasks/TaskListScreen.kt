@@ -85,6 +85,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -164,6 +165,7 @@ fun TaskListScreen(
     // title — a plain String keeps the old selection, which is the start.
     var draftText by remember { mutableStateOf(TextFieldValue()) }
     val field = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
 
     // The id and text of an add already sent to the view model — reserved at
     // submit time, before Room has a row for it. Separate from [draftText],
@@ -186,8 +188,16 @@ fun TaskListScreen(
     val active = draft ?: board.active
 
     // Straight to the keyboard, so tapping Edit is one gesture rather than two.
+    // requestFocus() alone moves Compose focus but does not reliably reopen the
+    // IME when it was already dismissed (e.g. Back closed a previous edit) — the
+    // system only auto-shows it for a field going from unfocused to focused as
+    // part of a direct user tap, not a programmatic focus request. show() makes
+    // it unconditional.
     LaunchedEffect(editing?.id) {
-        if (editing != null) field.requestFocus()
+        if (editing != null) {
+            field.requestFocus()
+            keyboard?.show()
+        }
     }
 
     // The other phone ticked it off, or deleted it, while it was open for
@@ -455,11 +465,15 @@ private fun ghostSlot(
  * The typed-but-not-yet-saved row: which `LazyColumn` key it renders under, and
  * whether it should show at all.
  *
- * Keyed on `ghostId` once there is one, so the placeholder and the real row
- * Room eventually produces are the same `LazyColumn` item — the id carries
- * across the swap, so there is never a moment with both on screen at once.
- * Before a submit there is no id yet; a constant stands in for it, which
- * costs nothing since a ghost never collides with a real task's key.
+ * Always [GHOST_TYPING_KEY], through typing and the pending-submit window
+ * alike, so the placeholder is one continuous `LazyColumn` item throughout —
+ * switching to `ghostId` the moment it exists used to retire that item and
+ * mount a second one under the new key, and LazyColumn would animate that as
+ * an exit and an entrance rather than nothing changing, which is what left a
+ * fading duplicate of the row behind on a scroll straight after. The id
+ * still decides when the ghost goes away: once Room's real row lands, this
+ * item simply stops being requested and the row underneath it, already
+ * showing under its own key, is what remains.
  */
 private fun ghostRowState(
     ghostText: String?,
@@ -467,7 +481,7 @@ private fun ghostRowState(
     active: List<TaskEntity>,
 ): GhostRowState =
     GhostRowState(
-        key = ghostId ?: GHOST_TYPING_KEY,
+        key = GHOST_TYPING_KEY,
         visible = ghostText != null && (ghostId == null || active.none { it.id == ghostId }),
     )
 
