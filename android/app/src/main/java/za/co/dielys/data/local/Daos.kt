@@ -364,6 +364,15 @@ interface OutboxDao {
         id: Long,
         error: String,
     )
+
+    /**
+     * Refused settings — a list drag or a notification choice — which are not
+     * something anybody typed: the next memberships answer puts the server's
+     * value back on screen, so keeping them stuck only shows a warning with
+     * nothing behind it. Builds before 0.5.24 kept them (ADR 0012).
+     */
+    @Query("DELETE FROM outbox WHERE dead = 1 AND entity_type IN ('order', 'notify')")
+    suspend fun dropRefusedSettings()
 }
 
 @Dao

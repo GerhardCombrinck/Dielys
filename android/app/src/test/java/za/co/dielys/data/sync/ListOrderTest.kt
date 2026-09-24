@@ -1,5 +1,6 @@
 package za.co.dielys.data.sync
 
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -11,6 +12,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import za.co.dielys.data.DeviceStack
 import za.co.dielys.data.local.ListEntity
+import za.co.dielys.data.remote.ErrorCode
 import za.co.dielys.data.remote.ListChange
 import za.co.dielys.data.remote.Membership
 import za.co.dielys.data.remote.MembershipRole
@@ -264,6 +266,77 @@ class ListOrderTest {
                     .lists()
                     .find(braai)
                     ?.title,
+            )
+        }
+
+    /**
+     * A drag is a setting, not something typed: refused, it is dropped and the
+     * server's order comes back, rather than sitting under "1 edit the server
+     * refused" with nothing to show for it.
+     */
+    @Test
+    fun `a refused drag is dropped, not left stuck`() =
+        runTest {
+            val phone = device("device-a")
+            val braai = phone.repo.createList("Braai")
+            assertEquals(SyncOutcome.Success, phone.engine.sync())
+
+            phone.repo.moveList(braai, afterId = null, beforeId = null)
+            api.rejectSettingWith = ErrorCode.NOT_FOUND
+            assertEquals(SyncOutcome.Success, phone.engine.sync())
+
+            assertTrue(
+                phone.db
+                    .outbox()
+                    .all()
+                    .isEmpty(),
+            )
+            assertEquals(
+                0,
+                phone.db
+                    .outbox()
+                    .observeDeadCount()
+                    .first(),
+            )
+            assertNull(
+                phone.db
+                    .lists()
+                    .find(braai)
+                    ?.position,
+            )
+        }
+
+    /** 0.5.22 and 0.5.23 kept a notification choice refused by a server without the endpoint. */
+    @Test
+    fun `a refused setting kept by an older build is cleared on the next sync`() =
+        runTest {
+            val phone = device("device-a")
+            val braai = phone.repo.createList("Braai")
+            assertEquals(SyncOutcome.Success, phone.engine.sync())
+
+            phone.repo.setNotify(braai, setOf("added"))
+            val row =
+                phone.db
+                    .outbox()
+                    .pending(1)
+                    .single()
+            phone.db.outbox().markDead(row.id, "404 not-found")
+
+            assertEquals(SyncOutcome.Success, phone.engine.sync())
+
+            assertEquals(
+                0,
+                phone.db
+                    .outbox()
+                    .observeDeadCount()
+                    .first(),
+            )
+            assertEquals(
+                emptySet<String>(),
+                phone.db
+                    .lists()
+                    .find(braai)
+                    ?.notify,
             )
         }
 

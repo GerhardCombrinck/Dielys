@@ -283,6 +283,7 @@ class SyncEngine
          */
         suspend fun drainOutbox(): SyncOutcome {
             val gapped = mutableSetOf<String>()
+            db.outbox().dropRefusedSettings()
 
             while (true) {
                 val row = db.outbox().pending(1).firstOrNull() ?: break
@@ -410,8 +411,13 @@ class SyncEngine
             } catch (error: ApiException.Rejected) {
                 // No retry can fix this one. The row is marked rather than deleted:
                 // silently dropping something the user typed is worse than leaving
-                // it visible and stuck.
-                db.outbox().markDead(row.id, "${error.status} ${error.code}")
+                // it visible and stuck. A setting is the exception — see
+                // OutboxDao.dropRefusedSettings.
+                if (row.entityType == OutboxKind.ORDER || row.entityType == OutboxKind.NOTIFY) {
+                    db.outbox().delete(row.id)
+                } else {
+                    db.outbox().markDead(row.id, "${error.status} ${error.code}")
+                }
                 SendResult.Dead
             } catch (error: ApiException) {
                 db.outbox().recordFailure(row.id, error.message ?: "unknown")

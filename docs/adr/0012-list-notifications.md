@@ -111,6 +111,11 @@ window to run it. Before Android 12, expedited work runs as a foreground service
   else's rename.
 - A queued choice is not overwritten by a memberships answer that has not seen it yet, on both
   clients, the same rule a queued drag already had.
+- A choice the server refuses is dropped on Android, not kept as a stuck edit, and so is a
+  refused drag: neither is something anybody typed, and the next memberships answer puts the
+  server's value back on screen. 0.5.22 and 0.5.23 kept them, and a phone that saved a choice
+  before the server had the endpoint showed "1 edit the server refused" for good; since 0.5.24
+  the next sync clears those.
 - Notification strings are translated into all ten other languages. The non-Afrikaans ones are
   a best effort and want a native speaker's read, like the rest of those files.
 

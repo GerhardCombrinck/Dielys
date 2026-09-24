@@ -112,6 +112,9 @@ class FakeSyncApi :
     /** Makes the next [listMembers] fail with this code, once. */
     var rejectMembersWith: String? = null
 
+    /** Makes the next membership setting (order, notifications) fail with this code, once. */
+    var rejectSettingWith: String? = null
+
     /** Every list `GET /lists/{id}/changes` was asked about, in order. */
     val changesAsked: MutableList<String> = mutableListOf()
 
@@ -208,6 +211,10 @@ class FakeSyncApi :
         change: (Membership) -> Membership,
     ) {
         gate()
+        rejectSettingWith?.let { code ->
+            rejectSettingWith = null
+            throw ApiException.Rejected(status = 404, code = code)
+        }
         val index = memberOf.indexOfFirst { it.listId == listId }
         if (index < 0) throw ApiException.Rejected(status = 403, code = ErrorCode.FORBIDDEN)
         memberOf[index] = change(memberOf[index])
