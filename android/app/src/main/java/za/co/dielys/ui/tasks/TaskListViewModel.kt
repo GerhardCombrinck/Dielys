@@ -21,6 +21,7 @@ import za.co.dielys.data.local.DoneSectionPrefs
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.local.NewTaskPlacement
 import za.co.dielys.data.local.TaskEntity
+import za.co.dielys.data.notify.ListNotifications
 import za.co.dielys.domain.Clock
 import za.co.dielys.domain.Uuid7
 import javax.inject.Inject
@@ -64,6 +65,7 @@ class TaskListViewModel
         private val clock: Clock,
         private val doneSection: DoneSectionPrefs,
         placement: NewTaskPlacement,
+        private val notifications: ListNotifications,
     ) : ViewModel() {
         private val listId = MutableStateFlow<String?>(null)
 
@@ -119,6 +121,23 @@ class TaskListViewModel
         /** Called by the screen when it opens, and again on rotation. Idempotent. */
         fun open(id: String) {
             if (listId.value != id) listId.value = id
+        }
+
+        /**
+         * The list is in front of somebody — opened, or come back to — so its
+         * notification has said all it needs to (ADR 0012).
+         */
+        fun seen(id: String) {
+            viewModelScope.launch { notifications.forget(id) }
+        }
+
+        /**
+         * Which kinds of change on this list to be notified about ([TaskActivityKind]
+         * wire values). The whole set; empty turns it off.
+         */
+        fun setNotify(events: Set<String>) {
+            val id = listId.value ?: return
+            viewModelScope.launch { repo.setNotify(id, events) }
         }
 
         /** Local to this phone, not part of [board] — a Room read would also

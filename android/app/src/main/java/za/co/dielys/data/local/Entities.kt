@@ -38,7 +38,18 @@ data class ListEntity(
     /** How many people are on this list, this device's account included.
      *  Defaults to 1 — solo — until membership sync says otherwise. */
     @ColumnInfo(name = "member_count", defaultValue = "1") val memberCount: Int = 1,
+    /**
+     * Which kinds of change on this list this account wants a notification for
+     * (ADR 0012), comma-separated `NotifyEvent` values; empty is none. Held on
+     * the membership server-side, like [position], and mirrored here so the
+     * decision to notify can be made inside the apply transaction with nothing
+     * but Room to ask. Read it through [notify].
+     */
+    @ColumnInfo(name = "notify_events", defaultValue = "") val notifyEvents: String = "",
 ) {
+    /** [notifyEvents] as a set. */
+    val notify: Set<String> get() = decodeNotifyEvents(notifyEvents)
+
     /**
      * L3: only the owner may invite. Null — a list whose membership has not been
      * fetched yet — reads as not owned, so the option is missing until the answer
@@ -131,6 +142,44 @@ data class OutboxEntity(
      */
     @ColumnInfo(name = "dead") val dead: Boolean = false,
 )
+
+/**
+ * One change somebody else made on a subscribed list, waiting to be shown — the
+ * content of that list's notification (ADR 0012).
+ *
+ * Written inside the same transaction that applies the change, so a change is
+ * recorded exactly when it is applied: a crash before the commit replays both,
+ * and one after it has both. Cleared when the list is opened or its
+ * notification swiped away.
+ *
+ * Unique on (list, task, kind) and upserted, so a task renamed three times
+ * while the phone slept is one "changed" line carrying the latest title, not
+ * three.
+ */
+@Entity(
+    tableName = "list_activity",
+    indices = [Index(value = ["list_id", "task_id", "kind"], unique = true)],
+)
+data class ListActivityEntity(
+    @PrimaryKey(autoGenerate = true) @ColumnInfo(name = "id") val id: Long = 0,
+    @ColumnInfo(name = "list_id") val listId: String,
+    @ColumnInfo(name = "task_id") val taskId: String,
+    /** A `NotifyEvent` value. */
+    @ColumnInfo(name = "kind") val kind: String,
+    /** The task's title as of this change — what the line says. */
+    @ColumnInfo(name = "title") val title: String,
+    @ColumnInfo(name = "author_user_id") val authorUserId: String,
+    /** The change's seq: orders the lines, newest last. */
+    @ColumnInfo(name = "seq") val seq: Long,
+    /** Already on screen in a notification, so reposting it would not alert again. */
+    @ColumnInfo(name = "posted") val posted: Boolean = false,
+)
+
+/** The stored form of [ListEntity.notifyEvents]. Order-free, so one set is one string. */
+fun encodeNotifyEvents(events: Collection<String>): String = events.toSortedSet().joinToString(",")
+
+fun decodeNotifyEvents(stored: String): Set<String> =
+    if (stored.isEmpty()) emptySet() else stored.split(",").toSet()
 
 /**
  * The per-list cursor. Advances only after the change it counts is committed

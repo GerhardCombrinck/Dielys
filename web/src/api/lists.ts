@@ -10,6 +10,9 @@ import type {
   MembershipsResponse,
   Mutation,
   MutationAck,
+  NotifyEvent,
+  SetListNotifyRequest,
+  SetListNotifyResponse,
   SetListPositionRequest,
   SetListPositionResponse,
 } from "@dielys/protocol";
@@ -25,6 +28,15 @@ export function setListPosition(
 ): Promise<SetListPositionResponse> {
   const body: SetListPositionRequest = { listId, position };
   return apiFetch("/auth/memberships/position", { body });
+}
+
+/** Which changes on a list this account wants a phone notification for (ADR 0012). */
+export function setListNotify(
+  listId: string,
+  events: NotifyEvent[],
+): Promise<SetListNotifyResponse> {
+  const body: SetListNotifyRequest = { listId, events };
+  return apiFetch("/auth/memberships/notify", { body });
 }
 
 /** Claims a client-generated list id as owner (F5.1) — the first step of

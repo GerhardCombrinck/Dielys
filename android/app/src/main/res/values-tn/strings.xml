@@ -151,4 +151,28 @@
     <string name="help_account_title">Akhaonto ya gago</string>
     <string name="help_account_body">Ga go na lefoko la sephiri. Tsena ka aterese ya gago ya imeile mme re go romelela kgolagano le khoutu ya dinomore tse 6 — dirisa epe fela e e motlhofo. Tsena ka imeile e e tshwanang mo mogaleng wa gago le mo webong go bona manaane a a tshwanang.</string>
     <string name="share_how_it_works">Kafa go abelana go dirang ka teng</string>
+
+    <!-- List notifications (ADR 0012). The bell on a shared list, the dialog
+         behind it, and the notification itself: `notify_line_*` take who
+         (%1$s, the part of their email before the @) and the item (%2$s).
+         `sync_*` is the quiet notification Android shows while a wake-up
+         sync runs, on Android 11 and older only. -->
+    <string name="cd_notifications">Dikitsiso</string>
+    <string name="notify_dialog_title">Nkitsise fa motho yo mongwe…</string>
+    <string name="notify_event_added">A oketsa selo</string>
+    <string name="notify_event_checked">A tshwaya selo, kgotsa a se busetsa</string>
+    <string name="notify_event_deleted">A phimola selo</string>
+    <string name="notify_event_updated">A fetola leina kgotsa a naya selo naledi</string>
+    <string name="notify_blocked">Dikitsiso tsa Die Lys di tswetswe mo mogaleng o. Di bule mo Dithulaganyong tsa mogala go di amogela.</string>
+    <string name="notify_channel_name">Diphetogo tsa lenaane</string>
+    <string name="notify_channel_description">Se batho ba bangwe ba se fetolang mo manaaneng a o tlhophileng go utlwa ka ona.</string>
+    <string name="notify_line_added">%1$s o okeditse %2$s</string>
+    <string name="notify_line_checked">%1$s o tshwaile %2$s</string>
+    <string name="notify_line_unchecked">%1$s o buseditse %2$s</string>
+    <string name="notify_line_deleted">%1$s o phimotse %2$s</string>
+    <string name="notify_line_updated">%1$s o fetotse %2$s</string>
+    <string name="notify_someone">Mongwe</string>
+    <string name="notify_more">+%1$d tse dingwe</string>
+    <string name="sync_channel_name">Go tsamaisana</string>
+    <string name="sync_notification">Go ntšhafatsa manaane a gago</string>
 </resources>

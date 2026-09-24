@@ -164,6 +164,15 @@ export const en = {
   "help.accountBody":
     "There is no password. Sign in with your email address and we send you a link and a 6-digit code — use whichever is easier. Sign in with the same email on your phone and on the web to see the same lists.",
   "sharing.howItWorks": "How sharing works",
+  "list.notifications": "Notifications",
+  "notify.title": "Notify me when someone else…",
+  "notify.added": "Adds an item",
+  "notify.checked": "Ticks an item off, or back on",
+  "notify.deleted": "Deletes an item",
+  "notify.updated": "Renames or stars an item",
+  "notify.phoneOnly":
+    "These arrive on your phone, in the Die Lys app. This browser does not show them.",
+  "notify.save": "Save",
 } as const;
 
 export type MessageKey = keyof typeof en;

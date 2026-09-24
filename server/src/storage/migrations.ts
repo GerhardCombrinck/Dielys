@@ -12,6 +12,7 @@
  */
 import listV1 from "../../migrations/list/0001_initial.sql";
 import listV2 from "../../migrations/list/0002_list_state.sql";
+import listV3 from "../../migrations/list/0003_change_author.sql";
 import usersV1 from "../../migrations/users/0001_initial.sql";
 import usersV2 from "../../migrations/users/0002_devices.sql";
 import usersV3 from "../../migrations/users/0003_rate_limits.sql";
@@ -23,6 +24,7 @@ import usersV8 from "../../migrations/users/0008_account_deletion_requests.sql";
 import usersV9 from "../../migrations/users/0009_magic_link_codes.sql";
 import usersV10 from "../../migrations/users/0010_ws_tickets.sql";
 import usersV11 from "../../migrations/users/0011_sync_settings.sql";
+import usersV12 from "../../migrations/users/0012_membership_notify.sql";
 
 export interface Migration {
   version: number;
@@ -34,6 +36,7 @@ export interface Migration {
 export const LIST_MIGRATIONS: readonly Migration[] = [
   { version: 1, name: "0001_initial", sql: listV1 },
   { version: 2, name: "0002_list_state", sql: listV2 },
+  { version: 3, name: "0003_change_author", sql: listV3 },
 ];
 
 export const USERS_MIGRATIONS: readonly Migration[] = [
@@ -48,6 +51,7 @@ export const USERS_MIGRATIONS: readonly Migration[] = [
   { version: 9, name: "0009_magic_link_codes", sql: usersV9 },
   { version: 10, name: "0010_ws_tickets", sql: usersV10 },
   { version: 11, name: "0011_sync_settings", sql: usersV11 },
+  { version: 12, name: "0012_membership_notify", sql: usersV12 },
 ];
 
 /**

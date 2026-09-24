@@ -175,4 +175,12 @@ export const nso: Messages = {
   "help.accountBody":
     "Ga go na phasewete. Tsena ka aterese ya gago ya imeile gomme re go romela kgokagano le khoutu ya dinomoro tše 6 — diriša efe goba efe ye bonolo. Tsena ka imeile ye e swanago mogaleng wa gago le wepeng go bona mananeo a swanago.",
   "sharing.howItWorks": "Kamoo go abelana go šomago ka gona",
+  "list.notifications": "Ditsebišo",
+  "notify.title": "Ntsebiše ge motho yo mongwe…",
+  "notify.added": "A oketša selo",
+  "notify.checked": "A swaya selo, goba a se bušetša",
+  "notify.deleted": "A phumola selo",
+  "notify.updated": "A fetola leina goba a nea selo naledi",
+  "notify.phoneOnly": "Di fihla mogaleng wa gago, ka app ya Die Lys. Sebadi se ga se di bontšhe.",
+  "notify.save": "Boloka",
 };

@@ -97,6 +97,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import za.co.dielys.R
@@ -105,7 +106,6 @@ import za.co.dielys.domain.spotUnderStarred
 import za.co.dielys.ui.HelpButton
 import za.co.dielys.ui.Loading
 import za.co.dielys.ui.SettingsButton
-import za.co.dielys.ui.SyncStatus
 import za.co.dielys.ui.lists.displayTitle
 import za.co.dielys.ui.reorder.ReorderState
 import za.co.dielys.ui.reorder.draftStillWanted
@@ -135,6 +135,12 @@ fun TaskListScreen(
     viewModel: TaskListViewModel = viewModel(),
 ) {
     LaunchedEffect(listId) { viewModel.open(listId) }
+    // Opened, or come back to from the background: either way somebody is now
+    // looking at this list, so its notification has nothing left to say.
+    LifecycleResumeEffect(listId) {
+        viewModel.seen(listId)
+        onPauseOrDispose { }
+    }
 
     val list by viewModel.list.collectAsStateWithLifecycle()
 
@@ -286,9 +292,12 @@ fun TaskListScreen(
                     }
                 },
                 actions = {
-                    if (currentList?.isShared == true) {
-                        SyncStatus(pending = pending, stuck = stuck)
-                    }
+                    SharedListActions(
+                        list = currentList,
+                        pending = pending,
+                        stuck = stuck,
+                        onSetNotify = viewModel::setNotify,
+                    )
                     // The same control in the same place as the lists screen
                     // (#59), so crossing between the two does not rearrange the
                     // header under the thumb already reaching for it.

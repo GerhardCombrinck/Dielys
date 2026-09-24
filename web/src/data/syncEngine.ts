@@ -15,6 +15,7 @@ import type {
   Membership,
   Mutation,
   MutationAck,
+  SetListNotifyRequest,
   SetListPositionRequest,
 } from "@dielys/protocol";
 import { ApiError } from "../api/client.js";
@@ -26,6 +27,7 @@ export interface SyncApi {
   mutate(listId: string, mutation: Mutation): Promise<MutationAck>;
   claim(listId: string): Promise<unknown>;
   setListPosition(request: SetListPositionRequest): Promise<unknown>;
+  setListNotify(request: SetListNotifyRequest): Promise<unknown>;
 }
 
 export type SyncOutcome = "success" | "retry" | "session-expired";
@@ -225,6 +227,12 @@ export class SyncEngine {
       if (row.kind === "order") {
         // Lands on this account's membership row — no changelog, no echo.
         await this.api.setListPosition(row.body as SetListPositionRequest);
+        if (!this.stopped) this.replica.completeRow(row.key, null);
+        return "done";
+      }
+      if (row.kind === "notify") {
+        // The same shape as a drag: this account's membership row (ADR 0012).
+        await this.api.setListNotify(row.body as SetListNotifyRequest);
         if (!this.stopped) this.replica.completeRow(row.key, null);
         return "done";
       }

@@ -1,0 +1,20 @@
+{
+  "memberships": [
+    {
+      "listId": "018f2f6c-6a3e-7c3a-8f1e-000000000001",
+      "role": "owner",
+      "position": "a0",
+      "memberCount": 2,
+      "maxSeq": 7,
+      "notify": ["added", "checked"]
+    },
+    {
+      "listId": "018f2f6c-6a3e-7c3a-8f1e-000000000002",
+      "role": "member",
+      "position": null,
+      "memberCount": 1,
+      "maxSeq": null,
+      "notify": []
+    }
+  ]
+}

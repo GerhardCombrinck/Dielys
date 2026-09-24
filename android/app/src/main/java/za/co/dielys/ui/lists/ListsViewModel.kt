@@ -20,6 +20,7 @@ import za.co.dielys.data.InviteResult
 import za.co.dielys.data.JoinResult
 import za.co.dielys.data.ListAccents
 import za.co.dielys.data.PendingInvite
+import za.co.dielys.data.PendingListOpen
 import za.co.dielys.data.SharingRepository
 import za.co.dielys.data.local.FirstSync
 import za.co.dielys.data.local.ListEntity
@@ -131,6 +132,7 @@ class ListsViewModel
         private val accents: ListAccents,
         private val sharing: SharingRepository,
         private val invites: PendingInvite,
+        private val listOpens: PendingListOpen,
         private val strings: StringProvider,
         firstSync: FirstSync,
     ) : ViewModel() {
@@ -186,6 +188,11 @@ class ListsViewModel
          * person on the phone chooses to do.
          */
         val invitation: StateFlow<String?> = invites.pending
+
+        /** A list whose notification was tapped (ADR 0012), until [takeListToOpen]. */
+        val listToOpen: StateFlow<String?> = listOpens.pending
+
+        fun takeListToOpen(): String? = listOpens.take()
 
         /**
          * The join in progress, or null when nothing is being joined (#61).

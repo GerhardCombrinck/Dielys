@@ -1434,6 +1434,10 @@ a JSON number. The key set, the data-only rule and the no-content rule are uncha
 encoding of that one field differs. Recorded in [ADR 0003](adr/0003-fcm-wake-push.md) because
 this section is **(SYNC)**.
 
+User-visible notifications for a shared list follow the rule in the third bullet exactly. The
+phone composes them from Room inside the apply transaction, and the payload is unchanged
+([ADR 0012](adr/0012-list-notifications.md)).
+
 ---
 
 <a id="standard-m2"></a>
@@ -1476,7 +1480,9 @@ The fan-out lives in `UsersRoom`, not in `ListRoom`: a `ListRoom` hands over the
 can see on sockets and never learns who the members are, which keeps [L3](#standard-l3) true
 by construction. The token is stored in a `devices` table keyed by `device_id` rather than on
 the refresh-token row, because refresh tokens rotate on every use and an FCM token does not.
-Both in [ADR 0003](adr/0003-fcm-wake-push.md).
+Both in [ADR 0003](adr/0003-fcm-wake-push.md). The wake's FCM priority is `high` only for a
+device whose account has asked to be notified about the list and did not make the write, and
+`normal` otherwise. Who is woken is unchanged ([ADR 0012](adr/0012-list-notifications.md)).
 
 ---
 

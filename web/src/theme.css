@@ -1190,3 +1190,26 @@ body.reordering * {
 .add-bar-submit.ready {
   background: var(--color-elevated);
 }
+
+/* The notification choice (ADR 0012): four checkboxes, one per kind of change. */
+.notify-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.notify-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  font-size: 14.5px;
+  cursor: pointer;
+}
+
+.notify-option input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--list-accent, var(--color-primary));
+}

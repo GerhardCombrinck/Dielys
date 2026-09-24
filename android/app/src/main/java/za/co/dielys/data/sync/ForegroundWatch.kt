@@ -3,6 +3,7 @@ package za.co.dielys.data.sync
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
+import za.co.dielys.data.notify.AppVisibility
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,17 +22,22 @@ class ForegroundWatch
     @Inject
     constructor(
         private val sockets: SyncSockets,
+        private val visibility: AppVisibility,
     ) : Application.ActivityLifecycleCallbacks {
         private var started = 0
 
         override fun onActivityStarted(activity: Activity) {
             started += 1
+            visibility.visible = true
             if (started == 1) sockets.onForeground()
         }
 
         override fun onActivityStopped(activity: Activity) {
             started -= 1
-            if (started == 0) sockets.onBackground()
+            if (started == 0) {
+                visibility.visible = false
+                sockets.onBackground()
+            }
         }
 
         override fun onActivityCreated(

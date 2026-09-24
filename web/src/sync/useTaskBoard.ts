@@ -10,7 +10,7 @@
  * methods still return promises only so callers that `await` them keep
  * working — they resolve immediately.
  */
-import type { Task, TaskList } from "@dielys/protocol";
+import type { NotifyEvent, Task, TaskList } from "@dielys/protocol";
 import { useEffect, useState } from "react";
 import { ListSocket } from "../api/socket.js";
 import { useDataStore, useReplicaVersion } from "../data/store.js";
@@ -21,6 +21,11 @@ export interface TaskBoard {
   active: Task[];
   done: Task[];
   loaded: boolean;
+  /** Somebody else is on this list, so there is something to be notified about. */
+  shared: boolean;
+  /** This account's notification choice for the list (ADR 0012). */
+  notify: NotifyEvent[];
+  setNotify(events: NotifyEvent[]): void;
   add(title: string, atTop: boolean): Promise<void>;
   setDone(task: Task, done: boolean): Promise<void>;
   setStarred(task: Task, starred: boolean): Promise<void>;
@@ -79,6 +84,9 @@ export function useTaskBoard(listId: string, deviceId: string): TaskBoard {
     active: activeTasks(tasks),
     done: doneTasks(tasks),
     loaded: pulledId === listId || local?.list != null || replica.hasCursor(listId) || unclaimed,
+    shared: (local?.memberCount ?? 1) > 1,
+    notify: local?.notify ?? [],
+    setNotify: (events) => repo.setNotify(listId, events),
     add: async (title, atTop) => {
       repo.addTask(listId, title, atTop);
     },

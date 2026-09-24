@@ -16,6 +16,7 @@ import { navigate } from "../router.js";
 import { useTaskBoard } from "../sync/useTaskBoard.js";
 import {
   BackChevronIcon,
+  BellIcon,
   CheckIcon,
   ChevronDownIcon,
   DotsVerticalIcon,
@@ -26,6 +27,7 @@ import {
   StarIcon,
 } from "../ui/icons.js";
 import { useDragReorder } from "../ui/useDragReorder.js";
+import { NotifyDialog } from "./NotifyDialog.js";
 
 const DONE_EXPANDED_KEY_PREFIX = "dielys.doneExpanded.";
 
@@ -58,6 +60,7 @@ export function ListPage({ listId }: { listId: string }) {
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [doneExpanded, setDoneExpanded] = useState(() => readDoneExpanded(listId));
   const [error, setError] = useState<string | null>(null);
+  const [notifyOpen, setNotifyOpen] = useState(false);
   const reorder = useDragReorder(
     board.active.map((task) => task.id),
     board.move,
@@ -125,6 +128,16 @@ export function ListPage({ listId }: { listId: string }) {
             <h1>{board.list?.title ?? (board.loaded ? t("list.untitled") : "…")}</h1>
           </button>
         )}
+        {board.shared && (
+          <button
+            className="icon-button"
+            type="button"
+            aria-label={t("list.notifications")}
+            onClick={() => setNotifyOpen(true)}
+          >
+            <BellIcon filled={board.notify.length > 0} />
+          </button>
+        )}
         <button
           className="icon-button"
           type="button"
@@ -142,6 +155,17 @@ export function ListPage({ listId }: { listId: string }) {
           <GearIcon />
         </button>
       </header>
+
+      {notifyOpen && (
+        <NotifyDialog
+          chosen={board.notify}
+          onSave={(events) => {
+            board.setNotify(events);
+            setNotifyOpen(false);
+          }}
+          onDismiss={() => setNotifyOpen(false)}
+        />
+      )}
 
       {error !== null && (
         <p className="error-text" role="alert">

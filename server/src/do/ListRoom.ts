@@ -51,6 +51,10 @@ interface SocketSession {
   /** Resolved by the Worker on the upgrade (ADR 0006). A frame arrives long
    *  after that request, so this is the only place the room can find it. */
   role: MembershipRole | null;
+  /** The account the Worker authenticated on the upgrade, recorded as the
+   *  author of every change this socket makes (ADR 0012). Null on a socket
+   *  attached before the field existed. */
+  userId: string | null;
 }
 
 /**
@@ -215,11 +219,12 @@ export class ListRoom extends DurableObject {
       return jsonError("list-mismatch", 409, mutation.value.idempotencyKey);
     }
 
-    if (!mayApply(parseRole(new URL(request.url).searchParams.get("role")), mutation.value)) {
+    const params = new URL(request.url).searchParams;
+    if (!mayApply(parseRole(params.get("role")), mutation.value)) {
       return jsonError("forbidden", 403, mutation.value.idempotencyKey);
     }
 
-    const result = this.applyMutation(mutation.value);
+    const result = this.applyMutation(mutation.value, params.get("userId"));
     if (result.type === "error") {
       return new Response(JSON.stringify(result), {
         status: 422,
@@ -264,6 +269,7 @@ export class ListRoom extends DurableObject {
       deviceId: url.searchParams.get("deviceId"),
       protocolVersion: PROTOCOL_VERSION,
       role: parseRole(url.searchParams.get("role")),
+      userId: url.searchParams.get("userId"),
     };
     server.serializeAttachment(session);
 
@@ -347,6 +353,7 @@ export class ListRoom extends DurableObject {
       deviceId: hello.value.deviceId,
       protocolVersion: hello.value.protocolVersion,
       role: sessionOf(ws)?.role ?? null,
+      userId: sessionOf(ws)?.userId ?? null,
     };
     ws.serializeAttachment(session);
 
@@ -378,7 +385,7 @@ export class ListRoom extends DurableObject {
       return;
     }
 
-    const result = this.applyMutation(mutation.value);
+    const result = this.applyMutation(mutation.value, sessionOf(ws)?.userId ?? null);
     send(ws, result);
     if (result.type !== "ack") return;
     this.broadcast({ type: "change", change: result.change }, ws);
@@ -403,7 +410,10 @@ export class ListRoom extends DurableObject {
    * no window where a client could read a state row the changelog does not
    * explain.
    */
-  private applyMutation(mutation: Mutation): MutationAck | ReturnType<typeof error> {
+  private applyMutation(
+    mutation: Mutation,
+    userId: string | null,
+  ): MutationAck | ReturnType<typeof error> {
     // D3: one clock reading per request, passed down. Not three calls that
     // are assumed to agree.
     const serverTimestamp = new Date().toISOString();
@@ -424,13 +434,14 @@ export class ListRoom extends DurableObject {
       }
 
       const seq = nextSeq(maxSeq(this.sql));
-      const envelope = this.applyToState(mutation, seq, meta);
+      const envelope = this.applyToState(mutation, seq, meta, userId);
       if (envelope === null) return error("incomplete-create", mutation.idempotencyKey);
 
       insertChange(this.sql, {
         seq,
         idempotencyKey: mutation.idempotencyKey,
         deviceId: mutation.deviceId,
+        userId,
         serverTimestamp,
         entityType: mutation.entityType,
         entityJson: JSON.stringify(envelope.entity),
@@ -446,13 +457,19 @@ export class ListRoom extends DurableObject {
   }
 
   /** Returns the resulting envelope, or null when the patch cannot be applied. */
-  private applyToState(mutation: Mutation, seq: number, meta: FieldMeta): ChangeEnvelope | null {
+  private applyToState(
+    mutation: Mutation,
+    seq: number,
+    meta: FieldMeta,
+    userId: string | null,
+  ): ChangeEnvelope | null {
     const base = {
       seq,
       listId: mutation.listId,
       idempotencyKey: mutation.idempotencyKey,
       deviceId: mutation.deviceId,
       serverTimestamp: meta.serverTimestamp,
+      authorUserId: userId,
     };
 
     if (mutation.entityType === "task") {
@@ -561,7 +578,7 @@ export class ListRoom extends DurableObject {
 
     this.ctx.waitUntil(
       usersRoom(this.env)
-        .listChanged(change.listId, change.seq, informed)
+        .listChanged(change.listId, change.seq, informed, change.authorUserId)
         .catch((error: unknown) => {
           log("warn", "listroom.wake.failed", { listId: change.listId, error: String(error) });
         }),

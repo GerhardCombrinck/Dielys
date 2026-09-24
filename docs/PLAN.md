@@ -108,6 +108,15 @@ Where Dielys is and what comes next. Short by design — the standard is in
       lists, tasks, sharing (invite/members/leave), settings, and account deletion — including
       the public `dielys.com/account/delete` pages ADR 0007 and Google Play's deletion
       requirement call for — all match Android's connected/online experience.
+- [ ] **List notifications** (ADR 0012) — built, not yet shipped. Per member, per shared list,
+      off by default. The bell on a shared list picks which kinds of change (added, ticked,
+      deleted, changed) raise a phone notification. It is composed on the phone from Room after
+      the wake sync, never sent in the push (M1). Changes now carry `authorUserId`, so your own
+      edits from another device stay quiet, and the notification names who did it. Wakes go
+      `high` only to devices that will notify. **Needs `FCM_SERVICE_ACCOUNT_JSON` on
+      `dielys-prod` first** (see the Prod item). Without it a backgrounded phone only hears
+      about changes on the periodic floor. `web/` sets the choice but does not show
+      notifications; Web Push is its own later project.
 
 ## Open questions
 

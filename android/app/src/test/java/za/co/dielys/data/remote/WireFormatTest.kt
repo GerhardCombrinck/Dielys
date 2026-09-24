@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import za.co.dielys.Fixtures
+import za.co.dielys.domain.TaskActivityKind
 
 /**
  * The Kotlin wire types against the same fixtures the server and protocol suites
@@ -160,6 +161,69 @@ class WireFormatTest {
         }
     }
 
+    /** List notifications (ADR 0012): who made a change, and who wants to hear. */
+    @Nested
+    inner class Notifications {
+        @Test
+        fun `a change names the account that made it, or nobody when it predates that`() {
+            assertEquals(
+                "018f2f6c-6a3e-7c3a-8f1e-0000000000e1",
+                change("task-created.json").authorUserId,
+            )
+            assertEquals(null, change("task-created-no-author.json").authorUserId)
+        }
+
+        @Test
+        fun `memberships carry each list's choice, and round-trip`() {
+            val raw = Fixtures.read("$AUTH/memberships-response.json")
+            val decoded = DielysJson.wire.decodeFromString(MembershipsResponse.serializer(), raw)
+            assertEquals(
+                listOf(listOf(NotifyEvent.ADDED, NotifyEvent.CHECKED), emptyList()),
+                decoded.memberships.map { it.notify },
+            )
+            assertEquals(
+                tree(raw),
+                tree(DielysJson.wire.encodeToString(MembershipsResponse.serializer(), decoded)),
+            )
+        }
+
+        @Test
+        fun `a notify request round-trips`() {
+            val raw = Fixtures.read("$AUTH/set-list-notify-request.json")
+            val decoded = DielysJson.wire.decodeFromString(SetListNotifyRequest.serializer(), raw)
+            assertEquals(NotifyEvent.ALL, decoded.events)
+            assertEquals(
+                tree(raw),
+                tree(DielysJson.wire.encodeToString(SetListNotifyRequest.serializer(), decoded)),
+            )
+        }
+
+        @Test
+        fun `a membership from a server older than the field is subscribed to nothing`() {
+            val old =
+                """{"listId":"l","role":"member","position":null,"memberCount":2,""" +
+                    """"maxSeq":null}"""
+            assertEquals(
+                emptyList<String>(),
+                DielysJson.wire.decodeFromString(Membership.serializer(), old).notify,
+            )
+        }
+
+        @Test
+        fun `a kind this build does not know is dropped, not kept (F2)`() {
+            assertEquals(
+                listOf(NotifyEvent.ADDED, NotifyEvent.UPDATED),
+                NotifyEvent.known(listOf("updated", "renamed-in-2030", "added")),
+            )
+        }
+
+        /** The domain names the kinds without importing the wire (ArchitectureTest). */
+        @Test
+        fun `the domain's kinds are the protocol's kinds, in the same order`() {
+            assertEquals(NotifyEvent.ALL, TaskActivityKind.entries.map { it.wire })
+        }
+    }
+
     /**
      * Fixtures name their own type, so the dispatch here is the same one the client
      * makes at runtime rather than a lookup table that could drift from it.
@@ -211,5 +275,6 @@ class WireFormatTest {
     private companion object {
         const val CHANGES = "changes"
         const val MESSAGES = "messages"
+        const val AUTH = "auth"
     }
 }

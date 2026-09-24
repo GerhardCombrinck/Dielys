@@ -24,6 +24,7 @@ import org.robolectric.RobolectricTestRunner
 import za.co.dielys.data.DeviceStack
 import za.co.dielys.data.local.DoneSectionPrefs
 import za.co.dielys.data.local.NewTaskPlacement
+import za.co.dielys.data.notify.ListNotifications
 import za.co.dielys.data.sync.FakeSyncApi
 import za.co.dielys.ui.reorder.moved
 
@@ -58,7 +59,16 @@ class TaskListViewModelTest {
                 ) = Unit
             }
         viewModel =
-            TaskListViewModel(phone.repo, phone.accents, phone.clock, doneSection, placement)
+            TaskListViewModel(
+                phone.repo,
+                phone.accents,
+                phone.clock,
+                doneSection,
+                placement,
+                object : ListNotifications {
+                    override suspend fun forget(listId: String) = Unit
+                },
+            )
     }
 
     @After

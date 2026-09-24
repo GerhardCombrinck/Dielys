@@ -166,4 +166,12 @@ export const af: Messages = {
   "help.accountBody":
     "Daar is geen wagwoord nie. Meld aan met jou e-posadres en ons stuur vir jou 'n skakel en 'n 6-syferkode — gebruik wat ook al makliker is. Meld op jou foon en op die web met dieselfde e-pos aan om dieselfde lyste te sien.",
   "sharing.howItWorks": "Hoe deel werk",
+  "list.notifications": "Kennisgewings",
+  "notify.title": "Laat weet my wanneer iemand anders…",
+  "notify.added": "'n Item byvoeg",
+  "notify.checked": "'n Item afmerk, of weer terugmerk",
+  "notify.deleted": "'n Item uitvee",
+  "notify.updated": "'n Item hernoem of 'n ster gee",
+  "notify.phoneOnly": "Dit kom op jou foon aan, in die Die Lys-toep. Hierdie blaaier wys dit nie.",
+  "notify.save": "Stoor",
 };

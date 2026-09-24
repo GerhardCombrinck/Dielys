@@ -68,7 +68,7 @@ describe("ListRoom — migrations (G1)", () => {
     const { stub, listId } = room();
     await changesSince(stub, listId, 0);
     await runInDurableObject(stub, (_instance, state) => {
-      expect(currentVersion(state.storage.sql)).toBe(2);
+      expect(currentVersion(state.storage.sql)).toBe(3);
     });
   });
 
@@ -78,7 +78,7 @@ describe("ListRoom — migrations (G1)", () => {
     await changesSince(stub, listId, 0);
     await runInDurableObject(stub, (_instance, state) => {
       const rows = [...state.storage.sql.exec("SELECT version FROM _migrations ORDER BY version")];
-      expect(rows.map((r) => Number(r.version))).toEqual([1, 2]);
+      expect(rows.map((r) => Number(r.version))).toEqual([1, 2, 3]);
     });
   });
 });

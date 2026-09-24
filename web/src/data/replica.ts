@@ -20,6 +20,8 @@ import type {
   Membership,
   MembershipRole,
   Mutation,
+  NotifyEvent,
+  SetListNotifyRequest,
   SetListPositionRequest,
   Task,
   TaskList,
@@ -35,12 +37,15 @@ export interface LocalList {
   /** This account's own order (PROTOCOL.md "Ordering the lists"). */
   position: string | null;
   memberCount: number;
+  /** Which changes this account wants a phone notification for (ADR 0012).
+   * This browser never shows one — it only holds the choice. */
+  notify: NotifyEvent[];
   /** Where the last memberships answer put it — the server's tie-break for
    * rows without a position, which this browser cannot recompute on its own. */
   rank: number;
 }
 
-export type OutboxKind = "task" | "list" | "claim" | "order";
+export type OutboxKind = "task" | "list" | "claim" | "order" | "notify";
 
 export interface OutboxRow {
   /** Generated once, when the user acted, and resent unchanged on every retry (F5.2). */
@@ -51,7 +56,7 @@ export interface OutboxRow {
   listId: string;
   entityId: string;
   /** The stored request, sent byte-for-byte — never rebuilt on retry. Null for a claim. */
-  body: Mutation | SetListPositionRequest | null;
+  body: Mutation | SetListPositionRequest | SetListNotifyRequest | null;
   /** Why the server refused it for good, or null while it can still go. */
   dead: string | null;
 }
@@ -153,7 +158,8 @@ export class Replica {
 
   /** Replaces everything held in memory with what storage has. */
   load(data: ReplicaData): void {
-    this.lists = new Map(data.lists.map((l) => [l.id, l]));
+    // A list stored before ADR 0012 has no `notify`; it is subscribed to nothing.
+    this.lists = new Map(data.lists.map((l) => [l.id, { ...l, notify: l.notify ?? [] }]));
     this.tasks = new Map(data.tasks.map((t) => [t.id, t]));
     this.cursors = new Map(data.cursors.map((c) => [c.listId, c.cursor]));
     this.outbox = new Map(data.outbox.map((r) => [r.key, r]));
@@ -319,15 +325,20 @@ export class Replica {
         const known = this.lists.get(m.listId);
         // A drag queued after the drain started is newer than whatever this
         // answer says — keep it until its own row lands.
-        const dragPending = [...this.outbox.values()].some(
-          (r) => r.kind === "order" && r.listId === m.listId && r.dead === null,
-        );
+        const pending = (kind: OutboxKind) =>
+          [...this.outbox.values()].some(
+            (r) => r.kind === kind && r.listId === m.listId && r.dead === null,
+          );
+        const dragPending = pending("order");
         this.putList({
           id: m.listId,
           list: known?.list ?? null,
           role: m.role,
           position: dragPending ? (known?.position ?? null) : m.position,
           memberCount: m.memberCount,
+          // Same rule as the drag: a choice made here that has not landed yet
+          // beats an answer that has not seen it. An older server sends none.
+          notify: pending("notify") ? (known?.notify ?? []) : (m.notify ?? []),
           rank,
         });
       });
@@ -376,6 +387,7 @@ export class Replica {
       role: known?.role ?? null,
       position: known?.position ?? null,
       memberCount: known?.memberCount ?? 1,
+      notify: known?.notify ?? [],
       rank: known?.rank ?? Number.MAX_SAFE_INTEGER,
     });
   }

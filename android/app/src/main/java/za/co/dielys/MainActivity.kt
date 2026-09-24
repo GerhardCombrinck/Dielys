@@ -16,8 +16,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import dagger.hilt.android.AndroidEntryPoint
 import za.co.dielys.data.PendingInvite
+import za.co.dielys.data.PendingListOpen
 import za.co.dielys.data.PendingMagicLink
 import za.co.dielys.data.local.withChosenLocale
+import za.co.dielys.data.notify.ListNotifier
 import za.co.dielys.ui.DielysApp
 import za.co.dielys.ui.UpdateReadyBar
 import za.co.dielys.ui.theme.DielysTheme
@@ -44,6 +46,10 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var magicLinks: PendingMagicLink
 
+    /** A tapped list notification (ADR 0012), parked for the same reason. */
+    @Inject
+    lateinit var listOpens: PendingListOpen
+
     /**
      * Asks Play for a newer build rather than waiting for auto-update to get
      * round to it (#88). Constructed here, in the Activity, because it
@@ -69,6 +75,7 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) {
             invites.offer(intent?.dataString)
             magicLinks.offer(intent?.dataString)
+            listOpens.offer(listIdFrom(intent))
         }
         updates = AppUpdates(this)
         setContent {
@@ -101,5 +108,11 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         invites.offer(intent.dataString)
         magicLinks.offer(intent.dataString)
+        listOpens.offer(listIdFrom(intent))
     }
+
+    private fun listIdFrom(intent: Intent?): String? =
+        intent
+            ?.takeIf { it.action == ListNotifier.ACTION_OPEN_LIST }
+            ?.getStringExtra(ListNotifier.EXTRA_LIST_ID)
 }

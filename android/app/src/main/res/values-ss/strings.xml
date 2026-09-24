@@ -151,4 +151,28 @@
     <string name="help_account_title">I-akhawunti yakho</string>
     <string name="help_account_body">Ayikho iphasiwedi. Ngena ngelikheli lakho le-imeyili futsi sitakutfumelela sichumanisi nelikhodi lemanombolo la-6 — sebentisa nome ngukuphi lokulula. Ngena nge-imeyili lefanako efonini yakho nasewebhu kute ubone luhlu lolufanako.</string>
     <string name="share_how_it_works">Kwabelana kusebenta njani</string>
+
+    <!-- List notifications (ADR 0012). The bell on a shared list, the dialog
+         behind it, and the notification itself: `notify_line_*` take who
+         (%1$s, the part of their email before the @) and the item (%2$s).
+         `sync_*` is the quiet notification Android shows while a wake-up
+         sync runs, on Android 11 and older only. -->
+    <string name="cd_notifications">Tatiso</string>
+    <string name="notify_dialog_title">Ngatise nangabe lomunye umuntfu…</string>
+    <string name="notify_event_added">Wengeta intfo</string>
+    <string name="notify_event_checked">Umaka intfo, noma ayibuyisele</string>
+    <string name="notify_event_deleted">Usula intfo</string>
+    <string name="notify_event_updated">Ushintja libito noma afake inkhanyeti entfweni</string>
+    <string name="notify_blocked">Tatiso te-Die Lys tivaliwe kulelifoni. Tivule kutilungiselelo telifoni yakho kute utitfole.</string>
+    <string name="notify_channel_name">Tinshintjo teluhlu</string>
+    <string name="notify_channel_description">Loko labanye bantfu labakushintjako etinhlwini lokhetse kuva ngato.</string>
+    <string name="notify_line_added">%1$s wengete %2$s</string>
+    <string name="notify_line_checked">%1$s umake %2$s</string>
+    <string name="notify_line_unchecked">%1$s ubuyisele %2$s</string>
+    <string name="notify_line_deleted">%1$s usule %2$s</string>
+    <string name="notify_line_updated">%1$s ushintje %2$s</string>
+    <string name="notify_someone">Lotsite</string>
+    <string name="notify_more">+%1$d letinye</string>
+    <string name="sync_channel_name">Kuvumelanisa</string>
+    <string name="sync_notification">Kuvuselelwa tinhlu takho</string>
 </resources>

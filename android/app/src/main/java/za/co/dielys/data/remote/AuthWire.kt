@@ -155,6 +155,44 @@ data class Membership(
      * that predates the field — means ask.
      */
     val maxSeq: Long? = null,
+    /**
+     * Which kinds of change on this list this account wants a notification for
+     * ([NotifyEvent]). Empty — the default, and what an older server's answer
+     * reads as — means none.
+     */
+    val notify: List<String> = emptyList(),
+)
+
+/**
+ * The kinds of change a member can ask to be notified about (PROTOCOL.md
+ * "Notifications for a list"). Strings on the wire rather than an enum, so a
+ * kind a newer server knows and this build does not is dropped by [known]
+ * instead of failing the whole memberships answer (F2).
+ */
+object NotifyEvent {
+    const val ADDED = "added"
+    const val CHECKED = "checked"
+    const val DELETED = "deleted"
+    const val UPDATED = "updated"
+
+    /** In the order the protocol lists them — and a settings screen shows them. */
+    val ALL = listOf(ADDED, CHECKED, DELETED, UPDATED)
+
+    /** [events] reduced to the kinds this build understands, in [ALL]'s order. */
+    fun known(events: Collection<String>): List<String> = ALL.filter { it in events }
+}
+
+/** `POST /auth/memberships/notify` — replaces this account's choice for one list. */
+@Serializable
+data class SetListNotifyRequest(
+    val listId: String,
+    val events: List<String>,
+)
+
+@Serializable
+data class SetListNotifyResponse(
+    val listId: String,
+    val events: List<String>,
 )
 
 /** `POST /auth/memberships/position` — one list, moved in the caller's own order. */

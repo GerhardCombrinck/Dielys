@@ -7,8 +7,11 @@ import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.local.OutboxEntity
 import za.co.dielys.data.local.PushTokenStore
 import za.co.dielys.data.local.SyncPrefs
+import za.co.dielys.data.local.encodeNotifyEvents
 import za.co.dielys.data.remote.ApiException
 import za.co.dielys.data.remote.DielysJson
+import za.co.dielys.data.remote.NotifyEvent
+import za.co.dielys.data.remote.SetListNotifyRequest
 import za.co.dielys.data.remote.SetListPositionRequest
 import za.co.dielys.data.remote.SyncApi
 import za.co.dielys.data.remote.SyncSettingsPatch
@@ -197,6 +200,7 @@ class SyncEngine
                             role = membership.role,
                             position = membership.position,
                             memberCount = membership.memberCount,
+                            notifyEvents = encodeNotifyEvents(NotifyEvent.known(membership.notify)),
                         ),
                     )
                     continue
@@ -213,6 +217,15 @@ class SyncEngine
                 }
                 if (known.memberCount != membership.memberCount) {
                     db.lists().setMemberCount(membership.listId, membership.memberCount)
+                }
+                // Adopted from the server — set from another device, or from the
+                // web — unless a choice made here has not reached it yet. The
+                // drain ran first, so a queued row means one made during this run.
+                val notify = encodeNotifyEvents(NotifyEvent.known(membership.notify))
+                if (known.notifyEvents != notify &&
+                    db.outbox().countOfKind(membership.listId, OutboxKind.NOTIFY) == 0
+                ) {
+                    db.lists().setNotify(membership.listId, notify)
                 }
             }
 
@@ -250,6 +263,7 @@ class SyncEngine
                     db.listPurge().tasks(listId)
                     db.listPurge().cursor(listId)
                     db.listPurge().accent(listId)
+                    db.listPurge().activity(listId)
                     db.listPurge().list(listId)
                 }
             }
@@ -329,6 +343,12 @@ class SyncEngine
          * the socket path uses (F5.6). Pages until the server stops truncating.
          */
         suspend fun catchUp(listId: String): SyncOutcome {
+            // A list pulled from nothing — just joined, or a fresh install — is
+            // being read from the start of its history, and history is not news.
+            // Held across every page of this pull: past the first page the cursor
+            // is no longer zero, but the changes are no newer (ADR 0012).
+            var quietThrough = 0L
+            var first = true
             while (true) {
                 val since = db.syncState().cursor(listId) ?: 0L
                 val page =
@@ -338,8 +358,10 @@ class SyncEngine
                         return error.toOutcome()
                     }
 
+                if (first && since == 0L) quietThrough = page.maxSeq
+                first = false
                 applier.noteServerMaxSeq(listId, page.maxSeq)
-                for (change in page.changes) applier.apply(change)
+                for (change in page.changes) applier.apply(change, quietThrough)
 
                 // An empty page that still claims more would loop forever. The
                 // cursor has not moved, so there is nothing to gain by asking again.
@@ -363,6 +385,16 @@ class SyncEngine
                             row.body,
                         )
                     api.setListPosition(request.listId, request.position)
+                    db.outbox().delete(row.id)
+                    SendResult.Done(gap = false)
+                } else if (row.entityType == OutboxKind.NOTIFY) {
+                    // The same shape as ORDER: this account's own membership row.
+                    val request =
+                        DielysJson.wire.decodeFromString(
+                            SetListNotifyRequest.serializer(),
+                            row.body,
+                        )
+                    api.setListNotify(request.listId, request.events)
                     db.outbox().delete(row.id)
                     SendResult.Done(gap = false)
                 } else {

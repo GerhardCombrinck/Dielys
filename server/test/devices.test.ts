@@ -119,7 +119,7 @@ describe("registering a device token (M2)", () => {
 
     const devices = await users().devicesForList(listId);
     expect(devices).toEqual([
-      { deviceId: "phone-a", userId: session.userId, fcmToken: "fcm-token-a" },
+      { deviceId: "phone-a", userId: session.userId, fcmToken: "fcm-token-a", notify: false },
     ]);
   });
 
@@ -260,5 +260,31 @@ describe("list heads (what /auth/memberships reports as maxSeq)", () => {
 
     const membership = await users().checkMembership(session.userId, listId);
     expect(membership?.maxSeq).toBe(13);
+  });
+});
+
+describe("the fan-out knows who asked to be notified (ADR 0012)", () => {
+  it("flags the devices of a member who has subscribed, and no others", async () => {
+    const owner = await signedIn("phone-a");
+    const listId = crypto.randomUUID();
+    await post(`/lists/${listId}`, {}, owner.accessToken);
+    await post("/devices/token", { fcmToken: "token-a" }, owner.accessToken);
+
+    const guestEmail = uniqueEmail();
+    const inviteToken = await mintInvite(listId, owner.accessToken, guestEmail);
+    const guest = await signedIn("phone-b", guestEmail);
+    await post("/invites/accept", { inviteToken }, guest.accessToken);
+    await post("/devices/token", { fcmToken: "token-b" }, guest.accessToken);
+
+    const set = await post(
+      "/auth/memberships/notify",
+      { listId, events: ["added"] },
+      guest.accessToken,
+    );
+    expect(set.status).toBe(200);
+
+    const devices = await users().devicesForList(listId);
+    const flags = Object.fromEntries(devices.map((d) => [d.deviceId, d.notify]));
+    expect(flags).toEqual({ "phone-a": false, "phone-b": true });
   });
 });

@@ -188,4 +188,28 @@
     <string name="help_account_title">Your account</string>
     <string name="help_account_body">There is no password. Sign in with your email address and we send you a link and a 6-digit code — use whichever is easier. Sign in with the same email on your phone and on the web to see the same lists.</string>
     <string name="share_how_it_works">How sharing works</string>
+
+    <!-- List notifications (ADR 0012). The bell on a shared list, the dialog
+         behind it, and the notification itself: `notify_line_*` take who
+         (%1$s, the part of their email before the @) and the item (%2$s).
+         `sync_*` is the quiet notification Android shows while a wake-up
+         sync runs, on Android 11 and older only. -->
+    <string name="cd_notifications">Notifications</string>
+    <string name="notify_dialog_title">Notify me when someone else…</string>
+    <string name="notify_event_added">Adds an item</string>
+    <string name="notify_event_checked">Ticks an item off, or back on</string>
+    <string name="notify_event_deleted">Deletes an item</string>
+    <string name="notify_event_updated">Renames or stars an item</string>
+    <string name="notify_blocked">Notifications from Die Lys are turned off on this phone. Turn them on in your phone\'s settings to get these.</string>
+    <string name="notify_channel_name">List changes</string>
+    <string name="notify_channel_description">What other people change on the lists you asked to hear about.</string>
+    <string name="notify_line_added">%1$s added %2$s</string>
+    <string name="notify_line_checked">%1$s ticked off %2$s</string>
+    <string name="notify_line_unchecked">%1$s unticked %2$s</string>
+    <string name="notify_line_deleted">%1$s deleted %2$s</string>
+    <string name="notify_line_updated">%1$s changed %2$s</string>
+    <string name="notify_someone">Someone</string>
+    <string name="notify_more">+%1$d more</string>
+    <string name="sync_channel_name">Syncing</string>
+    <string name="sync_notification">Updating your lists</string>
 </resources>

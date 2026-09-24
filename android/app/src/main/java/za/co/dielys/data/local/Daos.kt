@@ -84,6 +84,13 @@ interface ListDao {
         id: String,
         memberCount: Int,
     )
+
+    /** This account's notification choice for one list (ADR 0012), already encoded. */
+    @Query("UPDATE lists SET notify_events = :notifyEvents WHERE id = :id")
+    suspend fun setNotify(
+        id: String,
+        notifyEvents: String,
+    )
 }
 
 /**
@@ -116,6 +123,35 @@ interface ListPurgeDao {
 
     @Query("DELETE FROM lists WHERE id = :listId")
     suspend fun list(listId: String)
+
+    /** Nothing left to notify about on a list this account cannot see. */
+    @Query("DELETE FROM list_activity WHERE list_id = :listId")
+    suspend fun activity(listId: String)
+}
+
+/** What a list's notification says (ADR 0012). See [ListActivityEntity]. */
+@Dao
+interface ListActivityDao {
+    /**
+     * Replaces the row for the same (list, task, kind), which is how a later
+     * change to the same task supersedes an earlier line rather than adding one.
+     * The replacement is unposted, so it alerts again — it is news.
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(row: ListActivityEntity)
+
+    @Query("SELECT * FROM list_activity WHERE list_id = :listId ORDER BY seq, id")
+    suspend fun forList(listId: String): List<ListActivityEntity>
+
+    /** Lists with at least one line nobody has been shown yet. */
+    @Query("SELECT DISTINCT list_id FROM list_activity WHERE posted = 0 ORDER BY list_id")
+    suspend fun listsWithNews(): List<String>
+
+    @Query("UPDATE list_activity SET posted = 1 WHERE list_id = :listId")
+    suspend fun markPosted(listId: String)
+
+    @Query("DELETE FROM list_activity WHERE list_id = :listId")
+    suspend fun clear(listId: String)
 }
 
 /** A list and its colour on this phone, if it has one. See [ListAccentDao.observeLists]. */
@@ -298,6 +334,16 @@ interface OutboxDao {
      */
     @Query("SELECT COUNT(*) FROM outbox WHERE list_id = :listId")
     suspend fun countForList(listId: String): Int
+
+    /** Live rows of one kind for one list — whether a local choice has yet to
+     * reach the server, so a stale server answer does not overwrite it. */
+    @Query(
+        "SELECT COUNT(*) FROM outbox WHERE list_id = :listId AND entity_type = :kind AND dead = 0",
+    )
+    suspend fun countOfKind(
+        listId: String,
+        kind: String,
+    ): Int
 
     @Query("UPDATE outbox SET attempts = attempts + 1, last_error = :error WHERE id = :id")
     suspend fun recordFailure(

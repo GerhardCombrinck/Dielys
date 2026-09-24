@@ -54,6 +54,17 @@ interface ChangeEnvelopeBase {
   idempotencyKey: string; // F5.2 — redelivery of the same key is a no-op
   deviceId: string;
   serverTimestamp: string; // ISO 8601 — the only clock that matters, F5.9
+  /**
+   * The account that made the write, as the Worker authenticated it — never
+   * taken from the mutation, which a client could fill with anything. What
+   * lets a phone tell somebody else's change from its own account's change
+   * made on another device, which `deviceId` alone cannot (PROTOCOL.md
+   * "Notifications for a list").
+   *
+   * Null on a change written before this field existed. A reader treats null
+   * as "unknown author", never as "somebody else".
+   */
+  authorUserId: string | null;
 }
 
 export interface TaskChange extends ChangeEnvelopeBase {

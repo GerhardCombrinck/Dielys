@@ -21,7 +21,14 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { catchUp, claimList, getMemberships, mutate, setListPosition } from "../api/lists.js";
+import {
+  catchUp,
+  claimList,
+  getMemberships,
+  mutate,
+  setListNotify,
+  setListPosition,
+} from "../api/lists.js";
 import { IdbPersistence, loadAll, openDb, resetFor } from "./idb.js";
 import { Replica } from "./replica.js";
 import { Repository } from "./repository.js";
@@ -42,6 +49,7 @@ const api: SyncApi = {
   mutate,
   claim: claimList,
   setListPosition: (request) => setListPosition(request.listId, request.position),
+  setListNotify: (request) => setListNotify(request.listId, request.events),
 };
 
 interface Control {

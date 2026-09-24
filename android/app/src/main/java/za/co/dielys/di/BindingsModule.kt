@@ -19,6 +19,10 @@ import za.co.dielys.data.local.SessionStore
 import za.co.dielys.data.local.StringProvider
 import za.co.dielys.data.local.SyncPrefs
 import za.co.dielys.data.local.UiPrefs
+import za.co.dielys.data.notify.ChangeActivity
+import za.co.dielys.data.notify.ListActivityRecorder
+import za.co.dielys.data.notify.ListNotifications
+import za.co.dielys.data.notify.ListNotifier
 import za.co.dielys.data.remote.AccessTokens
 import za.co.dielys.data.remote.AccountApi
 import za.co.dielys.data.remote.AuthApi
@@ -71,6 +75,14 @@ abstract class BindingsModule {
     @Binds
     @Singleton
     abstract fun accountIdentity(impl: SessionStore): AccountIdentity
+
+    @Binds
+    @Singleton
+    abstract fun changeActivity(impl: ListActivityRecorder): ChangeActivity
+
+    @Binds
+    @Singleton
+    abstract fun listNotifications(impl: ListNotifier): ListNotifications
 
     /**
      * Same store, second face. The sync engine and the push handler need the two

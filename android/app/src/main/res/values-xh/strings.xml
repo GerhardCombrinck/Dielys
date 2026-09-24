@@ -151,4 +151,28 @@
     <string name="help_account_title">Iakhawunti yakho</string>
     <string name="help_account_body">Akukho phaswedi. Ngena ngedilesi yakho ye-imeyile kwaye siya kukuthumela ikhonkco nekhowudi yamanani ama-6 — sebenzisa nokuba yeyiphi elula. Ngena nge-imeyile efanayo kwifowuni yakho nakwiwebhu ukuze ubone uluhlu olufanayo.</string>
     <string name="share_how_it_works">Indlela ukwabelana okusebenza ngayo</string>
+
+    <!-- List notifications (ADR 0012). The bell on a shared list, the dialog
+         behind it, and the notification itself: `notify_line_*` take who
+         (%1$s, the part of their email before the @) and the item (%2$s).
+         `sync_*` is the quiet notification Android shows while a wake-up
+         sync runs, on Android 11 and older only. -->
+    <string name="cd_notifications">Izaziso</string>
+    <string name="notify_dialog_title">Ndazise xa omnye umntu…</string>
+    <string name="notify_event_added">Engeza into</string>
+    <string name="notify_event_checked">Ephawula into, okanye eyibuyisela</string>
+    <string name="notify_event_deleted">Ecima into</string>
+    <string name="notify_event_updated">Etshintsha igama okanye efaka inkwenkwezi entweni</string>
+    <string name="notify_blocked">Izaziso zeDie Lys zicinyiwe kule fowuni. Zivule kuSeto lwefowuni yakho ukuze uzifumane.</string>
+    <string name="notify_channel_name">Utshintsho loluhlu</string>
+    <string name="notify_channel_description">Oko abanye abantu bakutshintshayo kwizintlu okhethe ukuva ngazo.</string>
+    <string name="notify_line_added">%1$s wongeze %2$s</string>
+    <string name="notify_line_checked">%1$s uphawule %2$s</string>
+    <string name="notify_line_unchecked">%1$s ubuyisele %2$s</string>
+    <string name="notify_line_deleted">%1$s ucime %2$s</string>
+    <string name="notify_line_updated">%1$s utshintshe %2$s</string>
+    <string name="notify_someone">Umntu othile</string>
+    <string name="notify_more">+%1$d ezinye</string>
+    <string name="sync_channel_name">Ukuvumelanisa</string>
+    <string name="sync_notification">Ihlaziya izintlu zakho</string>
 </resources>

@@ -56,6 +56,7 @@ export function useListsOverview(): ListsOverview {
             position: local.position,
             memberCount: local.memberCount,
             maxSeq: null,
+            notify: local.notify,
           },
           title: local.list !== null && local.list.deletedAt === null ? local.list.title : null,
           itemCount: activeTasks(replica.tasksIn(local.id)).length,

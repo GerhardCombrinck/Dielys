@@ -49,7 +49,7 @@ class PushHandler
          */
         fun onMessage(data: Map<String, String>): Boolean {
             if (WakeHint.from(data) == null) return false
-            scheduler.requestSync()
+            scheduler.requestUrgentSync()
             return true
         }
     }

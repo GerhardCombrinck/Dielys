@@ -143,6 +143,51 @@ export interface Membership {
    * write since this field was added). Null means "ask", never "nothing new".
    */
   maxSeq: number | null;
+  /**
+   * Which kinds of change on this list this member wants a notification for
+   * (PROTOCOL.md "Notifications for a list"). Empty — the default for every
+   * membership, a new one included — means none. Per member, like `position`:
+   * the two people on a shared list each choose their own.
+   *
+   * An older server's answer has no field, which a client treats as empty.
+   */
+  notify: NotifyEvent[];
+}
+
+/**
+ * A kind of change to a task somebody else made on a shared list:
+ *
+ * - `added` — a task this client had never seen.
+ * - `checked` — ticked off, or unticked again.
+ * - `deleted` — tombstoned (F5.3).
+ * - `updated` — renamed, or starred/unstarred.
+ *
+ * A move (position only) is none of them, and never notifies. A reader that
+ * meets a value it does not know ignores it rather than rejecting the whole
+ * membership (F2).
+ */
+export type NotifyEvent = "added" | "checked" | "deleted" | "updated";
+
+/** Every `NotifyEvent`, in the order a settings screen lists them. */
+export const NOTIFY_EVENTS: readonly NotifyEvent[] = ["added", "checked", "deleted", "updated"];
+
+/**
+ * `POST /auth/memberships/notify` — replaces the caller's notification choice
+ * for one list. `events` is the whole new set, not a delta; `[]` turns
+ * notifications off. Duplicates and unknown values are `malformed`.
+ *
+ * No idempotency key, for the reason `SetListPositionRequest` gives: last write
+ * wins on a value only the caller owns, so a retried identical body is the same
+ * state (F5.2 has nothing to protect).
+ */
+export interface SetListNotifyRequest {
+  listId: string;
+  events: NotifyEvent[];
+}
+
+export interface SetListNotifyResponse {
+  listId: string;
+  events: NotifyEvent[];
 }
 
 export interface MembershipsResponse {

@@ -28,11 +28,11 @@ complexity:
   # per user action. Splitting it by count would put related writes in different
   # files without making any of them simpler. `SyncApi`/`HttpSyncApi` are the same
   # shape one level down — one function per endpoint this authenticated transport
-  # reaches, `/auth/sync-settings` (ADR 0010) being the newest.
+  # reaches, `/auth/memberships/notify` (ADR 0012) being the newest.
   TooManyFunctions:
     thresholdInFiles: 20
-    thresholdInClasses: 21
-    thresholdInInterfaces: 13
+    thresholdInClasses: 22
+    thresholdInInterfaces: 14
     thresholdInObjects: 20
 
 style:

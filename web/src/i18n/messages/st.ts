@@ -173,4 +173,12 @@ export const st: Messages = {
   "help.accountBody":
     "Ha ho na phasewete. Kena ka aterese ya hao ya imeile mme re o romella lehokela le khoutu ya dinomoro tse 6 — sebedisa efe kapa efe e bonolo. Kena ka imeile e tshwanang fonong ya hao le webong ho bona manane a tshwanang.",
   "sharing.howItWorks": "Kamoo ho arolelana ho sebetsang kateng",
+  "list.notifications": "Ditsebiso",
+  "notify.title": "Ntsebise ha motho e mong…",
+  "notify.added": "A eketsa ntho",
+  "notify.checked": "A tshwaya ntho, kapa a e kgutlisa",
+  "notify.deleted": "A hlakola ntho",
+  "notify.updated": "A fetola lebitso kapa a beha ntho naledi",
+  "notify.phoneOnly": "Di fihla mohaleng wa hao, ho app ya Die Lys. Sebadi sena ha se di bontshe.",
+  "notify.save": "Boloka",
 };

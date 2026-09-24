@@ -1,11 +1,13 @@
 import { DurableObject } from "cloudflare:workers";
-import type {
-  AuthErrorCode,
-  ListMember,
-  Membership,
-  MembershipRole,
-  SyncSettings,
-  SyncSettingsPatch,
+import {
+  type AuthErrorCode,
+  type ListMember,
+  type Membership,
+  type MembershipRole,
+  NOTIFY_EVENTS,
+  type NotifyEvent,
+  type SyncSettings,
+  type SyncSettingsPatch,
 } from "@dielys/protocol";
 import { INVITE_TOKEN_TTL_SECONDS, signInviteToken } from "../auth/jwt.js";
 import { generateMagicCode, hashMagicCode } from "../auth/magiccode.js";
@@ -37,6 +39,7 @@ import {
   WS_TICKET_MINT_PER_CLIENT,
 } from "../auth/ratelimit.js";
 import { normalizeMagicCode } from "../domain/magiccode.js";
+import { planWake } from "../domain/wake.js";
 import {
   type EmailSender,
   isEmailDelivered,
@@ -57,7 +60,6 @@ import { applyPendingMigrations, USERS_MIGRATIONS } from "../storage/migrations.
 import {
   countListMembers,
   countUsers,
-  type DeviceRow,
   deleteAccountDeletionRequest,
   deleteAccountDeletionRequestsForUser,
   deleteDevice,
@@ -81,6 +83,7 @@ import {
   insertRefreshToken,
   insertUser,
   insertWsTicket,
+  type ListDeviceRow,
   markRefreshTokenUsed,
   markWsTicketUsed,
   recordListHead,
@@ -102,6 +105,7 @@ import {
   selectUserByEmail,
   selectUserById,
   selectWsTicket,
+  updateMembershipNotify,
   updateMembershipPosition,
   updateMembershipRole,
   updateSyncSettings,
@@ -983,6 +987,30 @@ export class UsersRoom extends DurableObject {
     return { ok: true, value: { listId, position } };
   }
 
+  /**
+   * Replaces this user's notification choice for one list (ADR 0012,
+   * PROTOCOL.md "Notifications for a list"). The same shape as
+   * [setListPosition], for the same reasons: one value the caller alone owns,
+   * last write wins, `forbidden` for a list they are not on (L3).
+   */
+  async setListNotify(
+    userId: string,
+    listId: string,
+    events: NotifyEvent[],
+  ): Promise<UsersResult<{ listId: string; events: NotifyEvent[] }>> {
+    let changed = false;
+    this.ctx.storage.transactionSync(() => {
+      changed = updateMembershipNotify(this.sql, userId, listId, events);
+    });
+    if (!changed) {
+      log("warn", "usersroom.notify.not-a-member", { userId, listId });
+      return { ok: false, code: "forbidden" };
+    }
+    // Answered in the protocol's order, the same way `/auth/memberships` reads
+    // it back, so a client comparing the two never sees a spurious difference.
+    return { ok: true, value: { listId, events: NOTIFY_EVENTS.filter((e) => events.includes(e)) } };
+  }
+
   /** The caller's background-sync setting (ADR 0010, PROTOCOL.md
    *  "Background sync setting"). `not-found` for a userId that does not
    *  exist — the access token was valid, so this would mean the account was
@@ -1121,7 +1149,7 @@ export class UsersRoom extends DurableObject {
   /** Every registered device on this list. Not an authorization check — see
    * `selectDevicesForList`. Exposed so the fan-out can be tested without a
    * network. */
-  async devicesForList(listId: string): Promise<DeviceRow[]> {
+  async devicesForList(listId: string): Promise<ListDeviceRow[]> {
     return selectDevicesForList(this.sql, listId);
   }
 
@@ -1143,18 +1171,32 @@ export class UsersRoom extends DurableObject {
    * client would have made a write slower in order to make it no more correct.
    * The same is true of the head, which is why clients treat it as a lower
    * bound.
+   *
+   * `authorUserId` decides priority, never who is woken (ADR 0012): a device
+   * whose account wants notifications for this list, and did not make the
+   * write, goes `high`, because it is about to show something; every other
+   * device goes `normal`. Android demotes an app whose high-priority pushes
+   * end in no notification, so spending `high` on a silent sync would slowly
+   * cost the pushes that do matter.
    */
-  async listChanged(listId: string, seq: number, connected: string[]): Promise<void> {
+  async listChanged(
+    listId: string,
+    seq: number,
+    connected: string[],
+    authorUserId: string | null = null,
+  ): Promise<void> {
     recordListHead(this.sql, listId, seq);
 
     const sender = this.fcm();
     if (sender === null) return;
 
     const already = new Set(connected);
-    const targets: WakeTarget[] = selectDevicesForList(this.sql, listId)
-      .filter((device) => !already.has(device.deviceId))
-      .slice(0, MAX_WAKE_TARGETS)
-      .map((device) => ({ deviceId: device.deviceId, fcmToken: device.fcmToken }));
+    const targets: WakeTarget[] = planWake(
+      selectDevicesForList(this.sql, listId),
+      already,
+      authorUserId,
+      MAX_WAKE_TARGETS,
+    );
 
     // Logged on both sides of the decision, because a successful send says
     // nothing on its own: without this, "no wake in the log" cannot be told
@@ -1165,7 +1207,12 @@ export class UsersRoom extends DurableObject {
       return;
     }
 
-    log("info", "usersroom.wake.sent", { listId, seq, count: targets.length });
+    log("info", "usersroom.wake.sent", {
+      listId,
+      seq,
+      count: targets.length,
+      high: targets.filter((target) => target.priority === "high").length,
+    });
 
     this.ctx.waitUntil(
       sender.wake(targets, wakeData(listId, seq), Date.now()).then((gone) => {

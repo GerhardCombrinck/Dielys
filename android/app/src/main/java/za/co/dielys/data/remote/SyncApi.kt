@@ -48,6 +48,16 @@ interface SyncApi {
     )
 
     /**
+     * `POST /auth/memberships/notify` — which changes on [listId] this account
+     * wants a notification for (ADR 0012). Last write wins on this account's own
+     * membership row, like [setListPosition]; `[]` turns it off.
+     */
+    suspend fun setListNotify(
+        listId: String,
+        events: List<String>,
+    )
+
+    /**
      * `POST /lists/{listId}/invite`. Owner only (L3) — a member asking gets a
      * 403, which arrives as [ApiException.Rejected].
      *

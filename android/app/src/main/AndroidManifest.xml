@@ -90,6 +90,15 @@
         </service>
 
         <!--
+            A list's notification was swiped away (ADR 0012): its lines are
+            cleared so the next change starts a fresh one. Only this app's own
+            PendingIntent reaches it, so it is not exported.
+        -->
+        <receiver
+            android:name=".data.notify.NotificationDismissedReceiver"
+            android:exported="false" />
+
+        <!--
             WorkManager is configured by DielysApplication instead, so its worker
             factory comes from Hilt and the drain worker can reach the sync engine.
         -->

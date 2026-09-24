@@ -5,6 +5,7 @@ import za.co.dielys.data.remote.DielysJson
 import za.co.dielys.data.remote.ListMutation
 import za.co.dielys.data.remote.ListPatch
 import za.co.dielys.data.remote.Mutation
+import za.co.dielys.data.remote.SetListNotifyRequest
 import za.co.dielys.data.remote.SetListPositionRequest
 import za.co.dielys.data.remote.TaskMutation
 import za.co.dielys.data.remote.TaskPatch
@@ -32,6 +33,13 @@ object OutboxKind {
      * and the other member never hears about it.
      */
     const val ORDER = "order"
+
+    /**
+     * `POST /auth/memberships/notify` — which changes on a list this account
+     * wants a notification for (ADR 0012). Queued for the same reasons as
+     * [ORDER], and like it goes to `UsersRoom`, never to the changelog.
+     */
+    const val NOTIFY = "notify"
 }
 
 /**
@@ -104,6 +112,26 @@ class OutboxFactory
                 listId,
                 Uuid7.generate(clock.nowMillis()),
                 DielysJson.outbound.encodeToString(SetListPositionRequest.serializer(), request),
+            )
+        }
+
+        /**
+         * This account's notification choice for [listId], whole. Its entity id
+         * is not the list's: the applier treats a queued row for an entity as a
+         * newer local edit and skips writing that entity's incoming changes, and
+         * a notification choice is not an edit to the list.
+         */
+        fun notify(
+            listId: String,
+            events: List<String>,
+        ): OutboxEntity {
+            val request = SetListNotifyRequest(listId = listId, events = events)
+            return row(
+                OutboxKind.NOTIFY,
+                listId,
+                "notify:$listId",
+                Uuid7.generate(clock.nowMillis()),
+                DielysJson.outbound.encodeToString(SetListNotifyRequest.serializer(), request),
             )
         }
 

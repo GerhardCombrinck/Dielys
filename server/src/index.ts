@@ -27,6 +27,7 @@ import {
   validateRegisterRequest,
   validateRequestAccountDeletionRequest,
   validateRequestMagicLinkRequest,
+  validateSetListNotifyRequest,
   validateSetListPositionRequest,
   validateSyncSettingsPatch,
   validateVerifyMagicCodeRequest,
@@ -128,6 +129,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
         return await handleMemberships(request, env);
       case "/auth/memberships/position":
         return await handleSetListPosition(request, env);
+      case "/auth/memberships/notify":
+        return await handleSetListNotify(request, env);
       case "/auth/ws-ticket":
         return await handleMintWsTicket(request, env, now);
       case "/auth/sync-settings":
@@ -212,6 +215,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
         listId,
         action,
         auth.value.membership.role,
+        auth.value.principal.userId,
         // A ticket's bound device id is trustworthy; a client-supplied
         // ?deviceId= alongside a bearer token is not cross-checked against
         // the token today and this does not change that (out of scope).
@@ -573,6 +577,34 @@ async function handleSetListPosition(request: Request, env: Env): Promise<Respon
     auth.value.userId,
     parsed.value.listId,
     parsed.value.position,
+  );
+  // 403 for a list the caller is not on, never 404 (L3).
+  if (!result.ok) return errorResponse(result.code, 403);
+
+  return Response.json(result.value);
+}
+
+/**
+ * Sets which changes on one list the caller wants a notification for
+ * (PROTOCOL.md "Notifications for a list", ADR 0012). Like the list order it
+ * touches only the caller's own membership row and never reaches a `ListRoom`.
+ */
+async function handleSetListNotify(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") return errorResponse("malformed", 405);
+
+  const auth = await authenticate(request, env);
+  if (!auth.ok) return errorResponse(auth.code, auth.status);
+
+  const body = await readJson(request);
+  if (body === null) return errorResponse("malformed", 400);
+
+  const parsed = validateSetListNotifyRequest(body);
+  if (!parsed.ok) return errorResponse("malformed", 400);
+
+  const result = await usersRoom(env).setListNotify(
+    auth.value.userId,
+    parsed.value.listId,
+    parsed.value.events,
   );
   // 403 for a list the caller is not on, never 404 (L3).
   if (!result.ok) return errorResponse(result.code, 403);
@@ -1033,12 +1065,17 @@ function doRequest(
   listId: string,
   action: string,
   role: MembershipRole,
+  userId: string,
   deviceId?: string,
 ): Request {
   const target = new URL(url);
   target.pathname = `/${action}`;
   target.searchParams.set("listId", listId);
   target.searchParams.set("role", role);
+  // Set here, from the authenticated principal, and never read from the
+  // client's own query string: `set` replaces anything a caller put there, so
+  // a change can only ever be attributed to the account that made it.
+  target.searchParams.set("userId", userId);
   if (deviceId !== undefined) target.searchParams.set("deviceId", deviceId);
   return new Request(target, request);
 }

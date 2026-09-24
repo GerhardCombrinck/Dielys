@@ -8,6 +8,8 @@ export interface ChangeRow {
   seq: number;
   idempotencyKey: string;
   deviceId: string;
+  /** Null on a change written before list migration 0003. */
+  userId: string | null;
   serverTimestamp: string;
   entityType: EntityType;
   entityJson: string;
@@ -15,11 +17,12 @@ export interface ChangeRow {
 
 export function insertChange(sql: SqlStorage, row: ChangeRow): void {
   sql.exec(
-    `INSERT INTO changes (seq, idempotency_key, device_id, server_timestamp, entity_type, entity_json)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO changes (seq, idempotency_key, device_id, user_id, server_timestamp, entity_type, entity_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
     row.seq,
     row.idempotencyKey,
     row.deviceId,
+    row.userId,
     row.serverTimestamp,
     row.entityType,
     row.entityJson,
@@ -33,7 +36,7 @@ export function insertChange(sql: SqlStorage, row: ChangeRow): void {
  */
 export function selectChangesSince(sql: SqlStorage, since: number, limit: number): ChangeRow[] {
   const cursor = sql.exec(
-    `SELECT seq, idempotency_key, device_id, server_timestamp, entity_type, entity_json
+    `SELECT seq, idempotency_key, device_id, user_id, server_timestamp, entity_type, entity_json
        FROM changes WHERE seq > ? ORDER BY seq LIMIT ?`,
     since,
     limit,
@@ -44,7 +47,7 @@ export function selectChangesSince(sql: SqlStorage, since: number, limit: number
 export function selectChangeByIdempotencyKey(sql: SqlStorage, key: string): ChangeRow | null {
   const rows = [
     ...sql.exec(
-      `SELECT seq, idempotency_key, device_id, server_timestamp, entity_type, entity_json
+      `SELECT seq, idempotency_key, device_id, user_id, server_timestamp, entity_type, entity_json
          FROM changes WHERE idempotency_key = ?`,
       key,
     ),
@@ -63,6 +66,7 @@ function toChangeRow(row: Record<string, SqlStorageValue>): ChangeRow {
     seq: Number(row.seq),
     idempotencyKey: String(row.idempotency_key),
     deviceId: String(row.device_id),
+    userId: row.user_id === null || row.user_id === undefined ? null : String(row.user_id),
     serverTimestamp: String(row.server_timestamp),
     // Written by insertChange from a validated EntityType; SQLite has no enum
     // to carry that across the round trip.
@@ -83,6 +87,7 @@ export function toEnvelope(row: ChangeRow, listId: string): ChangeEnvelope {
     idempotencyKey: row.idempotencyKey,
     deviceId: row.deviceId,
     serverTimestamp: row.serverTimestamp,
+    authorUserId: row.userId,
   };
   // The JSON was serialized by this server from a Task or TaskList that the
   // domain layer had already produced; entity_type says which.

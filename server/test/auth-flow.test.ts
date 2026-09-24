@@ -1199,7 +1199,7 @@ describe("memberships", () => {
       memberships: Array<{ listId: string; position: string | null }>;
     };
     expect(partnerLists.memberships).toEqual([
-      { listId, role: "member", position: null, memberCount: 2, maxSeq: null },
+      { listId, role: "member", position: null, memberCount: 2, maxSeq: null, notify: [] },
     ]);
   });
 
@@ -1487,5 +1487,131 @@ describe("end to end: two people, one list", () => {
     const body = (await partnerView.json()) as { changes: Array<{ entity: { title: string } }> };
     expect(body.changes).toHaveLength(1);
     expect(body.changes[0]?.entity.title).toBe("Melk");
+  });
+});
+
+describe("notifications for a list (ADR 0012)", () => {
+  async function sharedList(): Promise<{
+    listId: string;
+    owner: TokenPair;
+    partner: TokenPair;
+  }> {
+    const ownerEmail = uniqueEmail();
+    const partnerEmail = uniqueEmail();
+    await createUser(ownerEmail);
+    await createUser(partnerEmail);
+    const owner = await login(ownerEmail, "device-a");
+    const partner = await login(partnerEmail, "device-b");
+    const listId = crypto.randomUUID();
+    await post(`/lists/${listId}`, {}, owner.accessToken);
+    const invite = await mintInvite(listId, owner.accessToken, partnerEmail);
+    await post("/invites/accept", { inviteToken: invite.token }, partner.accessToken);
+    return { listId, owner, partner };
+  }
+
+  async function notifyFor(listId: string, token: string): Promise<unknown> {
+    const body = (await (await get("/auth/memberships", token)).json()) as {
+      memberships: Array<{ listId: string; notify: unknown }>;
+    };
+    return body.memberships.find((m) => m.listId === listId)?.notify;
+  }
+
+  it("is off for everybody until they choose, a new member included", async () => {
+    const { listId, owner, partner } = await sharedList();
+    expect(await notifyFor(listId, owner.accessToken)).toEqual([]);
+    expect(await notifyFor(listId, partner.accessToken)).toEqual([]);
+  });
+
+  it("stores one member's choice for that member alone", async () => {
+    const { listId, owner, partner } = await sharedList();
+
+    const set = await post(
+      "/auth/memberships/notify",
+      { listId, events: ["checked", "added"] },
+      partner.accessToken,
+    );
+    expect(set.status).toBe(200);
+    // Answered in the protocol's order, whatever order it was sent in.
+    expect(await set.json()).toEqual({ listId, events: ["added", "checked"] });
+
+    expect(await notifyFor(listId, partner.accessToken)).toEqual(["added", "checked"]);
+    expect(await notifyFor(listId, owner.accessToken)).toEqual([]);
+  });
+
+  it("replaces the whole set, and [] turns it off", async () => {
+    const { listId, partner } = await sharedList();
+    await post(
+      "/auth/memberships/notify",
+      { listId, events: ["added", "deleted"] },
+      partner.accessToken,
+    );
+    await post("/auth/memberships/notify", { listId, events: ["updated"] }, partner.accessToken);
+    expect(await notifyFor(listId, partner.accessToken)).toEqual(["updated"]);
+
+    await post("/auth/memberships/notify", { listId, events: [] }, partner.accessToken);
+    expect(await notifyFor(listId, partner.accessToken)).toEqual([]);
+  });
+
+  it("is 403 on a list the caller is not on, never 404 (L3)", async () => {
+    const { listId } = await sharedList();
+    const strangerEmail = uniqueEmail();
+    await createUser(strangerEmail);
+    const stranger = await login(strangerEmail, "device-c");
+
+    const response = await post(
+      "/auth/memberships/notify",
+      { listId, events: ["added"] },
+      stranger.accessToken,
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it("refuses an unknown kind or a duplicate rather than storing part of it (F3)", async () => {
+    const { listId, partner } = await sharedList();
+    for (const events of [["added", "renamed"], ["added", "added"], "added", [1]]) {
+      const response = await post(
+        "/auth/memberships/notify",
+        { listId, events },
+        partner.accessToken,
+      );
+      expect(response.status).toBe(400);
+    }
+    expect(await notifyFor(listId, partner.accessToken)).toEqual([]);
+  });
+
+  it("requires a session and a POST", async () => {
+    const { listId, partner } = await sharedList();
+    expect((await post("/auth/memberships/notify", { listId, events: [] })).status).toBe(401);
+    expect((await get("/auth/memberships/notify", partner.accessToken)).status).toBe(405);
+  });
+
+  it("names the account that made each change, from the session, not the request", async () => {
+    const { listId, owner, partner } = await sharedList();
+    // A client that tries to attribute its write to somebody else is ignored:
+    // the Worker overwrites the parameter with the authenticated account.
+    const written = await post(
+      `/lists/${listId}/mutate?userId=${encodeURIComponent(partner.userId)}`,
+      {
+        type: "mutate",
+        protocolVersion: 2,
+        listId,
+        entityType: "task",
+        entityId: crypto.randomUUID(),
+        idempotencyKey: crypto.randomUUID(),
+        deviceId: "device-a",
+        patch: { title: "Melk", position: "a0" },
+      },
+      owner.accessToken,
+    );
+    expect(written.status).toBe(200);
+    const ack = (await written.json()) as { change: { authorUserId: string | null } };
+    expect(ack.change.authorUserId).toBe(owner.userId);
+
+    const caughtUp = (await (
+      await get(`/lists/${listId}/changes?since=0`, partner.accessToken)
+    ).json()) as {
+      changes: Array<{ authorUserId: string | null }>;
+    };
+    expect(caughtUp.changes.map((c) => c.authorUserId)).toEqual([owner.userId]);
   });
 });

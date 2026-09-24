@@ -181,4 +181,13 @@ export const ve: Messages = {
   "help.accountBody":
     "A hu na phasiwede. Dzhenani nga adresi yaṋu ya imeili nahone ri ni rumela vhukwamani na khoudu ya nomboro dza 6 — shumisani iṅwe na iṅwe i leluwaho. Dzhenani nga imeili i fanaho kha founi yaṋu na kha webu u vhona mitevhe i fanaho.",
   "sharing.howItWorks": "Nḓila ine u kovhekana ha shuma ngayo",
+  "list.notifications": "Ndivhadzo",
+  "notify.title": "Ndivhadzeni musi muṅwe muthu…",
+  "notify.added": "A tshi engedza tshithu",
+  "notify.checked": "A tshi swaya tshithu, kana a tshi vhuedzedza",
+  "notify.deleted": "A tshi thutha tshithu",
+  "notify.updated": "A tshi shandukisa dzina kana a tshi ṋea tshithu naledzi",
+  "notify.phoneOnly":
+    "Dzi swika kha founu yaṋu, kha app ya Die Lys. Buraweza iyi a i dzi sumbedzi.",
+  "notify.save": "Vhulunga",
 };

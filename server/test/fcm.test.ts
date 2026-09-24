@@ -154,7 +154,7 @@ describe("a wake push carries nothing but a hint to sync (M1)", () => {
     const calls = stubFetch(() => new Response(null, { status: 200 }));
 
     await new FcmSender(account).wake(
-      [{ deviceId: "device-a", fcmToken: "token-a" }],
+      [{ deviceId: "device-a", fcmToken: "token-a", priority: "high" }],
       wakeData("list-1", 7),
       Date.now(),
     );
@@ -170,20 +170,27 @@ describe("a wake push carries nothing but a hint to sync (M1)", () => {
     expect(JSON.stringify(body)).not.toMatch(/title|Groceries|notification/i);
   });
 
-  it("asks for high priority so a dozing phone actually wakes", async () => {
+  it("sends each target at the priority it was given (ADR 0012)", async () => {
     const account = await serviceAccount();
     const calls = stubFetch(() => new Response(null, { status: 200 }));
 
     await new FcmSender(account).wake(
-      [{ deviceId: "device-a", fcmToken: "token-a" }],
+      [
+        { deviceId: "device-a", fcmToken: "token-a", priority: "high" },
+        { deviceId: "device-b", fcmToken: "token-b", priority: "normal" },
+      ],
       wakeData("list-1", 1),
       Date.now(),
     );
 
-    const [body] = sends(calls);
-    const message = body?.message as Record<string, unknown> | undefined;
-    expect(message?.android).toEqual({
+    const [high, normal] = sends(calls);
+    expect((high?.message as Record<string, unknown> | undefined)?.android).toEqual({
       priority: "high",
+      ttl: "3600s",
+      collapse_key: "dielys-sync",
+    });
+    expect((normal?.message as Record<string, unknown> | undefined)?.android).toEqual({
+      priority: "normal",
       ttl: "3600s",
       collapse_key: "dielys-sync",
     });
@@ -203,13 +210,17 @@ describe("sending", () => {
 
     await sender.wake(
       [
-        { deviceId: "device-a", fcmToken: "token-a" },
-        { deviceId: "device-b", fcmToken: "token-b" },
+        { deviceId: "device-a", fcmToken: "token-a", priority: "high" },
+        { deviceId: "device-b", fcmToken: "token-b", priority: "high" },
       ],
       wakeData("list-1", 3),
       now,
     );
-    await sender.wake([{ deviceId: "device-a", fcmToken: "token-a" }], wakeData("list-1", 4), now);
+    await sender.wake(
+      [{ deviceId: "device-a", fcmToken: "token-a", priority: "high" }],
+      wakeData("list-1", 4),
+      now,
+    );
 
     expect(calls.filter((call) => call.url === TOKEN_URI)).toHaveLength(1);
     expect(sends(calls)).toHaveLength(3);
@@ -222,7 +233,7 @@ describe("sending", () => {
     stubFetch((url) => new Response(null, { status: url.includes("messages:send") ? 404 : 200 }));
 
     const gone = await new FcmSender(account).wake(
-      [{ deviceId: "device-a", fcmToken: "stale" }],
+      [{ deviceId: "device-a", fcmToken: "stale", priority: "high" }],
       wakeData("list-1", 1),
       Date.now(),
     );
@@ -239,7 +250,7 @@ describe("sending", () => {
     // A 400 or a 500 can be this server's own fault. Deleting a working token
     // over our bug would silently stop waking a phone that is fine.
     const gone = await new FcmSender(account).wake(
-      [{ deviceId: "device-a", fcmToken: "token-a" }],
+      [{ deviceId: "device-a", fcmToken: "token-a", priority: "high" }],
       wakeData("list-1", 1),
       Date.now(),
     );
@@ -254,7 +265,7 @@ describe("sending", () => {
     // failed write, and must not throw at the Durable Object that called it.
     await expect(
       new FcmSender(account).wake(
-        [{ deviceId: "device-a", fcmToken: "token-a" }],
+        [{ deviceId: "device-a", fcmToken: "token-a", priority: "high" }],
         wakeData("list-1", 1),
         Date.now(),
       ),

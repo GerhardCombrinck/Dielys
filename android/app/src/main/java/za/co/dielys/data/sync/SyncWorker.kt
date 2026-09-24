@@ -1,14 +1,19 @@
 package za.co.dielys.data.sync
 
 import android.content.Context
+import androidx.core.app.NotificationChannelCompat
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
+import androidx.work.ForegroundInfo
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -17,7 +22,10 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import za.co.dielys.R
 import za.co.dielys.data.local.SyncPrefs
+import za.co.dielys.data.local.withChosenLocale
+import za.co.dielys.data.notify.ListNotifier
 import za.co.dielys.di.ApplicationScope
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -39,9 +47,16 @@ class SyncWorker
         @Assisted context: Context,
         @Assisted params: WorkerParameters,
         private val engine: SyncEngine,
+        private val notifier: ListNotifier,
     ) : CoroutineWorker(context, params) {
-        override suspend fun doWork(): Result =
-            when (engine.sync()) {
+        override suspend fun doWork(): Result {
+            val outcome = engine.sync()
+            // Whatever this run applied is in Room by now, however it ended — a
+            // run that failed on its last list still brought the others in, and
+            // their news should not wait for the retry (ADR 0012). Not once the
+            // session is gone, though: that is a phone about to be signed out.
+            if (outcome !is SyncOutcome.SessionExpired) notifier.postPending()
+            return when (outcome) {
                 is SyncOutcome.Success -> Result.success()
                 // Retried forever with backoff. There is no "give up" for a pending
                 // mutation: the user made that edit and it has to land eventually.
@@ -50,6 +65,36 @@ class SyncWorker
                 // here would be a slow hot loop against the auth endpoint.
                 is SyncOutcome.SessionExpired -> Result.failure()
             }
+        }
+
+        /**
+         * Expedited work (a wake push, [SyncScheduler.requestUrgentSync]) runs as a
+         * foreground service before Android 12, and a foreground service has to
+         * show something while it runs. A quiet one, on its own low channel.
+         */
+        override suspend fun getForegroundInfo(): ForegroundInfo {
+            val strings = applicationContext.withChosenLocale()
+            val manager = NotificationManagerCompat.from(applicationContext)
+            manager.createNotificationChannel(
+                NotificationChannelCompat
+                    .Builder(SYNC_CHANNEL_ID, NotificationManagerCompat.IMPORTANCE_MIN)
+                    .setName(strings.getString(R.string.sync_channel_name))
+                    .build(),
+            )
+            val notification =
+                NotificationCompat
+                    .Builder(applicationContext, SYNC_CHANNEL_ID)
+                    .setSmallIcon(R.drawable.ic_notification)
+                    .setContentTitle(strings.getString(R.string.sync_notification))
+                    .setSilent(true)
+                    .build()
+            return ForegroundInfo(SYNC_NOTIFICATION_ID, notification)
+        }
+
+        private companion object {
+            const val SYNC_CHANNEL_ID = "sync"
+            const val SYNC_NOTIFICATION_ID = 2
+        }
     }
 
 /**
@@ -63,6 +108,13 @@ class SyncWorker
 interface SyncScheduler {
     /** Called after every local write. Asks for a drain; never waits for one. */
     fun requestSync()
+
+    /**
+     * A wake push arrived (M2). The same drain, asked to run now rather than when
+     * a dozing phone next gets round to it — a notification that turns up an
+     * hour late is not much of one (ADR 0012).
+     */
+    fun requestUrgentSync() = requestSync()
 
     /** A floor under the push path (H3.12). */
     fun schedulePeriodicSync()
@@ -101,17 +153,29 @@ class WorkManagerSyncScheduler
          * `APPEND_OR_REPLACE` keeps a single chain: a burst of ticks while offline
          * enqueues one drain, not twenty.
          */
-        override fun requestSync() {
-            workManager.enqueueUniqueWork(
-                DRAIN_WORK,
-                ExistingWorkPolicy.APPEND_OR_REPLACE,
+        override fun requestSync() = enqueueDrain(expedited = false)
+
+        /**
+         * Expedited, falling back to ordinary work once the app's expedited quota
+         * is spent — never refused. The high-priority push that asks for this is
+         * what lets a dozing phone run it straight away.
+         */
+        override fun requestUrgentSync() = enqueueDrain(expedited = true)
+
+        private fun enqueueDrain(expedited: Boolean) {
+            val request =
                 OneTimeWorkRequestBuilder<SyncWorker>()
                     .setConstraints(NETWORK)
                     .setBackoffCriteria(
                         BackoffPolicy.EXPONENTIAL,
                         BACKOFF_SECONDS,
                         TimeUnit.SECONDS,
-                    ).build(),
+                    )
+            if (expedited) request.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+            workManager.enqueueUniqueWork(
+                DRAIN_WORK,
+                ExistingWorkPolicy.APPEND_OR_REPLACE,
+                request.build(),
             )
         }
 

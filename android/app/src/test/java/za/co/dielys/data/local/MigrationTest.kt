@@ -152,6 +152,52 @@ class MigrationTest {
             db.close()
         }
 
+    @Test
+    fun `4 to 5 keeps every list and its unsent edits, subscribed to nothing`() =
+        runTest {
+            val file = File(context.cacheDir, "migration-test-4-5.db")
+            file.delete()
+
+            createSchema(file, version = 4)
+
+            openAtVersion1(file).use { old ->
+                old.execSQL(
+                    """
+                    INSERT INTO lists
+                      (id, title, background_photo_url, deleted_at, updated_at, role,
+                       position, member_count)
+                    VALUES ('list-1', 'Inkopies', NULL, NULL, '2026-09-01T06:00:00.000Z',
+                            'owner', 'a0', 2)
+                    """.trimIndent(),
+                )
+                old.execSQL(
+                    """
+                    INSERT INTO outbox
+                      (idempotency_key, list_id, entity_type, entity_id, body, created_at,
+                       attempts, dead)
+                    VALUES ('key-1', 'list-1', 'task', 'task-1', '{}', 1, 0, 0)
+                    """.trimIndent(),
+                )
+            }
+
+            val db =
+                Room
+                    .databaseBuilder(context, DielysDatabase::class.java, file.absolutePath)
+                    .addMigrations(*DielysDatabase.MIGRATIONS)
+                    .build()
+
+            val list = db.lists().find("list-1")
+            assertEquals("Inkopies", list?.title)
+            assertEquals(2, list?.memberCount)
+            // Off until chosen (ADR 0012): an upgrade must not start notifying
+            // anybody about anything; the next membership sync brings in a choice
+            // made elsewhere.
+            assertEquals(emptySet<String>(), list?.notify)
+            assertEquals(listOf("key-1"), db.outbox().all().map { it.idempotencyKey })
+            assertEquals(emptyList<ListActivityEntity>(), db.listActivity().forList("list-1"))
+            db.close()
+        }
+
     /** Writes the tables and indices the exported schema for [version] declares. */
     private fun createSchema(
         file: File,

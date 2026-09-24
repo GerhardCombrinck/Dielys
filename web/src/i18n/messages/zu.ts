@@ -172,4 +172,12 @@ export const zu: Messages = {
   "help.accountBody":
     "Ayikho iphasiwedi. Ngena ngekheli lakho le-imeyili futhi sikuthumelela isixhumanisi nekhodi yezinombolo eziyi-6 — sebenzisa noma yikuphi okulula. Ngena nge-imeyili efanayo efonini yakho nakuwebhu ukuze ubone uhlu olufanayo.",
   "sharing.howItWorks": "Kusebenza kanjani ukwabelana",
+  "list.notifications": "Izaziso",
+  "notify.title": "Ngazise uma omunye umuntu…",
+  "notify.added": "Engeza into",
+  "notify.checked": "Emaka into, noma eyibuyisela",
+  "notify.deleted": "Esusa into",
+  "notify.updated": "Eshintsha igama noma efaka inkanyezi entweni",
+  "notify.phoneOnly": "Zifika efonini yakho, ku-app yeDie Lys. Lesi siphequluli asizibonisi.",
+  "notify.save": "Londoloza",
 };

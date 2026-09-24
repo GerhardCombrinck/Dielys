@@ -24,6 +24,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TaskEntity::class,
         OutboxEntity::class,
         SyncStateEntity::class,
+        ListActivityEntity::class,
     ],
     version = DielysDatabase.VERSION,
     exportSchema = true,
@@ -41,8 +42,10 @@ abstract class DielysDatabase : RoomDatabase() {
 
     abstract fun syncState(): SyncStateDao
 
+    abstract fun listActivity(): ListActivityDao
+
     companion object {
-        const val VERSION = 4
+        const val VERSION = 5
         const val NAME = "dielys.db"
 
         /**
@@ -92,6 +95,36 @@ abstract class DielysDatabase : RoomDatabase() {
                 }
             }
 
-        val MIGRATIONS = arrayOf<Migration>(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+        /**
+         * 4 → 5: notifications for a shared list (ADR 0012). This account's
+         * choice per list, defaulted to none — nobody is notified about anything
+         * they did not ask for, and the next membership sync brings in whatever
+         * was chosen elsewhere — and the table a notification is built from,
+         * empty to begin with.
+         */
+        private val MIGRATION_4_5 =
+            object : Migration(4, 5) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "ALTER TABLE lists ADD COLUMN notify_events TEXT NOT NULL DEFAULT ''",
+                    )
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `list_activity` " +
+                            "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                            "`list_id` TEXT NOT NULL, `task_id` TEXT NOT NULL, " +
+                            "`kind` TEXT NOT NULL, `title` TEXT NOT NULL, " +
+                            "`author_user_id` TEXT NOT NULL, `seq` INTEGER NOT NULL, " +
+                            "`posted` INTEGER NOT NULL)",
+                    )
+                    db.execSQL(
+                        "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                            "`index_list_activity_list_id_task_id_kind` " +
+                            "ON `list_activity` (`list_id`, `task_id`, `kind`)",
+                    )
+                }
+            }
+
+        val MIGRATIONS =
+            arrayOf<Migration>(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
     }
 }

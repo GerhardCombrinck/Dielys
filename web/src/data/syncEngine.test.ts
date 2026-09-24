@@ -8,6 +8,7 @@ import type {
   Membership,
   Mutation,
   MutationAck,
+  SetListNotifyRequest,
   SetListPositionRequest,
   Task,
   TaskList,
@@ -64,9 +65,17 @@ class FakeServer implements SyncApi {
       position: null,
       memberCount: 1,
       maxSeq: null,
+      notify: [],
     });
     this.changelogs.set(listId, this.changelogs.get(listId) ?? []);
     return { listId, alreadyMember: false };
+  }
+
+  async setListNotify(request: SetListNotifyRequest): Promise<unknown> {
+    this.check();
+    const m = this.members.get(request.listId);
+    if (m !== undefined) this.members.set(request.listId, { ...m, notify: request.events });
+    return {};
   }
 
   async setListPosition(request: SetListPositionRequest): Promise<unknown> {
@@ -104,6 +113,7 @@ class FakeServer implements SyncApi {
       idempotencyKey: mutation.idempotencyKey,
       deviceId: mutation.deviceId,
       serverTimestamp: updatedAt,
+      authorUserId: "me",
     };
     const existing = [...log].reverse().find((c) => c.entity.id === mutation.entityId)?.entity;
     let change: ChangeEnvelope;
@@ -246,6 +256,7 @@ describe("pulling", () => {
       position: null,
       memberCount: 2,
       maxSeq: null,
+      notify: [],
     });
     const other = (entityId: string, patch: object, type: "task" | "list" = "task") =>
       server.record("shared", {

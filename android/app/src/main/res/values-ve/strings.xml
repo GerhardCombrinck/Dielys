@@ -151,4 +151,28 @@
     <string name="help_account_title">Akhaunthu yaṋu</string>
     <string name="help_account_body">A hu na phasiwede. Dzhenani nga adresi yaṋu ya imeili nahone ri ni rumela vhukwamani na khoudu ya nomboro dza 6 — shumisani iṅwe na iṅwe i leluwaho. Dzhenani nga imeili i fanaho kha founi yaṋu na kha webu u vhona mitevhe i fanaho.</string>
     <string name="share_how_it_works">Nḓila ine u kovhekana ha shuma ngayo</string>
+
+    <!-- List notifications (ADR 0012). The bell on a shared list, the dialog
+         behind it, and the notification itself: `notify_line_*` take who
+         (%1$s, the part of their email before the @) and the item (%2$s).
+         `sync_*` is the quiet notification Android shows while a wake-up
+         sync runs, on Android 11 and older only. -->
+    <string name="cd_notifications">Ndivhadzo</string>
+    <string name="notify_dialog_title">Ndivhadzeni musi muṅwe muthu…</string>
+    <string name="notify_event_added">A tshi engedza tshithu</string>
+    <string name="notify_event_checked">A tshi swaya tshithu, kana a tshi vhuedzedza</string>
+    <string name="notify_event_deleted">A tshi thutha tshithu</string>
+    <string name="notify_event_updated">A tshi shandukisa dzina kana a tshi ṋea tshithu naledzi</string>
+    <string name="notify_blocked">Ndivhadzo dza Die Lys dzo dzimiwa kha founu iyi. Dzi vuleni kha Mivhekanyo ya founu yaṋu uri ni dzi wane.</string>
+    <string name="notify_channel_name">Tshanduko dza mutevhe</string>
+    <string name="notify_channel_description">Zwine vhaṅwe vhathu vha zwi shandukisa kha mitevhe ye na khetha u pfa nga hayo.</string>
+    <string name="notify_line_added">%1$s o engedza %2$s</string>
+    <string name="notify_line_checked">%1$s o swaya %2$s</string>
+    <string name="notify_line_unchecked">%1$s o vhuedzedza %2$s</string>
+    <string name="notify_line_deleted">%1$s o thutha %2$s</string>
+    <string name="notify_line_updated">%1$s o shandukisa %2$s</string>
+    <string name="notify_someone">Muṅwe muthu</string>
+    <string name="notify_more">+%1$d zwiṅwe</string>
+    <string name="sync_channel_name">U ṱanganya</string>
+    <string name="sync_notification">U khwinifha mitevhe yaṋu</string>
 </resources>

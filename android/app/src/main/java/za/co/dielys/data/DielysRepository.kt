@@ -10,7 +10,9 @@ import za.co.dielys.data.local.ListItemCount
 import za.co.dielys.data.local.ListWithAccent
 import za.co.dielys.data.local.OutboxEntity
 import za.co.dielys.data.local.TaskEntity
+import za.co.dielys.data.local.encodeNotifyEvents
 import za.co.dielys.data.remote.ListPatch
+import za.co.dielys.data.remote.NotifyEvent
 import za.co.dielys.data.remote.TaskPatch
 import za.co.dielys.data.sync.OutboxFactory
 import za.co.dielys.data.sync.SyncScheduler
@@ -323,6 +325,26 @@ class DielysRepository
                         outbox.order(listId = it.id, position = checkNotNull(it.position))
                     } +
                         outbox.order(listId = listId, position = position),
+            )
+        }
+
+        /**
+         * Which changes on [listId] this account wants a notification for
+         * (ADR 0012) — the whole set, replacing the last; empty turns it off.
+         *
+         * This account's own membership row, like [moveList]: queued as its own
+         * kind of outbox row, never as a list mutation, so the other person on
+         * the list never hears about it. The local copy changes at once, so the
+         * very next change that arrives is judged by the new choice.
+         */
+        suspend fun setNotify(
+            listId: String,
+            events: Set<String>,
+        ) {
+            val chosen = NotifyEvent.known(events)
+            commit(
+                entity = { db.lists().setNotify(listId, encodeNotifyEvents(chosen)) },
+                rows = listOf(outbox.notify(listId = listId, events = chosen)),
             )
         }
 

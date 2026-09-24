@@ -56,10 +56,12 @@ export interface ServiceAccount {
   tokenUri: string;
 }
 
-/** A device to wake: which one, and the token FCM knows it by. */
+/** A device to wake: which one, the token FCM knows it by, and how urgently
+ * (ADR 0012 — `high` only where a notification is likely to follow). */
 export interface WakeTarget {
   deviceId: string;
   fcmToken: string;
+  priority: "high" | "normal";
 }
 
 /**
@@ -221,7 +223,7 @@ export class FcmSender {
             // there must never be one (M1) — it would put server-composed text
             // on somebody's lock screen.
             data: payload,
-            android: { priority: "high", ttl: MESSAGE_TTL, collapse_key: COLLAPSE_KEY },
+            android: { priority: target.priority, ttl: MESSAGE_TTL, collapse_key: COLLAPSE_KEY },
           },
         }),
       },

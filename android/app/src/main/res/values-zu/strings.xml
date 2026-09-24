@@ -151,4 +151,28 @@
     <string name="help_account_title">I-akhawunti yakho</string>
     <string name="help_account_body">Ayikho iphasiwedi. Ngena ngekheli lakho le-imeyili futhi sikuthumelela isixhumanisi nekhodi yezinombolo eziyi-6 — sebenzisa noma yikuphi okulula. Ngena nge-imeyili efanayo efonini yakho nakuwebhu ukuze ubone uhlu olufanayo.</string>
     <string name="share_how_it_works">Kusebenza kanjani ukwabelana</string>
+
+    <!-- List notifications (ADR 0012). The bell on a shared list, the dialog
+         behind it, and the notification itself: `notify_line_*` take who
+         (%1$s, the part of their email before the @) and the item (%2$s).
+         `sync_*` is the quiet notification Android shows while a wake-up
+         sync runs, on Android 11 and older only. -->
+    <string name="cd_notifications">Izaziso</string>
+    <string name="notify_dialog_title">Ngazise uma omunye umuntu…</string>
+    <string name="notify_event_added">Engeza into</string>
+    <string name="notify_event_checked">Emaka into, noma eyibuyisela</string>
+    <string name="notify_event_deleted">Esusa into</string>
+    <string name="notify_event_updated">Eshintsha igama noma efaka inkanyezi entweni</string>
+    <string name="notify_blocked">Izaziso zeDie Lys zivaliwe kule foni. Zivule Ezilungiselelweni zefoni yakho ukuze uzithole.</string>
+    <string name="notify_channel_name">Izinguquko zohlu</string>
+    <string name="notify_channel_description">Lokho abanye abantu abakushintshayo ezinhlwini okhethe ukuzwa ngazo.</string>
+    <string name="notify_line_added">%1$s wengeze %2$s</string>
+    <string name="notify_line_checked">%1$s umake %2$s</string>
+    <string name="notify_line_unchecked">%1$s ubuyisele %2$s</string>
+    <string name="notify_line_deleted">%1$s ususe %2$s</string>
+    <string name="notify_line_updated">%1$s ushintshe %2$s</string>
+    <string name="notify_someone">Othile</string>
+    <string name="notify_more">+%1$d ezinye</string>
+    <string name="sync_channel_name">Ukuvumelanisa</string>
+    <string name="sync_notification">Kubuyekezwa izinhlu zakho</string>
 </resources>

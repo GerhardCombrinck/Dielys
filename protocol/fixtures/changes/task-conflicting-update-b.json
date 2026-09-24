@@ -5,6 +5,7 @@
   "idempotencyKey": "018f2f6c-6a3e-7c3a-8f1e-0000000000a5",
   "deviceId": "018f2f6c-6a3e-7c3a-8f1e-0000000000d2",
   "serverTimestamp": "2026-09-08T09:20:00.000Z",
+  "authorUserId": "018f2f6c-6a3e-7c3a-8f1e-0000000000e1",
   "entity": {
     "id": "018f2f6c-6a3e-7c3a-8f1e-000000000012",
     "listId": "018f2f6c-6a3e-7c3a-8f1e-000000000001",

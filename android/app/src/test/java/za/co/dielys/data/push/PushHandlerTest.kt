@@ -38,6 +38,8 @@ class PushHandlerTest {
         assertTrue(handler.onMessage(wake()))
 
         assertEquals(1, scheduler.requests)
+        // Now, not whenever a dozing phone gets round to it (ADR 0012).
+        assertEquals(1, scheduler.urgentRequests)
         // Not touched: a push says nothing about registration (M2).
         assertNull(push.pushToken)
         assertNull(push.pushTokenSent)

@@ -174,4 +174,13 @@ export const tn: Messages = {
   "help.accountBody":
     "Ga go na lefoko la sephiri. Tsena ka aterese ya gago ya imeile mme re go romelela kgolagano le khoutu ya dinomore tse 6 — dirisa epe fela e e motlhofo. Tsena ka imeile e e tshwanang mo mogaleng wa gago le mo webong go bona manaane a a tshwanang.",
   "sharing.howItWorks": "Kafa go abelana go dirang ka teng",
+  "list.notifications": "Dikitsiso",
+  "notify.title": "Nkitsise fa motho yo mongwe…",
+  "notify.added": "A oketsa selo",
+  "notify.checked": "A tshwaya selo, kgotsa a se busetsa",
+  "notify.deleted": "A phimola selo",
+  "notify.updated": "A fetola leina kgotsa a naya selo naledi",
+  "notify.phoneOnly":
+    "Di goroga mo mogaleng wa gago, mo app ya Die Lys. Sebatli se ga se di bontshe.",
+  "notify.save": "Boloka",
 };

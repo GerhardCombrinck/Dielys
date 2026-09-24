@@ -22,6 +22,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import za.co.dielys.data.DeviceStack
+import za.co.dielys.data.PendingListOpen
 import za.co.dielys.data.local.AndroidStringProvider
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.sync.FakeSyncApi
@@ -53,6 +54,7 @@ class ListsViewModelTest {
                 phone.accents,
                 phone.sharing,
                 phone.invites,
+                PendingListOpen(),
                 AndroidStringProvider(ApplicationProvider.getApplicationContext()),
                 phone.sweeps,
             )

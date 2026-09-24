@@ -2,6 +2,7 @@ package za.co.dielys.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -66,6 +67,16 @@ fun DielysApp() {
             settingsOpen -> settingsOpen = false
             else -> openList = null
         }
+    }
+
+    // A tapped notification opens its list over whatever was showing — the
+    // same place tapping it on the lists screen would have got to (ADR 0012).
+    val tapped by lists.listToOpen.collectAsStateWithLifecycle()
+    LaunchedEffect(tapped) {
+        val listId = lists.takeListToOpen() ?: return@LaunchedEffect
+        helpAt = null
+        settingsOpen = false
+        openList = listId
     }
 
     when {

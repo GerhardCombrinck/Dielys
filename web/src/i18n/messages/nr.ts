@@ -176,4 +176,12 @@ export const nr: Messages = {
   "help.accountBody":
     "Ayikho iphasiwedi. Ngena ngekheli lakho le-imeyili begodu sikuthumelela isihlanganisi nekhodi yeenomboro ezi-6 — sebenzisa nanyana ngiyiphi elula. Ngena nge-imeyili efanako efowunini yakho neewebhu bona ubone amarhelo afanako.",
   "sharing.howItWorks": "Ukwabelana kusebenza njani",
+  "list.notifications": "Iimbikiso",
+  "notify.title": "Ngazisa lokha omunye umuntu…",
+  "notify.added": "Angezelela into",
+  "notify.checked": "Atshwaya into, namkha ayibuyisele",
+  "notify.deleted": "Asusa into",
+  "notify.updated": "Atjhugulula ibizo namkha afake inkwenkwezi entweni",
+  "notify.phoneOnly": "Zifika efowunini yakho, ku-app ye-Die Lys. Lesiphequluli asizitjengisi.",
+  "notify.save": "Bulunga",
 };

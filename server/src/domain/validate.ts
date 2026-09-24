@@ -29,11 +29,14 @@ import {
   MIN_PASSWORD_LENGTH,
   MIN_SYNC_INTERVAL_MINUTES,
   type Mutation,
+  NOTIFY_EVENTS,
+  type NotifyEvent,
   type RefreshRequest,
   type RegisterDeviceRequest,
   type RegisterRequest,
   type RequestAccountDeletionRequest,
   type RequestMagicLinkRequest,
+  type SetListNotifyRequest,
   type SetListPositionRequest,
   type SyncSettingsPatch,
   type TaskPatch,
@@ -392,6 +395,27 @@ export function validateSetListPositionRequest(input: unknown): Validated<SetLis
   if (!isBoundedString(input.position, MAX_POSITION_LENGTH)) return fail("position");
   if (input.position === "") return fail("position is empty");
   return { ok: true, value: { listId: input.listId, position: input.position } };
+}
+
+/**
+ * `POST /auth/memberships/notify` (ADR 0012). The set is replaced whole, so a
+ * duplicate or an unknown kind is `malformed` rather than quietly dropped: the
+ * caller would otherwise believe it had chosen something the server did not
+ * store (F3). The array is bounded by that rule alone — no duplicates out of a
+ * fixed set of four.
+ */
+export function validateSetListNotifyRequest(input: unknown): Validated<SetListNotifyRequest> {
+  if (!isRecord(input)) return fail("not an object");
+  if (!isId(input.listId)) return fail("listId");
+  if (!Array.isArray(input.events)) return fail("events");
+  const events: NotifyEvent[] = [];
+  for (const event of input.events) {
+    const known = NOTIFY_EVENTS.find((candidate) => candidate === event);
+    if (known === undefined) return fail("events: unknown kind");
+    if (events.includes(known)) return fail("events: duplicate");
+    events.push(known);
+  }
+  return { ok: true, value: { listId: input.listId, events } };
 }
 
 /**

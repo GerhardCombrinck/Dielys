@@ -91,6 +91,21 @@ class HttpSyncApi
                 request(url("auth", "memberships"), body = null),
             ).memberships
 
+        override suspend fun setListNotify(
+            listId: String,
+            events: List<String>,
+        ) {
+            // The answer echoes the set, normalised; discovery reads it back anyway.
+            request(
+                url("auth", "memberships", "notify"),
+                DielysJson.wire
+                    .encodeToString(
+                        SetListNotifyRequest.serializer(),
+                        SetListNotifyRequest(listId = listId, events = events),
+                    ).toRequestBody(jsonMedia),
+            )
+        }
+
         override suspend fun setListPosition(
             listId: String,
             position: String,

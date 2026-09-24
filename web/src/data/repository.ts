@@ -11,13 +11,15 @@
 import type {
   ListMutation,
   ListPatch,
+  NotifyEvent,
+  SetListNotifyRequest,
   SetListPositionRequest,
   Task,
   TaskList,
   TaskMutation,
   TaskPatch,
 } from "@dielys/protocol";
-import { PROTOCOL_VERSION } from "@dielys/protocol";
+import { NOTIFY_EVENTS, PROTOCOL_VERSION } from "@dielys/protocol";
 import { seedPositions } from "../domain/listOrder.js";
 import { between } from "../domain/position.js";
 import { activeTasks, doneTasks, sortLists } from "../domain/taskOrder.js";
@@ -55,6 +57,7 @@ export class Repository {
             role: "owner",
             position: null,
             memberCount: 1,
+            notify: [],
             rank: Number.MAX_SAFE_INTEGER,
           },
         ],
@@ -186,6 +189,23 @@ export class Repository {
       { lists: writes },
       writes.map((l) => this.orderRow(l.id, l.position as string)),
     );
+    this.onCommit();
+  }
+
+  /**
+   * Which changes on this list this account wants a phone notification for
+   * (ADR 0012) — the whole set; empty turns it off. This account's own
+   * membership row, queued like a drag, never a list mutation. The row's
+   * entity id is not the list's, so it never shadows the list's own changes.
+   */
+  setNotify(listId: string, events: NotifyEvent[]): void {
+    const known = this.replica.getList(listId);
+    if (known === null) return;
+    const chosen = NOTIFY_EVENTS.filter((e) => events.includes(e));
+    const body: SetListNotifyRequest = { listId, events: chosen };
+    this.replica.commit({ lists: [{ ...known, notify: chosen }] }, [
+      { key: uuid7(this.now()), kind: "notify", listId, entityId: `notify:${listId}`, body },
+    ]);
     this.onCommit();
   }
 

@@ -25,6 +25,7 @@ function taskChange(seq: number, entity: Task, key = `k${seq}`): ChangeEnvelope 
     idempotencyKey: key,
     deviceId: "other",
     serverTimestamp: "2026-09-21T00:00:00.000Z",
+    authorUserId: "other-user",
     entityType: "task",
     entity,
   };
@@ -37,13 +38,22 @@ function listChange(seq: number, entity: TaskList): ChangeEnvelope {
     idempotencyKey: `k${seq}`,
     deviceId: "other",
     serverTimestamp: "2026-09-21T00:00:00.000Z",
+    authorUserId: "other-user",
     entityType: "list",
     entity,
   };
 }
 
 function membership(listId: string, patch: Partial<Membership> = {}): Membership {
-  return { listId, role: "owner", position: null, memberCount: 1, maxSeq: null, ...patch };
+  return {
+    listId,
+    role: "owner",
+    position: null,
+    memberCount: 1,
+    maxSeq: null,
+    notify: [],
+    ...patch,
+  };
 }
 
 function recording(): { replica: Replica; batches: WriteBatch[] } {
@@ -169,12 +179,50 @@ describe("Replica.noteMemberships", () => {
     const replica = new Replica();
     replica.commit(
       {
-        lists: [{ id: LIST, list: null, role: "owner", position: null, memberCount: 1, rank: 0 }],
+        lists: [
+          {
+            id: LIST,
+            list: null,
+            role: "owner",
+            position: null,
+            memberCount: 1,
+            notify: [],
+            rank: 0,
+          },
+        ],
       },
       [{ key: "c", kind: "claim", listId: LIST, entityId: LIST, body: null }],
     );
     replica.noteMemberships([]);
     expect(replica.getList(LIST)).not.toBeNull();
+  });
+
+  it("adopts a notification choice made elsewhere, and reads an old server's as none", () => {
+    const replica = new Replica();
+    replica.noteMemberships([membership(LIST, { notify: ["added", "checked"] })]);
+    expect(replica.getList(LIST)?.notify).toEqual(["added", "checked"]);
+
+    const old = membership(LIST) as Partial<Membership>;
+    delete old.notify;
+    replica.noteMemberships([old as Membership]);
+    expect(replica.getList(LIST)?.notify).toEqual([]);
+  });
+
+  it("keeps a queued notification choice over an answer that has not seen it (ADR 0012)", () => {
+    const replica = new Replica();
+    replica.noteMemberships([membership(LIST)]);
+    const known = replica.getList(LIST) as LocalList;
+    replica.commit({ lists: [{ ...known, notify: ["deleted"] }] }, [
+      {
+        key: "n",
+        kind: "notify",
+        listId: LIST,
+        entityId: `notify:${LIST}`,
+        body: { listId: LIST, events: ["deleted"] },
+      },
+    ]);
+    replica.noteMemberships([membership(LIST)]);
+    expect(replica.getList(LIST)?.notify).toEqual(["deleted"]);
   });
 
   it("keeps a queued drag rather than the order the server last had", () => {

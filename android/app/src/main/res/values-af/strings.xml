@@ -157,4 +157,28 @@
     <string name="help_account_title">Jou rekening</string>
     <string name="help_account_body">Daar is geen wagwoord nie. Meld aan met jou e-posadres en ons stuur vir jou \'n skakel en \'n 6-syferkode — gebruik wat ook al makliker is. Meld op jou foon en op die web met dieselfde e-pos aan om dieselfde lyste te sien.</string>
     <string name="share_how_it_works">Hoe deel werk</string>
+
+    <!-- List notifications (ADR 0012). The bell on a shared list, the dialog
+         behind it, and the notification itself: `notify_line_*` take who
+         (%1$s, the part of their email before the @) and the item (%2$s).
+         `sync_*` is the quiet notification Android shows while a wake-up
+         sync runs, on Android 11 and older only. -->
+    <string name="cd_notifications">Kennisgewings</string>
+    <string name="notify_dialog_title">Laat weet my wanneer iemand anders…</string>
+    <string name="notify_event_added">\'n Item byvoeg</string>
+    <string name="notify_event_checked">\'n Item afmerk, of weer terugmerk</string>
+    <string name="notify_event_deleted">\'n Item uitvee</string>
+    <string name="notify_event_updated">\'n Item hernoem of \'n ster gee</string>
+    <string name="notify_blocked">Kennisgewings van Die Lys is op hierdie foon afgeskakel. Skakel dit in jou foon se instellings aan om dit te kry.</string>
+    <string name="notify_channel_name">Lysveranderinge</string>
+    <string name="notify_channel_description">Wat ander mense verander op die lyste waaroor jy wil hoor.</string>
+    <string name="notify_line_added">%1$s het %2$s bygevoeg</string>
+    <string name="notify_line_checked">%1$s het %2$s afgemerk</string>
+    <string name="notify_line_unchecked">%1$s het %2$s teruggemerk</string>
+    <string name="notify_line_deleted">%1$s het %2$s uitgevee</string>
+    <string name="notify_line_updated">%1$s het %2$s verander</string>
+    <string name="notify_someone">Iemand</string>
+    <string name="notify_more">+%1$d meer</string>
+    <string name="sync_channel_name">Sinkroniseer</string>
+    <string name="sync_notification">Werk jou lyste by</string>
 </resources>

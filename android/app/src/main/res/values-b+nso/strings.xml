@@ -156,4 +156,28 @@
     <string name="help_account_title">Akhaonto ya gago</string>
     <string name="help_account_body">Ga go na phasewete. Tsena ka aterese ya gago ya imeile gomme re go romela kgokagano le khoutu ya dinomoro tše 6 — diriša efe goba efe ye bonolo. Tsena ka imeile ye e swanago mogaleng wa gago le wepeng go bona mananeo a swanago.</string>
     <string name="share_how_it_works">Kamoo go abelana go šomago ka gona</string>
+
+    <!-- List notifications (ADR 0012). The bell on a shared list, the dialog
+         behind it, and the notification itself: `notify_line_*` take who
+         (%1$s, the part of their email before the @) and the item (%2$s).
+         `sync_*` is the quiet notification Android shows while a wake-up
+         sync runs, on Android 11 and older only. -->
+    <string name="cd_notifications">Ditsebišo</string>
+    <string name="notify_dialog_title">Ntsebiše ge motho yo mongwe…</string>
+    <string name="notify_event_added">A oketša selo</string>
+    <string name="notify_event_checked">A swaya selo, goba a se bušetša</string>
+    <string name="notify_event_deleted">A phumola selo</string>
+    <string name="notify_event_updated">A fetola leina goba a nea selo naledi</string>
+    <string name="notify_blocked">Ditsebišo tša Die Lys di timilwe mogaleng wo. Di bulele ka Dipeakanyong tša mogala go di hwetša.</string>
+    <string name="notify_channel_name">Diphetogo tša lenaneo</string>
+    <string name="notify_channel_description">Seo batho ba bangwe ba se fetolago malenaneong ao o kgethilego go kwa ka ona.</string>
+    <string name="notify_line_added">%1$s o okeditše %2$s</string>
+    <string name="notify_line_checked">%1$s o swaile %2$s</string>
+    <string name="notify_line_unchecked">%1$s o bušeditše %2$s</string>
+    <string name="notify_line_deleted">%1$s o phumotše %2$s</string>
+    <string name="notify_line_updated">%1$s o fetotše %2$s</string>
+    <string name="notify_someone">Motho yo mongwe</string>
+    <string name="notify_more">+%1$d tše dingwe</string>
+    <string name="sync_channel_name">Go hlokomanya</string>
+    <string name="sync_notification">Go mpshafatša malenaneo a gago</string>
 </resources>

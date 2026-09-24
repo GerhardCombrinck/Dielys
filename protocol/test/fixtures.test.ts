@@ -1,7 +1,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { WsTicketResponse } from "../src/auth.js";
+import {
+  type MembershipsResponse,
+  NOTIFY_EVENTS,
+  type SetListNotifyRequest,
+  type WsTicketResponse,
+} from "../src/auth.js";
 import { PUSH_TYPE_SYNC } from "../src/push.js";
 import {
   type ChangeEnvelope,
@@ -94,16 +99,58 @@ describe("auth fixtures have their declared shape", () => {
     expect(authFixtures.length).toBeGreaterThan(0);
   });
 
-  for (const { file, parsed } of authFixtures) {
-    it(file, () => {
-      expect(isRecord(parsed)).toBe(true);
+  // One shape per file, named by hand for the same reason the message-type
+  // list below is: a new fixture with no shape check fails here rather than
+  // passing on a round trip alone.
+  const shapes: Record<string, (parsed: unknown) => void> = {
+    "ws-ticket-response.json": (parsed) => {
       const response = parsed as WsTicketResponse;
       expect(Object.keys(response).sort()).toEqual(["expiresIn", "ticket"]);
       expect(typeof response.ticket).toBe("string");
       expect(typeof response.expiresIn).toBe("number");
+    },
+    "memberships-response.json": (parsed) => {
+      const response = parsed as MembershipsResponse;
+      expect(response.memberships.length).toBeGreaterThan(0);
+      for (const membership of response.memberships) {
+        expect(Object.keys(membership).sort()).toEqual([
+          "listId",
+          "maxSeq",
+          "memberCount",
+          "notify",
+          "position",
+          "role",
+        ]);
+        expectNotifyEvents(membership.notify);
+      }
+      // Both ends of the choice: somebody who has opted in, and the default.
+      expect(response.memberships.some((m) => m.notify.length > 0)).toBe(true);
+      expect(response.memberships.some((m) => m.notify.length === 0)).toBe(true);
+    },
+    "set-list-notify-request.json": (parsed) => {
+      const request = parsed as SetListNotifyRequest;
+      expect(Object.keys(request).sort()).toEqual(["events", "listId"]);
+      expect(typeof request.listId).toBe("string");
+      expectNotifyEvents(request.events);
+    },
+  };
+
+  for (const { file, parsed } of authFixtures) {
+    it(file, () => {
+      expect(isRecord(parsed)).toBe(true);
+      const shape = shapes[file];
+      expect(shape).toBeDefined();
+      shape?.(parsed);
     });
   }
 });
+
+function expectNotifyEvents(events: unknown): void {
+  expect(Array.isArray(events)).toBe(true);
+  const list = events as unknown[];
+  for (const event of list) expect(NOTIFY_EVENTS).toContain(event);
+  expect(new Set(list).size).toBe(list.length);
+}
 
 describe("changelog fixtures have the ChangeEnvelope shape", () => {
   for (const { file, parsed } of changeFixtures) {
@@ -117,6 +164,9 @@ describe("changelog fixtures have the ChangeEnvelope shape", () => {
       expect(typeof change.idempotencyKey).toBe("string");
       expect(typeof change.deviceId).toBe("string");
       expect(typeof change.serverTimestamp).toBe("string");
+      // Present on every envelope, null only for a change older than the field.
+      expect("authorUserId" in change).toBe(true);
+      expect(change.authorUserId === null || typeof change.authorUserId === "string").toBe(true);
       expect(["task", "list"]).toContain(change.entityType);
       expect(isRecord(change.entity)).toBe(true);
 

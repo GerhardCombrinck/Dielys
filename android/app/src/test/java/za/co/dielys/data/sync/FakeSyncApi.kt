@@ -96,6 +96,13 @@ class FakeSyncApi :
      */
     val membersOf: MutableMap<String, MutableList<ListMember>> = mutableMapOf()
 
+    /**
+     * Which account each device is signed in as, so a change can carry its
+     * author the way the Worker stamps it (ADR 0012). A device not in here
+     * writes changes with no author, like a server older than the field.
+     */
+    val authors: MutableMap<String, String> = mutableMapOf()
+
     /** Every removal this fake was asked for, as `listId to userId`. */
     val removedMembers: MutableList<Pair<String, String>> = mutableListOf()
 
@@ -125,8 +132,7 @@ class FakeSyncApi :
     private val heads = mutableMapOf<String, Long>()
     private val changelog = mutableMapOf<String, MutableList<ChangeEnvelope>>()
     private val acks = mutableMapOf<String, MutationAck>()
-    private val tasks = mutableMapOf<String, Task>()
-    private val lists = mutableMapOf<String, TaskList>()
+    private val entities = FakeEntities()
     private var stampMillis = 1_760_000_000_000L
 
     override suspend fun mutate(
@@ -193,13 +199,24 @@ class FakeSyncApi :
     override suspend fun setListPosition(
         listId: String,
         position: String,
+    ) = updateMembership(listId) { it.copy(position = position) }
+
+    /** This account's own membership row. 403 for a list it is not on, the way
+     *  the Worker answers (L3). */
+    private fun updateMembership(
+        listId: String,
+        change: (Membership) -> Membership,
     ) {
         gate()
         val index = memberOf.indexOfFirst { it.listId == listId }
-        // 403 for a list this account is not on, the way the Worker answers (L3).
         if (index < 0) throw ApiException.Rejected(status = 403, code = ErrorCode.FORBIDDEN)
-        memberOf[index] = memberOf[index].copy(position = position)
+        memberOf[index] = change(memberOf[index])
     }
+
+    override suspend fun setListNotify(
+        listId: String,
+        events: List<String>,
+    ) = updateMembership(listId) { it.copy(notify = events) }
 
     override suspend fun registerPushToken(fcmToken: String) {
         gate()
@@ -373,7 +390,50 @@ class FakeSyncApi :
         mutation: TaskMutation,
         seq: Long,
         stamp: String,
-    ): TaskChange {
+    ) = TaskChange(
+        seq = seq,
+        listId = mutation.listId,
+        idempotencyKey = mutation.idempotencyKey,
+        deviceId = mutation.deviceId,
+        serverTimestamp = stamp,
+        authorUserId = authors[mutation.deviceId],
+        entity = entities.task(mutation, stamp),
+    )
+
+    private fun listChange(
+        mutation: ListMutation,
+        seq: Long,
+        stamp: String,
+    ) = ListChange(
+        seq = seq,
+        listId = mutation.listId,
+        idempotencyKey = mutation.idempotencyKey,
+        deviceId = mutation.deviceId,
+        serverTimestamp = stamp,
+        authorUserId = authors[mutation.deviceId],
+        entity = entities.list(mutation, stamp),
+    )
+
+    private companion object {
+        /** Seven days, matching the server. Nothing here checks it; the server does. */
+        const val INVITE_TTL_SECONDS = 604_800L
+    }
+}
+
+/**
+ * What the server's domain layer does with a patch: resolve it into the whole
+ * entity the change carries. Creates need what only the client can know (F5.1,
+ * F5.5), updates keep every field the patch leaves out (F5.4), and a tombstone
+ * never lifts (F5.3).
+ */
+private class FakeEntities {
+    private val tasks = mutableMapOf<String, Task>()
+    private val lists = mutableMapOf<String, TaskList>()
+
+    fun task(
+        mutation: TaskMutation,
+        stamp: String,
+    ): Task {
         val patch = mutation.patch
         val current = tasks[mutation.entityId]
         val entity =
@@ -394,27 +454,18 @@ class FakeSyncApi :
                     done = patch.done ?: current.done,
                     starred = patch.starred ?: current.starred,
                     position = patch.position ?: current.position,
-                    // F5.3: a tombstone never lifts.
                     deletedAt = current.deletedAt ?: patch.deletedAt,
                     updatedAt = stamp,
                 )
             }
         tasks[entity.id] = entity
-        return TaskChange(
-            seq = seq,
-            listId = mutation.listId,
-            idempotencyKey = mutation.idempotencyKey,
-            deviceId = mutation.deviceId,
-            serverTimestamp = stamp,
-            entity = entity,
-        )
+        return entity
     }
 
-    private fun listChange(
+    fun list(
         mutation: ListMutation,
-        seq: Long,
         stamp: String,
-    ): ListChange {
+    ): TaskList {
         val patch = mutation.patch
         val current = lists[mutation.entityId]
         val entity =
@@ -435,21 +486,9 @@ class FakeSyncApi :
                 )
             }
         lists[entity.id] = entity
-        return ListChange(
-            seq = seq,
-            listId = mutation.listId,
-            idempotencyKey = mutation.idempotencyKey,
-            deviceId = mutation.deviceId,
-            serverTimestamp = stamp,
-            entity = entity,
-        )
+        return entity
     }
 
     private fun incompleteCreate(): Nothing =
         throw ApiException.Rejected(status = 400, code = ErrorCode.INCOMPLETE_CREATE)
-
-    private companion object {
-        /** Seven days, matching the server. Nothing here checks it; the server does. */
-        const val INVITE_TTL_SECONDS = 604_800L
-    }
 }

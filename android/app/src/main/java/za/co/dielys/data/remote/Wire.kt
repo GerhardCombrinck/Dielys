@@ -90,6 +90,13 @@ sealed interface ChangeEnvelope {
 
     /** Server timestamp. Device clocks are never trusted for ordering (F5.9). */
     val serverTimestamp: String
+
+    /**
+     * The account that made the write, as the server authenticated it (ADR 0012).
+     * Null on a change older than the field — which a reader treats as "unknown",
+     * never as "somebody else".
+     */
+    val authorUserId: String?
 }
 
 @Serializable
@@ -100,6 +107,7 @@ data class TaskChange(
     override val idempotencyKey: String,
     override val deviceId: String,
     override val serverTimestamp: String,
+    override val authorUserId: String? = null,
     val entity: Task,
 ) : ChangeEnvelope
 
@@ -111,6 +119,7 @@ data class ListChange(
     override val idempotencyKey: String,
     override val deviceId: String,
     override val serverTimestamp: String,
+    override val authorUserId: String? = null,
     val entity: TaskList,
 ) : ChangeEnvelope
 

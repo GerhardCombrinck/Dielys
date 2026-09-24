@@ -40,7 +40,7 @@ androidx.work.OverwritingInputMerger: OverwritingInputMerger()
 androidx.work.ArrayCreatingInputMerger: ArrayCreatingInputMerger()
 # WorkSpec stores the worker's class name; HiltWorkerFactory looks it up by it.
 za.co.dielys.data.sync.SyncWorker
-za.co.dielys.data.sync.SyncWorker: SyncWorker(android.content.Context,androidx.work.WorkerParameters,za.co.dielys.data.sync.SyncEngine)
+za.co.dielys.data.sync.SyncWorker: SyncWorker(android.content.Context,androidx.work.WorkerParameters,za.co.dielys.data.sync.SyncEngine,za.co.dielys.data.notify.ListNotifier)
 # data/remote's polymorphic wire types (proguard-rules.pro).
 za.co.dielys.data.remote.ChangeEnvelope$Companion
 za.co.dielys.data.remote.Mutation$Companion

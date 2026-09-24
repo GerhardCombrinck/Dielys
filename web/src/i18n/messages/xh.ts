@@ -176,4 +176,12 @@ export const xh: Messages = {
   "help.accountBody":
     "Akukho phaswedi. Ngena ngedilesi yakho ye-imeyile kwaye siya kukuthumela ikhonkco nekhowudi yamanani ama-6 — sebenzisa nokuba yeyiphi elula. Ngena nge-imeyile efanayo kwifowuni yakho nakwiwebhu ukuze ubone uluhlu olufanayo.",
   "sharing.howItWorks": "Indlela ukwabelana okusebenza ngayo",
+  "list.notifications": "Izaziso",
+  "notify.title": "Ndazise xa omnye umntu…",
+  "notify.added": "Engeza into",
+  "notify.checked": "Ephawula into, okanye eyibuyisela",
+  "notify.deleted": "Ecima into",
+  "notify.updated": "Etshintsha igama okanye efaka inkwenkwezi entweni",
+  "notify.phoneOnly": "Zifika kwifowuni yakho, kwi-app yeDie Lys. Esi sikhangeli asizibonisi.",
+  "notify.save": "Gcina",
 };

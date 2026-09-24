@@ -5,6 +5,7 @@ import za.co.dielys.data.local.DielysDatabase
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.local.SyncStateEntity
 import za.co.dielys.data.local.TaskEntity
+import za.co.dielys.data.notify.ChangeActivity
 import za.co.dielys.data.remote.ChangeEnvelope
 import za.co.dielys.data.remote.ListChange
 import za.co.dielys.data.remote.Task
@@ -44,13 +45,21 @@ class ChangeApplier
     @Inject
     constructor(
         private val db: DielysDatabase,
+        private val activity: ChangeActivity = ChangeActivity.None,
     ) {
         /**
          * `withTransaction` is reentrant, so callers that are already inside one —
          * the drain, which deletes the outbox row in the same breath — get a single
          * atomic unit rather than two.
+         *
+         * [quietThrough] is the head of a list's first pull: every change up to it
+         * is history this device is only now catching up on, and is applied without
+         * being reported as news (ADR 0012).
          */
-        suspend fun apply(change: ChangeEnvelope): ApplyOutcome =
+        suspend fun apply(
+            change: ChangeEnvelope,
+            quietThrough: Long = 0L,
+        ): ApplyOutcome =
             db.withTransaction {
                 val state = db.syncState().find(change.listId)
                 val cursor = state?.cursor ?: 0L
@@ -59,7 +68,7 @@ class ChangeApplier
                     change.seq <= cursor -> ApplyOutcome.ALREADY_APPLIED
                     change.seq != cursor + 1 -> ApplyOutcome.GAP
                     else -> {
-                        write(change)
+                        write(change, quiet = change.seq <= quietThrough)
                         db.syncState().upsert(
                             SyncStateEntity(
                                 listId = change.listId,
@@ -105,12 +114,19 @@ class ChangeApplier
          * this entity always has nothing left to be shadowed by, so it writes
          * through and leaves the authoritative, server-timestamped value behind.
          */
-        private suspend fun write(change: ChangeEnvelope) {
+        private suspend fun write(
+            change: ChangeEnvelope,
+            quiet: Boolean,
+        ) {
             val entityId =
                 when (change) {
                     is TaskChange -> change.entity.id
                     is ListChange -> change.entity.id
                 }
+            // Before the shadow check: whether somebody else's change is news does
+            // not depend on whether this device happens to have its own edit to
+            // the same task still queued.
+            if (change is TaskChange) activity.record(change, db.tasks().find(entityId), quiet)
             val shadowed = db.outbox().pendingCountForEntity(entityId, change.idempotencyKey) > 0
             if (shadowed) return
 
@@ -151,4 +167,5 @@ internal fun TaskList.toEntity(existing: ListEntity?): ListEntity =
         role = existing?.role,
         position = existing?.position,
         memberCount = existing?.memberCount ?: 1,
+        notifyEvents = existing?.notifyEvents ?: "",
     )

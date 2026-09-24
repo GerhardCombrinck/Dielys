@@ -12,6 +12,8 @@ import za.co.dielys.data.local.DielysDatabase
 import za.co.dielys.data.local.FirstSync
 import za.co.dielys.data.local.PushTokenStore
 import za.co.dielys.data.local.SyncPrefs
+import za.co.dielys.data.notify.AppVisibility
+import za.co.dielys.data.notify.ListActivityRecorder
 import za.co.dielys.data.sync.ChangeApplier
 import za.co.dielys.data.sync.FakeSyncApi
 import za.co.dielys.data.sync.OutboxFactory
@@ -31,7 +33,12 @@ class DeviceStack(
     val db: DielysDatabase = inMemoryDatabase()
     val clock = SteppingClock()
     val scheduler = RecordingScheduler()
-    val applier = ChangeApplier(db)
+    val account = FixedAccount(userId = "$deviceId-user", email = "$deviceId@dielys.test")
+
+    /** Whether the app is on screen. Off, as for a phone in a pocket. */
+    val visibility = AppVisibility()
+    val activity = ListActivityRecorder(db, account, visibility)
+    val applier = ChangeApplier(db, activity)
     val push = FakePushTokens()
     val sweeps = FakeSweeps()
     val syncPrefs = FakeSyncPrefs()
@@ -43,7 +50,6 @@ class DeviceStack(
     // nothing here needs the collector running. The repository still asks it
     // which colour a new list gets, and that is a plain query.
     val accents = ListAccents(db, CoroutineScope(Dispatchers.Unconfined))
-    val account = FixedAccount(userId = "$deviceId-user", email = "$deviceId@dielys.test")
     val repo =
         DielysRepository(
             db = db,
@@ -150,8 +156,17 @@ class RecordingScheduler : SyncScheduler {
     var periodicRequests: Int = 0
         private set
 
+    /** How many of [requests] came from a wake push, asking to run now (ADR 0012). */
+    var urgentRequests: Int = 0
+        private set
+
     override fun requestSync() {
         requests++
+    }
+
+    override fun requestUrgentSync() {
+        urgentRequests++
+        requestSync()
     }
 
     override fun schedulePeriodicSync() {

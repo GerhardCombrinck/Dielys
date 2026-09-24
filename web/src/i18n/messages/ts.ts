@@ -183,4 +183,13 @@ export const ts: Messages = {
   "help.accountBody":
     "A ku na phasiwedi. Nghena hi adirese ya wena ya imeyili kutani hi ku rhumela xihlanganisi na khodi ya tinomboro ta 6 — tirhisa xin'wana na xin'wana lexi olovaka. Nghena hi imeyili yo fana eka riqingho ra wena na le ka webu ku vona minxaxamelo yo fana.",
   "sharing.howItWorks": "Ndlela leyi ku avelana ku tirhaka ha yona",
+  "list.notifications": "Switiviso",
+  "notify.title": "Ndzi tivise loko munhu un'wana…",
+  "notify.added": "A engetela xilo",
+  "notify.checked": "A funga xilo, kumbe a xi tlherisa",
+  "notify.deleted": "A susa xilo",
+  "notify.updated": "A cinca vito kumbe a nyika xilo nyeleti",
+  "notify.phoneOnly":
+    "Swi fika eka riqingho ra wena, eka app ya Die Lys. Bravuza leri a ri swi kombi.",
+  "notify.save": "Hlayisa",
 };

@@ -151,4 +151,28 @@
     <string name="help_account_title">Akhaonto ya hao</string>
     <string name="help_account_body">Ha ho na phasewete. Kena ka aterese ya hao ya imeile mme re o romella lehokela le khoutu ya dinomoro tse 6 — sebedisa efe kapa efe e bonolo. Kena ka imeile e tshwanang fonong ya hao le webong ho bona manane a tshwanang.</string>
     <string name="share_how_it_works">Kamoo ho arolelana ho sebetsang kateng</string>
+
+    <!-- List notifications (ADR 0012). The bell on a shared list, the dialog
+         behind it, and the notification itself: `notify_line_*` take who
+         (%1$s, the part of their email before the @) and the item (%2$s).
+         `sync_*` is the quiet notification Android shows while a wake-up
+         sync runs, on Android 11 and older only. -->
+    <string name="cd_notifications">Ditsebiso</string>
+    <string name="notify_dialog_title">Ntsebise ha motho e mong…</string>
+    <string name="notify_event_added">A eketsa ntho</string>
+    <string name="notify_event_checked">A tshwaya ntho, kapa a e kgutlisa</string>
+    <string name="notify_event_deleted">A hlakola ntho</string>
+    <string name="notify_event_updated">A fetola lebitso kapa a beha ntho naledi</string>
+    <string name="notify_blocked">Ditsebiso tsa Die Lys di koetswe mohaleng ona. Di bule ho Disetting tsa mohala hore o di fumane.</string>
+    <string name="notify_channel_name">Diphetoho tsa lenane</string>
+    <string name="notify_channel_description">Seo batho ba bang ba se fetolang manane ao o kgethileng ho utlwa ka wona.</string>
+    <string name="notify_line_added">%1$s o eketsitse %2$s</string>
+    <string name="notify_line_checked">%1$s o tshwaile %2$s</string>
+    <string name="notify_line_unchecked">%1$s o kgutlisitse %2$s</string>
+    <string name="notify_line_deleted">%1$s o hlakotse %2$s</string>
+    <string name="notify_line_updated">%1$s o fetotse %2$s</string>
+    <string name="notify_someone">Motho e mong</string>
+    <string name="notify_more">+%1$d tse ding</string>
+    <string name="sync_channel_name">Ho hokahanya</string>
+    <string name="sync_notification">Ho ntjhafatsa manane a hao</string>
 </resources>

@@ -3,7 +3,14 @@
  * reads and writes rows; it does not decide whether a password is right or
  * whether a token may be rotated.
  */
-import type { ListMember, Membership, MembershipRole, SyncSettings } from "@dielys/protocol";
+import {
+  type ListMember,
+  type Membership,
+  type MembershipRole,
+  NOTIFY_EVENTS,
+  type NotifyEvent,
+  type SyncSettings,
+} from "@dielys/protocol";
 import type { PasswordHash } from "../auth/password.js";
 
 export interface UserRow {
@@ -18,6 +25,12 @@ export interface DeviceRow {
   deviceId: string;
   userId: string;
   fcmToken: string;
+}
+
+/** A device in a list's wake fan-out, and whether its account has asked to be
+ * notified about that list — which is what decides the push's priority. */
+export interface ListDeviceRow extends DeviceRow {
+  notify: boolean;
 }
 
 export interface RefreshTokenRow {
@@ -274,7 +287,7 @@ export function selectMembership(
 ): Membership | null {
   const rows = [
     ...sql.exec(
-      `SELECT m.list_id, m.role, m.position, h.max_seq,
+      `SELECT m.list_id, m.role, m.position, m.notify_events, h.max_seq,
               (SELECT COUNT(*) FROM memberships m2 WHERE m2.list_id = m.list_id) AS member_count
          FROM memberships m
          LEFT JOIN list_heads h ON h.list_id = m.list_id
@@ -314,7 +327,7 @@ export function countListMembers(sql: SqlStorage, listId: string): number {
  */
 export function selectMemberships(sql: SqlStorage, userId: string): Membership[] {
   const cursor = sql.exec(
-    `SELECT m.list_id, m.role, m.position, h.max_seq,
+    `SELECT m.list_id, m.role, m.position, m.notify_events, h.max_seq,
             (SELECT COUNT(*) FROM memberships m2 WHERE m2.list_id = m.list_id) AS member_count
        FROM memberships m
        LEFT JOIN list_heads h ON h.list_id = m.list_id
@@ -470,7 +483,45 @@ function toMembership(row: Record<string, SqlStorageValue>): Membership {
     position: row.position === null || row.position === undefined ? null : String(row.position),
     memberCount: Number(row.member_count),
     maxSeq: row.max_seq === null || row.max_seq === undefined ? null : Number(row.max_seq),
+    notify: parseNotifyEvents(row.notify_events),
   };
+}
+
+/**
+ * Replaces one member's notification choice for one list. Same shape as
+ * [updateMembershipPosition]: false when there is no such membership, which the
+ * caller answers as 403 (L3). `events` is already validated and de-duplicated.
+ */
+export function updateMembershipNotify(
+  sql: SqlStorage,
+  userId: string,
+  listId: string,
+  events: readonly NotifyEvent[],
+): boolean {
+  const rows = [
+    ...sql.exec(
+      `UPDATE memberships SET notify_events = ? WHERE user_id = ? AND list_id = ?
+       RETURNING list_id`,
+      formatNotifyEvents(events),
+      userId,
+      listId,
+    ),
+  ];
+  return rows.length > 0;
+}
+
+/** Stored in the order the protocol lists them, whatever order they came in,
+ * so the same set is always the same string. */
+function formatNotifyEvents(events: readonly NotifyEvent[]): string {
+  return NOTIFY_EVENTS.filter((event) => events.includes(event)).join(",");
+}
+
+/** A value this build does not know is dropped rather than passed on — a
+ * later migration can add a kind without an older reader choking on it. */
+function parseNotifyEvents(raw: SqlStorageValue | undefined): NotifyEvent[] {
+  if (typeof raw !== "string" || raw === "") return [];
+  const stored = raw.split(",");
+  return NOTIFY_EVENTS.filter((event) => stored.includes(event));
 }
 
 /**
@@ -526,9 +577,9 @@ export function deleteDevicesForUser(sql: SqlStorage, userId: string): void {
  * "who should be told", after the Worker has already decided that the writer
  * was allowed to write.
  */
-export function selectDevicesForList(sql: SqlStorage, listId: string): DeviceRow[] {
+export function selectDevicesForList(sql: SqlStorage, listId: string): ListDeviceRow[] {
   const cursor = sql.exec(
-    `SELECT d.device_id, d.user_id, d.fcm_token
+    `SELECT d.device_id, d.user_id, d.fcm_token, m.notify_events
        FROM devices d
        JOIN memberships m ON m.user_id = d.user_id
       WHERE m.list_id = ?
@@ -539,6 +590,7 @@ export function selectDevicesForList(sql: SqlStorage, listId: string): DeviceRow
     deviceId: String(row.device_id),
     userId: String(row.user_id),
     fcmToken: String(row.fcm_token),
+    notify: parseNotifyEvents(row.notify_events).length > 0,
   }));
 }
 
