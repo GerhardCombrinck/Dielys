@@ -29,7 +29,7 @@ android {
         minSdk = 26
         targetSdk = 37
         versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 1
-        versionName = "0.5.21"
+        versionName = "0.5.22"
     }
 
     // Play's app bundle otherwise delivers only the resource split matching the
