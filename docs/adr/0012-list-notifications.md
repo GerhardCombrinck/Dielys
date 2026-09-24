@@ -105,9 +105,10 @@ window to run it. Before Android 12, expedited work runs as a foreground service
   dropped rather than saved up for later.
 - Names are fetched from the server at post time, once per list per process, and fall back to
   "Someone". A member who has since left is still "Someone".
-- The `NOTIFY` outbox row's entity id is `notify:{listId}`, not the list id. The applier treats a
-  queued row for an entity as a newer local edit and skips writing that entity's incoming
-  changes, and a notification choice is not an edit to the list.
+- The `NOTIFY` outbox row's entity id is `notify:{listId}`, not the list id: a notification
+  choice is not an edit to the list. The applier's "newer local edit queued" check also only
+  counts task and list rows, on both clients, so a queued choice or drag never hides somebody
+  else's rename.
 - A queued choice is not overwritten by a memberships answer that has not seen it yet, on both
   clients, the same rule a queued drag already had.
 - Notification strings are translated into all ten other languages. The non-Afrikaans ones are

@@ -220,6 +220,53 @@ class ListOrderTest {
             assertEquals("owner", list.role)
         }
 
+    /**
+     * A queued drag is filed under the list's id, but it is not an edit to the
+     * list. Counting it as one skipped the other member's rename — and the
+     * cursor moved past it, so it never came back.
+     */
+    @Test
+    fun `a drag still queued does not hide somebody else's rename`() =
+        runTest {
+            val phone = device("device-a")
+            val braai = phone.repo.createList("Braai")
+            assertEquals(SyncOutcome.Success, phone.engine.sync())
+            phone.repo.moveList(braai, afterId = null, beforeId = null)
+            assertTrue(
+                phone.db
+                    .outbox()
+                    .pending(LIMIT)
+                    .any { it.entityType == OutboxKind.ORDER },
+            )
+
+            val cursor =
+                phone.db
+                    .syncState()
+                    .find(braai)
+                    ?.cursor ?: 0L
+            assertEquals(
+                ApplyOutcome.APPLIED,
+                phone.applier.apply(
+                    ListChange(
+                        seq = cursor + 1,
+                        listId = braai,
+                        idempotencyKey = "rename-by-b",
+                        deviceId = "device-b",
+                        serverTimestamp = STAMP,
+                        entity = TaskList(id = braai, title = "Braaivleis", updatedAt = STAMP),
+                    ),
+                ),
+            )
+
+            assertEquals(
+                "Braaivleis",
+                phone.db
+                    .lists()
+                    .find(braai)
+                    ?.title,
+            )
+        }
+
     private fun device(id: String): DeviceStack = DeviceStack(api, id).also { devices += it }
 
     private companion object {

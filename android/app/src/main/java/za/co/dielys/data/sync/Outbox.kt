@@ -116,10 +116,9 @@ class OutboxFactory
         }
 
         /**
-         * This account's notification choice for [listId], whole. Its entity id
-         * is not the list's: the applier treats a queued row for an entity as a
-         * newer local edit and skips writing that entity's incoming changes, and
-         * a notification choice is not an edit to the list.
+         * This account's notification choice for [listId], whole. Its own
+         * entity id, so nothing reading the outbox by entity mistakes it for an
+         * edit to the list.
          */
         fun notify(
             listId: String,

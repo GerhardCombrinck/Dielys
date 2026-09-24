@@ -313,11 +313,17 @@ interface OutboxDao {
      * queued. Used to tell a stale echo of one's own earlier tap from the one
      * that actually matches what the screen shows right now — see
      * [za.co.dielys.data.sync.ChangeApplier].
+     *
+     * Only task and list mutations count. A queued drag or notification
+     * choice is filed under the list too, but it is not an edit to the list,
+     * and counting it skipped another member's rename for good (the cursor
+     * still moves on). `web/`'s `Replica.write` has the same filter.
      */
     @Query(
         """
         SELECT COUNT(*) FROM outbox
         WHERE entity_id = :entityId AND idempotency_key != :exceptKey AND dead = 0
+          AND entity_type IN ('task', 'list')
         """,
     )
     suspend fun pendingCountForEntity(
