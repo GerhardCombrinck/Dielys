@@ -47,6 +47,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -71,6 +72,7 @@ import za.co.dielys.ui.help.HelpSection
 import za.co.dielys.ui.reorder.ReorderState
 import za.co.dielys.ui.reorder.draftStillWanted
 import za.co.dielys.ui.reorder.moved
+import za.co.dielys.ui.theme.CardShape
 import za.co.dielys.ui.theme.PillShape
 import za.co.dielys.ui.theme.accentColor
 import za.co.dielys.ui.theme.listAccent
@@ -378,8 +380,10 @@ private fun Lists(
                         .then(if (dragging) Modifier else Modifier.animateItem())
                         .graphicsLayer {
                             translationY = if (dragging) reorder.draggingOffset else 0f
-                            // Square corners throughout — no shape or clip, so
-                            // there is nothing for the lift to round.
+                            // The shadow follows the card's corners, and the
+                            // scale carries them, so the lift never squares off.
+                            shape = CardShape
+                            clip = true
                             shadowElevation = lift * DRAG_ELEVATION
                             scaleX = 1f + lift * DRAG_SCALE
                             scaleY = 1f + lift * DRAG_SCALE
@@ -439,6 +443,7 @@ private fun ListRow(
         modifier =
             modifier
                 .fillMaxWidth()
+                .clip(CardShape)
                 .background(background)
                 .clickable(onClick = onOpen)
                 .padding(horizontal = 16.dp, vertical = 12.dp),

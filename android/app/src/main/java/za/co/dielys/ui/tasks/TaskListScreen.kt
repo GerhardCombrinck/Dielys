@@ -80,6 +80,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -110,6 +111,7 @@ import za.co.dielys.ui.lists.displayTitle
 import za.co.dielys.ui.reorder.ReorderState
 import za.co.dielys.ui.reorder.draftStillWanted
 import za.co.dielys.ui.reorder.moved
+import za.co.dielys.ui.theme.CardShape
 import za.co.dielys.ui.theme.PillShape
 import za.co.dielys.ui.theme.accentColor
 import za.co.dielys.ui.theme.listAccent
@@ -822,8 +824,10 @@ private fun LazyListScope.taskRows(
                         translationY = if (dragging) reorder.draggingOffset else 0f
                         // The whole row lifts as one card: shadowed and
                         // slightly larger, rather than a ripple boxed around
-                        // the title. Square corners throughout — no shape or
-                        // clip here, so there is nothing for the lift to round.
+                        // the title. The shadow follows the card's corners, and
+                        // the scale carries them, so the lift never squares off.
+                        shape = CardShape
+                        clip = true
                         shadowElevation = lift * DRAG_ELEVATION
                         scaleX = 1f + lift * DRAG_SCALE
                         scaleY = 1f + lift * DRAG_SCALE
@@ -887,6 +891,7 @@ private fun GhostRow(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface.copy(alpha = GHOST_SURFACE_ALPHA),
+        shape = CardShape,
         modifier = modifier,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -997,15 +1002,21 @@ private fun TaskRow(
     // words were hit.
     val press = remember { MutableInteractionSource() }
 
+    // A done row has no card on web either (`.task-row.done`), so it stays square.
+    val shape = if (task.done) RectangleShape else CardShape
+
     Surface(
         color = background,
+        shape = shape,
         modifier =
             modifier
                 .fillMaxWidth()
                 .graphicsLayer {
                     // Lifts with the light, so the row reads as picked up rather
-                    // than repainted. Square, like every other card — no shape or
-                    // clip, so the corners never round mid-animation.
+                    // than repainted. The shape is the card's, so the shadow and
+                    // the glow below both keep its corners.
+                    this.shape = shape
+                    clip = true
                     shadowElevation = glow.value * STAR_GLOW_ELEVATION
                 }.drawWithContent {
                     drawContent()

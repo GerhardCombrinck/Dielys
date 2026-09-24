@@ -7,9 +7,18 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
 /** The redesign's fully-rounded pill for buttons and the new-list/add rows. */
 val PillShape = RoundedCornerShape(percent = 50)
+
+/**
+ * A list's or an item's card. 14dp, the same as `.list-row` and `.task-row` in
+ * `web/src/theme.css`, so a row has the same corners on both. The drag lift rounds
+ * with it: [androidx.compose.ui.graphics.GraphicsLayerScope.shape] is what the
+ * shadow is cast from.
+ */
+val CardShape = RoundedCornerShape(14.dp)
 
 /**
  * The dark blue chrome the launcher icon already uses, so the app and its icon
