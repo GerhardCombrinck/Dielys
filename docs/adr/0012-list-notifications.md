@@ -98,8 +98,8 @@ window to run it. Before Android 12, expedited work runs as a foreground service
 
 - Nothing reaches a phone without `FCM_SERVICE_ACCOUNT_JSON` on that deployment. Until then a
   backgrounded phone only hears about changes on the periodic floor (H3.12), and a notification
-  can be up to that interval late. `dielys-prod` does not have it yet (PLAN.md), so this feature
-  is effectively off in production until the key is set there.
+  can be up to that interval late. Both `dielys-dev` and `dielys-prod` have it, each with its
+  own key.
 - Android 13+ asks for `POST_NOTIFICATIONS` when somebody first turns a list's notifications on,
   not at start-up. Refused, the dialog says so. Rows recorded while posting is not allowed are
   dropped rather than saved up for later.

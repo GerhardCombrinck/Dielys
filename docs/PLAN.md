@@ -98,8 +98,9 @@ Where Dielys is and what comes next. Short by design — the standard is in
       invite link, not a Settings action) rather than moving to Settings as first planned here.
 - [x] **Prod** — `JWT_SIGNING_KEY`/`ADMIN_TOKEN` set on `dielys-prod`, `v0.1.0` tagged and
       deployed through the required-reviewer gate on the `prod` GitHub environment,
-      `scripts/smoke.sh` all 29 checks green. `FCM_SERVICE_ACCOUNT_JSON` is not set yet —
-      fail-open, so prod runs with no wake push until that key rotation is repeated for prod.
+      `scripts/smoke.sh` all 29 checks green. `FCM_SERVICE_ACCOUNT_JSON` set on 2026-09-24 with
+      its own key (dev keeps the 2026-09-09 one, so either can be revoked alone);
+      `scripts/push-probe.sh` answered `fcm.send.rejected` 400.
 - [x] **Web client** (`web/`, issue #74) — React + Vite + TypeScript. Shipped online-first; now
       local-first like Android (ADR 0011): an IndexedDB replica and outbox, so a tap lands
       locally at once and syncs after, offline included (`web/AGENTS.md`). The WebSocket-auth
@@ -108,14 +109,12 @@ Where Dielys is and what comes next. Short by design — the standard is in
       lists, tasks, sharing (invite/members/leave), settings, and account deletion — including
       the public `dielys.com/account/delete` pages ADR 0007 and Google Play's deletion
       requirement call for — all match Android's connected/online experience.
-- [ ] **List notifications** (ADR 0012) — built, not yet shipped. Per member, per shared list,
+- [x] **List notifications** (ADR 0012) — Android 0.5.22, web 0.5.23. Per member, per shared list,
       off by default. The bell on a shared list picks which kinds of change (added, ticked,
       deleted, changed) raise a phone notification. It is composed on the phone from Room after
       the wake sync, never sent in the push (M1). Changes now carry `authorUserId`, so your own
       edits from another device stay quiet, and the notification names who did it. Wakes go
-      `high` only to devices that will notify. **Needs `FCM_SERVICE_ACCOUNT_JSON` on
-      `dielys-prod` first** (see the Prod item). Without it a backgrounded phone only hears
-      about changes on the periodic floor. `web/` sets the choice but does not show
+      `high` only to devices that will notify. `web/` sets the choice but does not show
       notifications; Web Push is its own later project.
 
 ## Open questions
