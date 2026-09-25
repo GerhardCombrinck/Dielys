@@ -217,12 +217,12 @@ describe("admin stats (#84)", () => {
       users: number;
       lists: number;
       items: number;
-      emails: string[];
+      accounts: { userId: string; email: string }[];
     };
 
     const ownerEmail = uniqueEmail();
     const otherEmail = uniqueEmail();
-    await createUser(ownerEmail);
+    const ownerId = await createUser(ownerEmail);
     await createUser(otherEmail);
     const owner = await login(ownerEmail);
 
@@ -291,17 +291,66 @@ describe("admin stats (#84)", () => {
       users: number;
       lists: number;
       items: number;
-      emails: string[];
+      accounts: { userId: string; email: string }[];
     };
     expect(stats.users - before.users).toBe(2);
     expect(stats.lists - before.lists).toBe(1);
     expect(stats.items - before.items).toBe(2);
 
     const domain = ownerEmail.slice(ownerEmail.indexOf("@"));
-    expect(stats.emails).not.toContain(ownerEmail);
-    expect(stats.emails).toContain(`${ownerEmail.slice(0, ownerEmail.indexOf("@"))}@…`);
-    expect(stats.emails).not.toContain(otherEmail);
-    expect(stats.emails.some((e) => e.endsWith(domain))).toBe(false);
+    const emails = stats.accounts.map((account) => account.email);
+    expect(emails).not.toContain(ownerEmail);
+    expect(stats.accounts).toContainEqual({
+      userId: ownerId,
+      email: `${ownerEmail.slice(0, ownerEmail.indexOf("@"))}@…`,
+    });
+    expect(emails).not.toContain(otherEmail);
+    expect(emails.some((e) => e.endsWith(domain))).toBe(false);
+  });
+});
+
+/** The test accounts smoke.sh and push-probe.sh leave behind have no other way out. */
+describe("admin account deletion", () => {
+  async function adminDelete(userId: string, token?: string): Promise<Response> {
+    const headers: Record<string, string> = {};
+    if (token !== undefined) headers.Authorization = `Bearer ${token}`;
+    return SELF.fetch(`https://dielys.test/admin/users/${userId}`, { method: "DELETE", headers });
+  }
+
+  it("refuses without the admin token, and leaves the account alone", async () => {
+    const email = uniqueEmail();
+    const userId = await createUser(email);
+
+    expect((await adminDelete(userId)).status).toBe(401);
+    expect((await adminDelete(userId, "not-the-admin-token")).status).toBe(401);
+    await login(email);
+  });
+
+  it("erases the account and the lists only it was on", async () => {
+    const email = uniqueEmail();
+    const userId = await createUser(email);
+    const session = await login(email);
+    const listId = crypto.randomUUID();
+    expect((await post(`/lists/${listId}`, {}, session.accessToken)).status).toBe(200);
+
+    expect((await adminDelete(userId, ADMIN)).status).toBe(204);
+
+    const again = await post("/auth/login", { email, password: PASSWORD, deviceId: "device-a" });
+    expect(again.status).toBe(401);
+    const refresh = await post("/auth/refresh", {
+      refreshToken: session.refreshToken,
+      deviceId: "device-a",
+    });
+    expect(refresh.status).toBe(401);
+    const stats = (await (await get("/admin/stats", ADMIN)).json()) as {
+      accounts: { userId: string }[];
+    };
+    expect(stats.accounts.map((account) => account.userId)).not.toContain(userId);
+    expect(await usersRoom(env).listIds()).not.toContain(listId);
+  });
+
+  it("answers 204 for an id with no account", async () => {
+    expect((await adminDelete(crypto.randomUUID(), ADMIN)).status).toBe(204);
   });
 });
 

@@ -88,9 +88,9 @@ import {
   markWsTicketUsed,
   recordListHead,
   selectAccountDeletionRequest,
+  selectAccountsNewestFirst,
   selectDevicesForList,
   selectDistinctListIds,
-  selectEmailsNewestFirst,
   selectListMembers,
   selectLongestOtherMember,
   selectMagicLink,
@@ -1268,10 +1268,10 @@ export class UsersRoom extends DurableObject {
     return selectDistinctListIds(this.sql);
   }
 
-  /** Every account's email, newest first (#84) — raw; the Worker obscures
-   *  the domain before it ever reaches a response body. */
-  async userEmails(): Promise<string[]> {
-    return selectEmailsNewestFirst(this.sql);
+  /** Every account's id and email, newest first (#84) — raw; the Worker
+   *  obscures the domain before it ever reaches a response body. */
+  async accounts(): Promise<{ userId: string; email: string }[]> {
+    return selectAccountsNewestFirst(this.sql);
   }
 
   /**

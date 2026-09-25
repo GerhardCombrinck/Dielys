@@ -9,8 +9,8 @@ Utility and maintenance scripts. POSIX `sh` or Node only — CI runs on Linux
 | `node-tests.sh`   | Runs one node component's tests, bounded and retried past [workers-sdk#15498](https://github.com/cloudflare/workers-sdk/issues/15498). Called by `verify.sh` and by `ci.yml`. | No |
 | `build-web-public.sh` | Builds `web/` and merges it into `server/public/` (gitignored) with `server/public-static/` — what `server/`'s Worker actually deploys as its static assets. Called by `verify.sh`, `ci.yml`'s `server` job, and `deploy-server.yml`. | No |
 | `check-r8-keeps.sh` | Fails if R8 dropped a class or constructor the release build only reaches by reflection (WorkManager's InputMergers, `SyncWorker`, wire serializers). Reads `seeds.txt` after `assembleRelease`. Called by `verify.sh` and `ci.yml`. | No |
-| `smoke.sh`        | End-to-end check against a running server — local, dev or prod. Run after a deploy. | Creates two throwaway accounts, one list and two device rows |
-| `push-probe.sh`   | Makes a deployed server attempt one real FCM send, to prove the credential works. Read `wrangler tail` for the answer. | Creates one throwaway account and one list |
+| `smoke.sh`        | End-to-end check against a running server — local, dev or prod. Run after a deploy. | Creates two throwaway accounts, one list and two device rows, and deletes them at the end |
+| `push-probe.sh`   | Makes a deployed server attempt one real FCM send, to prove the credential works. Read `wrangler tail` for the answer. | Creates one throwaway account and one list, and deletes them at the end |
 | `create-user.ts`  | Creates one Dielys account in `UsersRoom`. See [L2](../docs/CODE_STANDARD.md#standard-l2) — there is no public registration endpoint, this is the only way an account gets created. | Yes |
 
 A script that touches production data MUST print what it is about to do and prompt for
@@ -40,11 +40,11 @@ and closest to the Linux shell CI runs, so a script that works there works in CI
 scripts/smoke.sh https://dielys-dev.dielys.workers.dev
 ```
 
-29 checks over the whole contract: registration, login, list claim, mutation, an
+43 checks over the whole contract: registration, login, list claim, mutation, an
 idempotent retry that must return the original result at the same seq without
 adding a changelog row, catch-up, invite mint and accept, push-token
-registration, and refresh rotation with replay detection. Exits non-zero on the
-first disagreement and prints the body.
+registration, refresh rotation with replay detection, and deleting both accounts.
+Exits non-zero on the first disagreement and prints the body.
 
 No admin token any more: registration is public ([ADR 0004](../docs/adr/0004-open-registration.md)),
 so the script makes its own accounts. The one check that still concerns
@@ -57,9 +57,10 @@ the first step and proves nothing. `push-probe.sh` shares that budget. A local
 `wrangler dev` keeps its counters in a throwaway DO, so restarting clears them.
 
 It is not read-only: it creates two `smoke-*@dielys.test` accounts and one list
-per run, and names them at the end. Nothing deletes them — there is no account
-deletion endpoint, deliberately (L2). On dev that is fine; think before pointing
-it at prod.
+per run, then deletes both accounts with `DELETE /account`, which erases the list
+([ADR 0007](../docs/adr/0007-account-deletion.md)). A run that stops before the end
+leaves them behind, with a random password nobody kept; delete those from
+`dielys.com/admin`.
 
 `scripts/verify.sh` proves the code is right before a push; this proves the
 deployment is right after one. Neither replaces the other.
@@ -90,6 +91,7 @@ means.
 
 The script itself cannot fail on a credential problem, and does not pretend to —
 it exits 0 as long as the HTTP contract held, and hands you the tail to read.
+It then waits ten seconds, so the wake has run, and deletes its account and list.
 
 This is also the check to run after rotating the FCM service-account key: a
 `fcm.send.rejected` 400 means the new key authenticated, and anything earlier in

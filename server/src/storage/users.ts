@@ -101,10 +101,11 @@ export function countUsers(sql: SqlStorage): number {
 
 /** Newest account first (#84) — "who signed up" reads top-down like an
  *  activity feed, not alphabetically. */
-export function selectEmailsNewestFirst(sql: SqlStorage): string[] {
-  return [...sql.exec("SELECT email FROM users ORDER BY created_at DESC")].map((row) =>
-    String(row.email),
-  );
+export function selectAccountsNewestFirst(sql: SqlStorage): { userId: string; email: string }[] {
+  return [...sql.exec("SELECT id, email FROM users ORDER BY created_at DESC")].map((row) => ({
+    userId: String(row.id),
+    email: String(row.email),
+  }));
 }
 
 /** `null` for a user id that does not exist — the caller (`UsersRoom`) turns

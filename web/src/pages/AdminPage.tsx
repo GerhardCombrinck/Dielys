@@ -10,6 +10,11 @@
  * trade-off `SessionContext` already makes for the refresh token: a bearer
  * credential worth not re-typing, not something meant to be secret from the
  * browser it is stored in.
+ *
+ * Each account can be deleted from here — the same erasure as the app's own
+ * "delete account" (ADR 0007). It exists for the test accounts `smoke.sh` and
+ * `push-probe.sh` used to leave behind, which have no other way out: random
+ * passwords nobody kept, and `@dielys.test` addresses that get no mail.
  */
 import { useCallback, useEffect, useState } from "react";
 import { API_BASE_URL } from "../api/client.js";
@@ -20,8 +25,13 @@ interface Stats {
   users: number;
   lists: number;
   items: number;
+  accounts: Account[];
+}
+
+interface Account {
+  userId: string;
   /** Local part only — the server never sends the domain (#84). */
-  emails: string[];
+  email: string;
 }
 
 export function AdminPage() {
@@ -29,6 +39,7 @@ export function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const load = useCallback(async (withToken: string): Promise<void> => {
     if (withToken.trim() === "") return;
@@ -52,6 +63,38 @@ export function AdminPage() {
       setBusy(false);
     }
   }, []);
+
+  const remove = useCallback(
+    async (account: Account): Promise<void> => {
+      if (
+        !window.confirm(
+          `Delete ${account.email} and every list only they are on? This can't be undone.`,
+        )
+      ) {
+        return;
+      }
+      setDeleting(account.userId);
+      setProblem(null);
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/admin/users/${encodeURIComponent(account.userId)}`,
+          { method: "DELETE", headers: { Authorization: `Bearer ${token.trim()}` } },
+        );
+        if (!response.ok) {
+          setProblem(
+            response.status === 401 ? "Wrong admin token." : "Could not delete that account.",
+          );
+          return;
+        }
+        await load(token);
+      } catch {
+        setProblem("Could not reach the server. Check your connection.");
+      } finally {
+        setDeleting(null);
+      }
+    },
+    [load, token],
+  );
 
   // A token already in localStorage from a previous visit loads straight
   // away — a new one the visitor types is submitted by the form below, not
@@ -107,12 +150,26 @@ export function AdminPage() {
               <div className="settings-section">
                 <h2>Who signed up</h2>
                 <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
-                  {stats.emails.map((email, i) => (
-                    // The server doesn't hand back a stable id for this list, and
-                    // it never reorders under us within one load — index is fine.
-                    // biome-ignore lint/suspicious/noArrayIndexKey: see comment above.
-                    <li key={i} style={{ padding: "0.25rem 0" }}>
-                      {email}
+                  {stats.accounts.map((account) => (
+                    <li
+                      key={account.userId}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "0.5rem",
+                        padding: "0.125rem 0",
+                      }}
+                    >
+                      <span style={{ overflowWrap: "anywhere" }}>{account.email}</span>
+                      <button
+                        className="text-button menu-danger"
+                        type="button"
+                        onClick={() => void remove(account)}
+                        disabled={busy || deleting !== null}
+                      >
+                        {deleting === account.userId ? "Deleting…" : "Delete"}
+                      </button>
                     </li>
                   ))}
                 </ul>

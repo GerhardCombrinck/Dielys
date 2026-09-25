@@ -4,7 +4,8 @@
 # Creates two disposable accounts, then drives the whole contract — registration,
 # login, list claim, mutation, idempotent retry, catch-up, invite, accept,
 # push-token registration, refresh rotation and replay detection — asserting the
-# response at each step.
+# response at each step. It ends by deleting both accounts, which erases the list
+# too, so a run leaves nothing behind in the admin page's "who signed up".
 #
 # POSIX sh (A2). Needs curl and node.
 #
@@ -233,7 +234,18 @@ R=$(req -X POST "$BASE/auth/refresh" -H "$JSON" \
   -d "{\"refreshToken\":\"$ROTATED\",\"deviceId\":\"smoke-a\"}")
 check "the replay revoked every session for that user" 401 "$(code_of "$R")" "$(body_of "$R")"
 
-printf '\n%sleft behind: %s, %s, list %s%s\n' "$DIM" "$EMAIL_A" "$EMAIL_B" "$LIST" "$RESET"
+# ADR 0007, and the clean-up. The access tokens outlive the replay above: that
+# revoked refresh tokens, and an access token is only checked for its signature
+# and expiry. The owner goes first, so the list is handed to the partner and then
+# erased with the partner — both paths of an erasure, on the way out.
+R=$(req -X DELETE "$BASE/account" -H "Authorization: Bearer $TOKEN_A")
+check "delete the owner's account" 204 "$(code_of "$R")" "$(body_of "$R")"
+R=$(req -X DELETE "$BASE/account" -H "Authorization: Bearer $TOKEN_B")
+check "delete the partner's account" 204 "$(code_of "$R")" "$(body_of "$R")"
+R=$(req -X POST "$BASE/auth/login" -H "$JSON" \
+  -d "{\"email\":\"$EMAIL_B\",\"password\":\"$PASS\",\"deviceId\":\"smoke-b\"}")
+check "a deleted account cannot sign in" 401 "$(code_of "$R")" "$(body_of "$R")"
+
 if [ "$FAILED" -gt 0 ]; then
   printf '%s%s check(s) failed%s\n' "$RED" "$FAILED" "$RESET"
   exit 1

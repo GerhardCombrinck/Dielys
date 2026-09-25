@@ -135,6 +135,11 @@ best-effort and off the response path, so this script cannot tell you the answer
 
   ${DIM}nothing at all${RESET}
       The wake never ran. Check the deployed version is current.
-
-${DIM}left behind: $EMAIL, list $LIST${RESET}
 BANNER
+
+# The wake runs after the write has answered, so the account has to outlive it:
+# erased first, the fan-out finds no device to send to and the tail shows
+# nothing. Then it goes, so a probe leaves no account behind (ADR 0007).
+sleep 10
+R=$(req -X DELETE "$BASE/account" -H "Authorization: Bearer $WRITER")
+must "delete the probe account (and its list)" 204 "$(code_of "$R")" "$(body_of "$R")"

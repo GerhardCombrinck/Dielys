@@ -114,6 +114,7 @@ rules are CODE_STANDARD.md L1–L3.
 | POST | `/account/deletion/request` | none | `RequestAccountDeletionRequest` → `RequestAccountDeletionResponse` |
 | POST | `/account/deletion/confirm` | none | `ConfirmAccountDeletionRequest` → `204` |
 | POST | `/admin/users` | `ADMIN_TOKEN` | Account creation (L2). Not a public endpoint |
+| DELETE | `/admin/users/{userId}` | `ADMIN_TOKEN` | Erases that account, as `DELETE /account` does. `204`, also for an id with no account. For the admin page |
 
 Every request carries the access token as `Authorization: Bearer <jwt>` — **including the
 WebSocket upgrade**. The token is on the upgrade request rather than in the `hello` message

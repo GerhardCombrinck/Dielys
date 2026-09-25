@@ -46,6 +46,8 @@ const INVITE_ROUTE = /^\/lists\/([^/]+)\/invite$/;
 const MEMBERS_ROUTE = /^\/lists\/([^/]+)\/members$/;
 /** `/lists/{listId}/members/{userId}` — take one person off it (#60). */
 const MEMBER_ROUTE = /^\/lists\/([^/]+)\/members\/([^/]+)$/;
+/** `/admin/users/{userId}` — erase one account from the admin page. */
+const ADMIN_USER_ROUTE = /^\/admin\/users\/([^/]+)$/;
 
 /**
  * Bearer-token auth (L1), not cookies — nothing here is sent automatically by
@@ -149,6 +151,11 @@ async function handle(request: Request, env: Env): Promise<Response> {
         return await handleRequestAccountDeletion(request, env, url, now);
       case "/account/deletion/confirm":
         return await handleConfirmAccountDeletion(request, env, now);
+    }
+
+    const adminUser = ADMIN_USER_ROUTE.exec(url.pathname);
+    if (adminUser !== null) {
+      return await handleAdminDeleteUser(request, env, decodeURIComponent(adminUser[1] as string));
     }
 
     const invite = INVITE_ROUTE.exec(url.pathname);
@@ -690,8 +697,8 @@ async function handleCreateUser(request: Request, env: Env, now: number): Promis
 }
 
 /**
- * `GET /admin/stats` (#84) — total accounts (with each account's email, its
- * domain obscured — curiosity about who signed up, not a directory), plus
+ * `GET /admin/stats` (#84) — total accounts (with each account's id and email,
+ * the email's domain obscured — curiosity about who signed up, not a directory), plus
  * lists and items across every list anyone has a membership on. `UsersRoom`
  * answers what it knows directly; the per-list deleted/task-count numbers
  * live in each list's own `ListRoom`, so this fans out to all of them the
@@ -707,8 +714,8 @@ async function handleAdminStats(request: Request, env: Env): Promise<Response> {
     return errorResponse("unauthorized", 401);
   }
 
-  const [emails, listIds] = await Promise.all([
-    usersRoom(env).userEmails(),
+  const [accounts, listIds] = await Promise.all([
+    usersRoom(env).accounts(),
     usersRoom(env).listIds(),
   ]);
 
@@ -732,11 +739,35 @@ async function handleAdminStats(request: Request, env: Env): Promise<Response> {
   }
 
   return Response.json({
-    users: emails.length,
+    users: accounts.length,
     lists,
     items,
-    emails: emails.map(obscureEmail),
+    accounts: accounts.map(({ userId, email }) => ({ userId, email: obscureEmail(email) })),
   });
+}
+
+/**
+ * `DELETE /admin/users/{userId}` — erases one account from the admin page, the
+ * same erasure as `DELETE /account` (ADR 0007). For the test accounts
+ * `smoke.sh` and `push-probe.sh` leave behind: their passwords were random and
+ * their `@dielys.test` addresses get no mail, so neither of the account's own
+ * ways to delete itself can reach them. An id with no account is `204` too —
+ * the account is gone either way, which is all the caller asked.
+ */
+async function handleAdminDeleteUser(
+  request: Request,
+  env: Env,
+  userId: string,
+): Promise<Response> {
+  if (request.method !== "DELETE") return errorResponse("malformed", 405);
+  if (!authorizeAdmin(request, env)) {
+    log("warn", "worker.admin.denied", {});
+    return errorResponse("unauthorized", 401);
+  }
+
+  log("info", "worker.admin.account-deleted", { userId });
+  await eraseAccount(env, userId);
+  return new Response(null, { status: 204 });
 }
 
 /**
