@@ -2,9 +2,9 @@
 # End-to-end smoke test against a running Dielys server: local, dev or prod.
 #
 # Creates two disposable accounts, then drives the whole contract — registration,
-# login, list claim, mutation, idempotent retry, catch-up, invite, accept,
-# push-token registration, refresh rotation and replay detection — asserting the
-# response at each step. It ends by deleting both accounts, which erases the list
+# login, list claim, mutation, idempotent retry, catch-up, the invite route up to
+# its send, push-token registration, refresh rotation and replay detection —
+# asserting the response at each step. It ends by deleting both accounts, which erases the list
 # too, so a run leaves nothing behind in the admin page's "who signed up".
 #
 # POSIX sh (A2). Needs curl and node.
@@ -169,28 +169,27 @@ check "catch-up from 0" 200 "$(code_of "$R")" "$(body_of "$R")"
 expect "retry added no changelog row" "$(field "$(body_of "$R")" '.changes.length')" "1"
 
 R=$(req "$BASE/lists/$LIST/changes?since=0" -H "Authorization: Bearer $TOKEN_B")
-check "partner cannot read the list yet" 403 "$(code_of "$R")" "$(body_of "$R")"
+check "a stranger cannot read the list" 403 "$(code_of "$R")" "$(body_of "$R")"
 
-R=$(req -X POST "$BASE/lists/$LIST/invite" -H "Authorization: Bearer $TOKEN_A")
-check "owner mints an invite" 200 "$(code_of "$R")" "$(body_of "$R")"
-INVITE=$(field "$(body_of "$R")" '.inviteToken')
+# Invites are mailed, not returned, so this script never mints a real one: the
+# token would only reach an @dielys.test inbox that does not exist, and every
+# such send is a hard bounce against the Brevo sender. It proves the route up
+# to the send instead. The Worker checks, in order, that email is configured
+# (503), that the caller is on the list (403), that they own it (403), then the
+# body (400) — so a body naming a different list reaching 400 means the first
+# three all passed. Accepting, and seeing the list afterwards, is the server
+# suite's job (auth-flow.test.ts), which reads the token from a stubbed send.
+INVITE_BODY="{\"listId\":\"$LIST\",\"email\":\"$EMAIL_B\",\"listTitle\":\"Smoke\"}"
 
-R=$(req -X POST "$BASE/invites/accept" -H "Authorization: Bearer $TOKEN_B" -H "$JSON" \
-  -d "{\"inviteToken\":\"$INVITE\"}")
-check "partner accepts" 200 "$(code_of "$R")" "$(body_of "$R")"
-expect "first accept is not a repeat" "$(field "$(body_of "$R")" '.alreadyMember')" "false"
+R=$(req -X POST "$BASE/lists/$LIST/invite" -H "Authorization: Bearer $TOKEN_B" -H "$JSON" \
+  -d "$INVITE_BODY")
+check "a stranger cannot invite to the list" 403 "$(code_of "$R")" "$(body_of "$R")"
 
-R=$(req -X POST "$BASE/invites/accept" -H "Authorization: Bearer $TOKEN_B" -H "$JSON" \
-  -d "{\"inviteToken\":\"$INVITE\"}")
-check "accepting twice is a no-op" 200 "$(code_of "$R")" "$(body_of "$R")"
-expect "second accept reports alreadyMember" "$(field "$(body_of "$R")" '.alreadyMember')" "true"
-
-R=$(req "$BASE/lists/$LIST/changes?since=0" -H "Authorization: Bearer $TOKEN_B")
-check "partner now sees the list" 200 "$(code_of "$R")" "$(body_of "$R")"
-expect "partner sees the task" "$(field "$(body_of "$R")" '.changes[0].entity.title')" "Melk"
-
-R=$(req -X POST "$BASE/lists/$LIST/invite" -H "Authorization: Bearer $TOKEN_B")
-check "a member cannot mint further invites" 403 "$(code_of "$R")" "$(body_of "$R")"
+R=$(req -X POST "$BASE/lists/$LIST/invite" -H "Authorization: Bearer $TOKEN_A" -H "$JSON" \
+  -d "{\"listId\":\"$(uuid)\",\"email\":\"$EMAIL_B\",\"listTitle\":\"Smoke\"}")
+check "the owner reaches the invite send (a mismatched body stops it)" 400 \
+  "$(code_of "$R")" "$(body_of "$R")"
+expect "and says why" "$(field "$(body_of "$R")" '.code')" "malformed"
 
 # L3: signed with the same key, so only the distinct claim shape stops this.
 R=$(req -X POST "$BASE/invites/accept" -H "Authorization: Bearer $TOKEN_B" -H "$JSON" \
@@ -236,8 +235,8 @@ check "the replay revoked every session for that user" 401 "$(code_of "$R")" "$(
 
 # ADR 0007, and the clean-up. The access tokens outlive the replay above: that
 # revoked refresh tokens, and an access token is only checked for its signature
-# and expiry. The owner goes first, so the list is handed to the partner and then
-# erased with the partner — both paths of an erasure, on the way out.
+# and expiry. The owner is the list's only member, so the list is erased with
+# the owner's account.
 R=$(req -X DELETE "$BASE/account" -H "Authorization: Bearer $TOKEN_A")
 check "delete the owner's account" 204 "$(code_of "$R")" "$(body_of "$R")"
 R=$(req -X DELETE "$BASE/account" -H "Authorization: Bearer $TOKEN_B")

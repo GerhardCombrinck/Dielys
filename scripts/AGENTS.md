@@ -40,9 +40,9 @@ and closest to the Linux shell CI runs, so a script that works there works in CI
 scripts/smoke.sh https://dielys-dev.dielys.workers.dev
 ```
 
-43 checks over the whole contract: registration, login, list claim, mutation, an
+29 checks over the whole contract: registration, login, list claim, mutation, an
 idempotent retry that must return the original result at the same seq without
-adding a changelog row, catch-up, invite mint and accept, push-token
+adding a changelog row, catch-up, the invite route up to its send, push-token
 registration, refresh rotation with replay detection, and deleting both accounts.
 Exits non-zero on the first disagreement and prints the body.
 
@@ -61,6 +61,13 @@ per run, then deletes both accounts with `DELETE /account`, which erases the lis
 ([ADR 0007](../docs/adr/0007-account-deletion.md)). A run that stops before the end
 leaves them behind, with a random password nobody kept; delete those from
 `dielys.com/admin`.
+
+It never mints a real invite. Invites are mailed rather than returned, so the
+token would go to an `@dielys.test` inbox that does not exist, and each send
+would hard-bounce against the Brevo sender. It stops one step short instead: a
+body naming another list gets `400` only after email config, membership and
+ownership have all passed. Accepting an invite is covered by
+`server/test/auth-flow.test.ts`, which reads the token from a stubbed send.
 
 `scripts/verify.sh` proves the code is right before a push; this proves the
 deployment is right after one. Neither replaces the other.
