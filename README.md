@@ -9,6 +9,13 @@ offline-tolerant, syncs over Cloudflare Durable Objects.
   in production since 2026-09-25
 - **Web:** [dielys.com](https://dielys.com)
 
+<p>
+  <img src="docs/screenshots/01-lists.png" alt="All lists, each with its own colour" width="200">
+  <img src="docs/screenshots/02-groceries.png" alt="A shopping list with starred items on top and done items below" width="200">
+  <img src="docs/screenshots/03-camping.png" alt="A packing list, mostly done" width="200">
+  <img src="docs/screenshots/04-braai-dark.png" alt="A braai list in dark mode" width="200">
+</p>
+
 ### Requirements
 
 - Node.js 22+, npm
