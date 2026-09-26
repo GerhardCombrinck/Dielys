@@ -3,6 +3,12 @@
 A Wunderlist-style shared to-do / shopping list for a household of two. Local-first,
 offline-tolerant, syncs over Cloudflare Durable Objects.
 
+### Live
+
+- **Android:** [Die Lys on Google Play](https://play.google.com/store/apps/details?id=za.co.dielys),
+  in production since 2026-09-25
+- **Web:** [dielys.com](https://dielys.com)
+
 ### Requirements
 
 - Node.js 22+, npm
