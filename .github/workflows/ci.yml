@@ -62,7 +62,7 @@ jobs:
       # cap is the backstop for anything that outlives even that. Local runs go
       # through the same script, via scripts/verify.sh.
       - run: sh scripts/node-tests.sh server
-        # The local default is 45s, sized for this machine. A cold two-core
+        # The local default is 90s, sized for this machine. A cold two-core
         # runner is not this machine, and a false timeout here reads as a red
         # build for a suite that passed, so give it room: three attempts at
         # 150s, and a job cap above that as the backstop.

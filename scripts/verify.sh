@@ -11,7 +11,7 @@
 #   scripts/verify.sh server android web
 #   FAST=1 scripts/verify.sh       # skip android (the slow one)
 #   CLEAN=1 scripts/verify.sh      # reinstall node deps from the lockfile
-#   DIELYS_TEST_TIMEOUT=300 ...    # seconds one node test leg may take (default 45)
+#   DIELYS_TEST_TIMEOUT=300 ...    # seconds one node test leg may take (default 90)
 #
 # Toolchain: JAVA_HOME/ANDROID_HOME are used when already set, otherwise the
 # script falls back to ~/.dielys-toolchain (see scripts/AGENTS.md).

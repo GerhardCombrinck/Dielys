@@ -31,11 +31,11 @@ if [ ! -d "$dir" ]; then
   exit 2
 fi
 
-# 45s is a little over twice the slowest honest run measured here (server, the
-# big one, is 19-20s warm and the whole point of the bound is to be well clear
-# of a cold one). A hung attempt costs exactly this much, so it is kept tight;
-# ci.yml raises it, because a slow runner flaking red is worse than waiting.
-TEST_TIMEOUT="${DIELYS_TEST_TIMEOUT:-45}"
+# 90s is a little over half again the slowest honest run measured here (server,
+# the big one, grew to about 56s — 45s had started timing out every attempt of a
+# suite that passes). A hung attempt costs exactly this much, so it is kept
+# tight; ci.yml raises it, because a slow runner flaking red is worse than waiting.
+TEST_TIMEOUT="${DIELYS_TEST_TIMEOUT:-90}"
 TEST_ATTEMPTS="${DIELYS_TEST_ATTEMPTS:-3}"
 
 YELLOW=''

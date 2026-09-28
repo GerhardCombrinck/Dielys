@@ -166,14 +166,14 @@ and the race needs that overlap. Measured here: 42% of runs hang with files in p
 about 7% without. It costs roughly 8 seconds a run.
 
 Under the remainder, `scripts/node-tests.sh` bounds each attempt at `DIELYS_TEST_TIMEOUT`
-seconds (45 by default, and `ci.yml` sets 150 for a slower runner), kills the `workerd` processes that stuck attempt left behind, and
+seconds (90 by default, and `ci.yml` sets 150 for a slower runner), kills the `workerd` processes that stuck attempt left behind, and
 tries again — three attempts in all (`DIELYS_TEST_ATTEMPTS`). Hanging every time is reported
 as this bug rather than as a test failure. `verify.sh` and `ci.yml` both run the tests
 through that script, so the local guard and the CI guard cannot drift apart. A retry
 prints:
 
 ```
-warn server tests hung at 45s (workers-sdk#15498), attempt 2 of 3.
+warn server tests hung at 90s (workers-sdk#15498), attempt 2 of 3.
 ```
 
 That line means the tooling tripped, not that anything regressed.
