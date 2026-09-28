@@ -101,6 +101,7 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
 import za.co.dielys.R
 import za.co.dielys.data.local.TaskEntity
 import za.co.dielys.domain.spotUnderStarred
@@ -246,6 +247,15 @@ fun TaskListScreen(
         highlighted = id
         pendingId = null
         pendingText = null
+    }
+    // Lit once, then let go. Coming back to the app re-subscribes the board,
+    // which starts from an empty frame, so every row is rebuilt from scratch —
+    // and a rebuilt row still marked highlighted played its glow all over again,
+    // every time, for as long as it stayed the newest thing added here.
+    LaunchedEffect(highlighted) {
+        if (highlighted == null) return@LaunchedEffect
+        delay(ADDED_GLOW_MILLIS.toLong())
+        highlighted = null
     }
 
     // The header wears the same colour as this list's dot on the Lists screen,
