@@ -649,6 +649,17 @@ export class UsersRoom extends DurableObject {
    * Rotation (L1): the presented token is spent and a new one returned. The
    * spent row is kept, not deleted — that is what makes a replay detectable
    * rather than indistinguishable from a token that never existed.
+   *
+   * A spent token whose replacement has never been used is not a replay
+   * (ADR 0013). Its client asked, the server answered, and the answer never
+   * arrived — a dropped connection, an app closed or backgrounded mid-request.
+   * That client is answered again: a new token, and the unreceived one retired.
+   * Only once the chain has moved on past a token does presenting it again mean
+   * somebody else has it.
+   *
+   * The new token is hashed before the lookup so that everything from the read
+   * to the write runs without yielding: two presentations of one token can then
+   * never both see it unspent.
    */
   async rotateRefreshToken(
     refreshToken: string,
@@ -661,14 +672,27 @@ export class UsersRoom extends DurableObject {
     }
 
     const tokenHash = await hashRefreshToken(refreshToken);
+    const token = generateRefreshToken();
+    const newHash = await hashRefreshToken(token);
+
     const row = selectRefreshToken(this.sql, tokenHash);
 
     if (row === null) return { ok: false, code: "invalid-credentials" };
 
-    if (row.usedAt !== null) {
-      // Someone is presenting a token that was already exchanged. Either it
-      // was stolen, or a legitimate client replayed one — both mean the
-      // token is loose, so every session for this user goes (L1).
+    // The replacement this token was exchanged for, if nobody has used it yet.
+    const unreceived =
+      row.usedAt !== null && row.replacedBy !== null && row.deviceId === deviceId
+        ? selectRefreshToken(this.sql, row.replacedBy)
+        : null;
+    const lostAnswer =
+      unreceived !== null && unreceived.usedAt === null && Date.parse(unreceived.expiresAt) > now;
+
+    if (row.usedAt !== null && !lostAnswer) {
+      // Someone is presenting a token that was already exchanged, and what it
+      // was exchanged for has been used since (or there is no record of it, or
+      // it is another device asking). Either it was stolen, or a legitimate
+      // client replayed one — both mean the token is loose, so every session
+      // for this user goes (L1).
       const revoked = this.ctx.storage.transactionSync(() =>
         deleteRefreshTokensForUser(this.sql, row.userId),
       );
@@ -688,11 +712,12 @@ export class UsersRoom extends DurableObject {
     }
 
     const nowIso = new Date(now).toISOString();
-    const token = generateRefreshToken();
-    const newHash = await hashRefreshToken(token);
 
     this.ctx.storage.transactionSync(() => {
-      markRefreshTokenUsed(this.sql, tokenHash, nowIso);
+      markRefreshTokenUsed(this.sql, tokenHash, nowIso, newHash);
+      // Retired, not deleted, and pointed at the new token too: if the first
+      // answer did arrive after all, its holder is answered the same way.
+      if (lostAnswer) markRefreshTokenUsed(this.sql, unreceived.tokenHash, nowIso, newHash);
       insertRefreshToken(this.sql, {
         tokenHash: newHash,
         userId: row.userId,
@@ -704,6 +729,7 @@ export class UsersRoom extends DurableObject {
       deleteExpiredRefreshTokens(this.sql, nowIso);
     });
 
+    if (lostAnswer) log("info", "usersroom.refresh.lost-answer-reissued", { userId: row.userId });
     return { ok: true, value: { userId: row.userId, refreshToken: token } };
   }
 

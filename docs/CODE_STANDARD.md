@@ -1297,7 +1297,10 @@ summary.
 - The Worker MUST verify the access token on every request before resolving which DO to talk
   to.
 - A refresh token presented twice (reuse after rotation) MUST be treated as a compromise
-  signal: reject the request and invalidate every refresh token for that user.
+  signal: reject the request and invalidate every refresh token for that user. The one
+  exception is a lost answer ([ADR 0013](adr/0013-lost-refresh-answer.md)): a spent token,
+  presented by its own device, whose replacement has never been used, is answered again with
+  a fresh token and the unreceived replacement retired.
 - `deviceId` MUST be the same identifier used for [F5.4](#standard-f5) LWW tie-breaks.
   Introduce it once.
 - The login response MUST NOT distinguish a wrong password from an account that does not

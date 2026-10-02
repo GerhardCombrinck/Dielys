@@ -84,6 +84,12 @@ async function login(email: string, deviceId = "device-a"): Promise<TokenPair> {
   return (await response.json()) as TokenPair;
 }
 
+async function refresh(refreshToken: string, deviceId = "device-a"): Promise<TokenPair> {
+  const response = await post("/auth/refresh", { refreshToken, deviceId });
+  expect(response.status).toBe(200);
+  return (await response.json()) as TokenPair;
+}
+
 const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
 
 /**
@@ -553,12 +559,9 @@ describe("refresh token rotation (L1)", () => {
     const email = uniqueEmail();
     await createUser(email);
     const first = await login(email);
-
-    const rotated = await post("/auth/refresh", {
-      refreshToken: first.refreshToken,
-      deviceId: "device-a",
-    });
-    const second = (await rotated.json()) as TokenPair;
+    const second = await refresh(first.refreshToken);
+    // The chain moves on: whoever got `second` has used it.
+    const third = await refresh(second.refreshToken);
 
     // The spent token comes back — either stolen, or a client replayed it.
     const replay = await post("/auth/refresh", {
@@ -571,10 +574,87 @@ describe("refresh token rotation (L1)", () => {
     // L1: the response is not just a rejection — every refresh token for that
     // user is invalidated, including the one the legitimate client holds.
     const afterRevocation = await post("/auth/refresh", {
-      refreshToken: second.refreshToken,
+      refreshToken: third.refreshToken,
       deviceId: "device-a",
     });
     expect(afterRevocation.status).toBe(401);
+  });
+
+  it("answers again when the answer to a refresh never arrived (ADR 0013)", async () => {
+    const email = uniqueEmail();
+    await createUser(email);
+    const first = await login(email);
+    const tablet = await login(email, "device-b");
+
+    // The server rotates, but the phone never sees `lost`: the connection
+    // dropped, or the app was closed mid-request. It still holds `first`.
+    const lost = await refresh(first.refreshToken);
+
+    const retried = await post("/auth/refresh", {
+      refreshToken: first.refreshToken,
+      deviceId: "device-a",
+    });
+    expect(retried.status).toBe(200);
+    const recovered = (await retried.json()) as TokenPair;
+    expect(recovered.refreshToken).not.toBe(lost.refreshToken);
+    expect(recovered.refreshToken).not.toBe(first.refreshToken);
+
+    // Nothing was revoked: the recovered session carries on, and so does
+    // every other device.
+    const next = await refresh(recovered.refreshToken);
+    expect(next.refreshToken).not.toBe(recovered.refreshToken);
+    await refresh(tablet.refreshToken, "device-b");
+
+    // Now the chain has moved on past `first`, so it coming back again is a
+    // replay after all.
+    const replay = await post("/auth/refresh", {
+      refreshToken: first.refreshToken,
+      deviceId: "device-a",
+    });
+    expect(replay.status).toBe(401);
+    expect(await replay.json()).toMatchObject({ code: "token-reused" });
+  });
+
+  it("does not answer a lost refresh for a different device", async () => {
+    const email = uniqueEmail();
+    await createUser(email);
+    const first = await login(email, "device-a");
+    await refresh(first.refreshToken, "device-a");
+
+    // A spent token from somewhere it was never issued to is not a lost answer.
+    const elsewhere = await post("/auth/refresh", {
+      refreshToken: first.refreshToken,
+      deviceId: "device-b",
+    });
+    expect(elsewhere.status).toBe(401);
+    expect(await elsewhere.json()).toMatchObject({ code: "token-reused" });
+  });
+
+  it("retires the unreceived token, but answers it the same way if it did arrive", async () => {
+    const email = uniqueEmail();
+    await createUser(email);
+    const first = await login(email);
+    const raced = await refresh(first.refreshToken);
+    // Same device presents `first` again while `raced` is unused: a lost
+    // answer as far as the server can tell.
+    const recovered = await refresh(first.refreshToken);
+
+    // Both answers reached the client after all (two requests racing on one
+    // device). Whichever it keeps still works — no household sign-out.
+    const fromRaced = await refresh(raced.refreshToken);
+    expect(fromRaced.refreshToken).not.toBe(recovered.refreshToken);
+
+    // `fromRaced` is now the live end of the chain; `recovered` was retired by
+    // it and is honoured once more for the same reason, not revoked.
+    const fromRecovered = await refresh(recovered.refreshToken);
+
+    // Once the chain has moved on, everything behind it is a replay.
+    await refresh(fromRecovered.refreshToken);
+    const replay = await post("/auth/refresh", {
+      refreshToken: raced.refreshToken,
+      deviceId: "device-a",
+    });
+    expect(replay.status).toBe(401);
   });
 
   it("rejects a refresh token presented by a different device", async () => {

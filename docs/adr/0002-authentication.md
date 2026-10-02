@@ -1,7 +1,8 @@
 # 0002 — Authentication: self-issued JWT, admin-seeded accounts, signed invite links
 
 **Status:** Accepted; the registration decision superseded by
-[ADR 0004](0004-open-registration.md)
+[ADR 0004](0004-open-registration.md), the lost-rotation consequence by
+[ADR 0013](0013-lost-refresh-answer.md)
 **Date:** 2026-09-08
 
 ## Context
@@ -90,6 +91,10 @@ prints what it's about to do and prompts for confirmation before writing to `Use
   the server issued a new token but before the client saved it) is logged out and must
   re-authenticate. Given only two users and a password each can re-enter, this is judged
   simpler than adding a grace-period grace window.
+  > **Superseded by [ADR 0013](0013-lost-refresh-answer.md).** In practice the lost response
+  > signed out every device, not one, and with open, passwordless sign-in it happened to real
+  > people often enough to read as random. A spent token whose replacement was never used is
+  > now answered again.
 
 ## Implementation notes
 

@@ -7,6 +7,7 @@ import kotlinx.serialization.SerializationException
 import za.co.dielys.data.local.DeviceIdentity
 import za.co.dielys.data.local.DielysDatabase
 import za.co.dielys.data.remote.AccessTokens
+import za.co.dielys.data.remote.ApiException
 import za.co.dielys.data.remote.CatchUpResponse
 import za.co.dielys.data.remote.ChangeMessage
 import za.co.dielys.data.remote.ClientHello
@@ -95,7 +96,12 @@ class ListSocketSession
     ) {
         /** Opens a socket and returns when it is finished. Never throws. */
         suspend fun run(listId: String): SessionEnd {
-            val token = tokens.current() ?: tokens.refreshed() ?: return SessionEnd.SessionGone
+            val token =
+                try {
+                    tokens.current() ?: tokens.refreshed()
+                } catch (_: ApiException) {
+                    return SessionEnd.Transient("refresh-failed", handshaked = false)
+                } ?: return SessionEnd.SessionGone
             val socket = sockets.open(listId, device.deviceId, token)
             return try {
                 coroutineScope {
@@ -245,11 +251,18 @@ class ListSocketSession
                 // which is normal on a long-lived socket. Refreshing here and
                 // letting the reconnect carry the new one keeps the token
                 // lifecycle in one place.
+                // A refresh that could not reach the server says nothing about
+                // the session, and must not escape: this runs under the socket
+                // supervisor, where an exception would take the app down.
                 event.status == HTTP_UNAUTHORIZED ->
-                    if (tokens.refreshed() == null) {
-                        SessionEnd.SessionGone
-                    } else {
-                        SessionEnd.Transient("unauthorized", handshaked)
+                    try {
+                        if (tokens.refreshed() == null) {
+                            SessionEnd.SessionGone
+                        } else {
+                            SessionEnd.Transient("unauthorized", handshaked)
+                        }
+                    } catch (_: ApiException) {
+                        SessionEnd.Transient("refresh-failed", handshaked)
                     }
 
                 // Not a member. 403 rather than 404 on purpose — membership must

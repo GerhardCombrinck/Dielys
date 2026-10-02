@@ -1,7 +1,9 @@
 package za.co.dielys.data
 
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import za.co.dielys.data.local.SessionStore
 import za.co.dielys.data.remote.AccessTokens
 import za.co.dielys.data.remote.ApiException
@@ -12,6 +14,8 @@ import za.co.dielys.data.remote.TokenPair
 import za.co.dielys.data.sync.SyncScheduler
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private const val HTTP_UNAUTHORIZED = 401
 
 /**
  * What a sign-in attempt did, in terms the UI can act on.
@@ -142,6 +146,11 @@ class SessionRepository
 
         override suspend fun current(): String? = store.accessToken
 
+        /**
+         * Null only when the server has said the session is over (401). Anything
+         * else — a 429, a 5xx, no network — throws, and the session stays: a
+         * refresh token that could not be exchanged just now is still good (#83).
+         */
         override suspend fun refreshed(): String? {
             val presented = store.refreshToken ?: return null
             return refreshLock.withLock {
@@ -150,17 +159,29 @@ class SessionRepository
                 // look like a replay.
                 if (store.refreshToken != presented) return@withLock store.accessToken
 
-                try {
-                    val pair = auth.refresh(presented, store.deviceId)
-                    store.accessToken = pair.accessToken
-                    store.refreshToken = pair.refreshToken
-                    store.userId = pair.userId
-                    pair.accessToken
-                } catch (_: ApiException.Rejected) {
-                    // The refresh token is dead — expired, rotated, or revoked
-                    // because a replay was detected. Only a fresh login recovers.
-                    store.clearSession()
-                    null
+                // Once the request is out, its answer is saved even if whoever
+                // asked has been cancelled meanwhile — a socket closed as the app
+                // went to the background, a stopped worker. The server has already
+                // spent `presented`; dropping its replacement on the floor is how
+                // a phone ends up holding a dead token (ADR 0013).
+                withContext(NonCancellable) {
+                    try {
+                        val pair = auth.refresh(presented, store.deviceId)
+                        store.accessToken = pair.accessToken
+                        store.refreshToken = pair.refreshToken
+                        store.userId = pair.userId
+                        pair.accessToken
+                    } catch (error: ApiException.Rejected) {
+                        if (error.status != HTTP_UNAUTHORIZED) {
+                            // A rate limit, or a 4xx from something in front of the
+                            // server: nothing about the token. Try again later.
+                            throw ApiException.Unavailable(error.status, error.code, error)
+                        }
+                        // The refresh token is dead — expired, or revoked because a
+                        // replay was detected. Only a fresh login recovers.
+                        store.clearSession()
+                        null
+                    }
                 }
             }
         }

@@ -40,6 +40,9 @@ export interface RefreshTokenRow {
   issuedAt: string;
   expiresAt: string;
   usedAt: string | null;
+  /** The hash of the token this one was exchanged for. Null until it is
+   * spent, and on rows spent before migration 0013 (ADR 0013). */
+  replacedBy: string | null;
 }
 
 export function insertUser(sql: SqlStorage, user: UserRow): void {
@@ -149,7 +152,11 @@ function firstUser(cursor: SqlStorageCursor<Record<string, SqlStorageValue>>): U
   };
 }
 
-export function insertRefreshToken(sql: SqlStorage, row: RefreshTokenRow): void {
+/** A new row has never been exchanged, so it has no replacement to record. */
+export function insertRefreshToken(
+  sql: SqlStorage,
+  row: Omit<RefreshTokenRow, "replacedBy">,
+): void {
   sql.exec(
     `INSERT INTO refresh_tokens (token_hash, user_id, device_id, issued_at, expires_at, used_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
@@ -165,7 +172,7 @@ export function insertRefreshToken(sql: SqlStorage, row: RefreshTokenRow): void 
 export function selectRefreshToken(sql: SqlStorage, tokenHash: string): RefreshTokenRow | null {
   const rows = [
     ...sql.exec(
-      `SELECT token_hash, user_id, device_id, issued_at, expires_at, used_at
+      `SELECT token_hash, user_id, device_id, issued_at, expires_at, used_at, replaced_by
          FROM refresh_tokens WHERE token_hash = ?`,
       tokenHash,
     ),
@@ -179,12 +186,29 @@ export function selectRefreshToken(sql: SqlStorage, tokenHash: string): RefreshT
     issuedAt: String(row.issued_at),
     expiresAt: String(row.expires_at),
     usedAt: row.used_at === null ? null : String(row.used_at),
+    replacedBy: row.replaced_by === null ? null : String(row.replaced_by),
   };
 }
 
-/** Marks a token spent. The row stays so a later replay is still detectable. */
-export function markRefreshTokenUsed(sql: SqlStorage, tokenHash: string, usedAt: string): void {
-  sql.exec("UPDATE refresh_tokens SET used_at = ? WHERE token_hash = ?", usedAt, tokenHash);
+/**
+ * Marks a token spent and records what it was exchanged for. The row stays so a
+ * later replay is still detectable, and the link is what tells a replay from a
+ * client that never received the answer (ADR 0013). `COALESCE` keeps the time
+ * it was first spent when an already-spent token is pointed at a newer
+ * replacement.
+ */
+export function markRefreshTokenUsed(
+  sql: SqlStorage,
+  tokenHash: string,
+  usedAt: string,
+  replacedBy: string,
+): void {
+  sql.exec(
+    "UPDATE refresh_tokens SET used_at = COALESCE(used_at, ?), replaced_by = ? WHERE token_hash = ?",
+    usedAt,
+    replacedBy,
+    tokenHash,
+  );
 }
 
 /** Every session for one user, gone. The response to a detected replay (L1). */

@@ -1,5 +1,6 @@
 package za.co.dielys.data.remote
 
+import kotlinx.coroutines.CompletableDeferred
 import java.io.IOException
 
 /**
@@ -49,12 +50,18 @@ class FakeAuthApi : AuthApi {
         return pair()
     }
 
+    /** Set to hold the next [refresh] after the server has answered it, the
+     * way a slow network holds an answer that is already on its way. */
+    var holdRefresh: CompletableDeferred<Unit>? = null
+
     override suspend fun refresh(
         refreshToken: String,
         deviceId: String,
     ): TokenPair {
         gate()
-        return pair()
+        val pair = pair()
+        holdRefresh?.await()
+        return pair
     }
 
     /** The account a magic link is standing in for — set by the test before
@@ -126,10 +133,20 @@ class FakeAuthApi : AuthApi {
     private fun gate() {
         rejectWith?.let { code ->
             rejectWith = null
-            throw ApiException.Rejected(status = 400, code = code)
+            throw ApiException.Rejected(status = statusFor(code), code = code)
         }
         if (!online) throw ApiException.Transport(IOException("no network"))
     }
+
+    /** The status the server answers [code] with — a rate limit is a 429 and a
+     * dead token a 401, and the client treats the two very differently. */
+    private fun statusFor(code: String): Int =
+        when (code) {
+            ErrorCode.RATE_LIMITED -> 429
+            ErrorCode.INVALID_CREDENTIALS, ErrorCode.TOKEN_EXPIRED, ErrorCode.INVALID_TOKEN -> 401
+            ErrorCode.ALREADY_EXISTS -> 409
+            else -> 400
+        }
 
     private fun pair(): TokenPair {
         issued++

@@ -25,6 +25,7 @@ import usersV9 from "../../migrations/users/0009_magic_link_codes.sql";
 import usersV10 from "../../migrations/users/0010_ws_tickets.sql";
 import usersV11 from "../../migrations/users/0011_sync_settings.sql";
 import usersV12 from "../../migrations/users/0012_membership_notify.sql";
+import usersV13 from "../../migrations/users/0013_refresh_token_replaced_by.sql";
 
 export interface Migration {
   version: number;
@@ -52,6 +53,7 @@ export const USERS_MIGRATIONS: readonly Migration[] = [
   { version: 10, name: "0010_ws_tickets", sql: usersV10 },
   { version: 11, name: "0011_sync_settings", sql: usersV11 },
   { version: 12, name: "0012_membership_notify", sql: usersV12 },
+  { version: 13, name: "0013_refresh_token_replaced_by", sql: usersV13 },
 ];
 
 /**
