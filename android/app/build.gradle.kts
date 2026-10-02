@@ -156,9 +156,9 @@ dependencies {
     // stops pulling it. Not in the Compose BOM: that covers androidx.compose.* only.
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.4")
-    implementation("androidx.room:room-runtime:2.8.4")
-    implementation("androidx.room:room-ktx:2.8.4")
-    ksp("androidx.room:room-compiler:2.8.4")
+    implementation("androidx.room:room-runtime:2.8.5")
+    implementation("androidx.room:room-ktx:2.8.5")
+    ksp("androidx.room:room-compiler:2.8.5")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("androidx.hilt:hilt-work:1.4.0")
     ksp("androidx.hilt:hilt-compiler:1.4.0")
@@ -187,7 +187,7 @@ dependencies {
     testImplementation("org.robolectric:android-all-instrumented:14-robolectric-10818077-i7")
     testImplementation("androidx.test:core:1.6.1")
     testImplementation("app.cash.turbine:turbine:1.2.1")
-    testImplementation("androidx.room:room-testing:2.8.4")
+    testImplementation("androidx.room:room-testing:2.8.5")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     testImplementation("com.lemonappdev:konsist:0.17.3")
 }
