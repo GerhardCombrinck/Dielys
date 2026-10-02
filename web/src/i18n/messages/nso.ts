@@ -12,6 +12,8 @@ export const nso: Messages = {
   "common.cancel": "Khansela",
   "common.close": "Tswalela",
   "common.delete": "Phumola",
+  "common.archive": "Boloka",
+  "common.restore": "Bušetša",
   "common.rename": "Fetola leina",
   "common.share": "Abelana",
   "common.edit": "Fetola",
@@ -42,6 +44,12 @@ export const nso: Messages = {
   "home.deleteListBody":
     "Se se e tloša go bohle bao ba lego go lona. Ga se kgone go bušetšwa morago.",
   "home.untitledFallback": "lenaneo le",
+  "home.archivedCount": "TŠE DI BOLOKILWEGO ({n})",
+  "home.restoreListTitle": 'Bušetša "{title}"?',
+  "home.restoreListBody":
+    "Le tla boela go bohle bao ba lego go lona. Tloša maswao ka moka gore le loketše go šomišwa gape?",
+  "home.untickAll": "Tloša maswao ka moka",
+  "home.keepTicks": "Boloka maswao",
 
   "list.backToLists": "Boela mananeong",
   "list.untitled": "Lenaneo le le se nago sehlogo",
@@ -168,6 +176,9 @@ export const nso: Messages = {
   "help.leavingTitle": "Go tlogela le go phumola",
   "help.leavingBody":
     "Mang le mang a ka tlogela lenaneo leo le abelanwago ka lelokelelo la lona la {menu}, gomme mong a ka ntšha batho ka leswao la batho. Ke mong fela yo a ka phumolago lenaneo, gomme go le phumola go le tloša go bohle. Mang le mang yo a tlogelago goba a ntšhwago o hloka taletšo ye mpsha go boa.",
+  "help.archiveTitle": "Go boloka lenaneo",
+  "help.archiveBody":
+    "Lenaneo leo o tlago go le hloka gape — la go paka leeto la ngwaga wo o tlago, mohlala — le ka bolokwa go e na le go phumolwa. Mong o le boloka ka lelokelelo la lona la {menu}, gomme le ya karolong ya Tše di bolokilwego ka fase ga mananeo, go bohle bao ba lego go lona. Le bušetše ka lelokelelo le lona; ge go sa na le se se swailwego, o ka tloša maswao ka moka gore lenaneo le loke gape.",
   "help.offlineTitle": "Ntle le kgokagano",
   "help.offlineBody":
     "Die Lys e šoma ntle le kgokagano. Diphetogo tša gago di bolokwa sedirišweng sa gago gomme di romelwa gang ge o boetše inthaneteng.",

@@ -7,6 +7,8 @@ export const af: Messages = {
   "common.cancel": "Kanselleer",
   "common.close": "Maak toe",
   "common.delete": "Vee uit",
+  "common.archive": "Argiveer",
+  "common.restore": "Herstel",
   "common.rename": "Hernoem",
   "common.share": "Deel",
   "common.edit": "Wysig",
@@ -36,6 +38,12 @@ export const af: Messages = {
   "home.leaveListTitle": 'Verlaat "{title}"?',
   "home.deleteListBody": "Dit verwyder dit vir almal daarop. Dit kan nie ontdaan word nie.",
   "home.untitledFallback": "hierdie lys",
+  "home.archivedCount": "GEARGIVEER ({n})",
+  "home.restoreListTitle": 'Herstel "{title}"?',
+  "home.restoreListBody":
+    "Dit kom terug vir almal op die lys. Merk alles wat afgemerk is terug, sodat dit weer gereed is vir gebruik?",
+  "home.untickAll": "Merk alles terug",
+  "home.keepTicks": "Hou merke",
 
   "list.backToLists": "Terug na lyste",
   "list.untitled": "Naamlose lys",
@@ -159,6 +167,9 @@ export const af: Messages = {
   "help.leavingTitle": "Verlaat en uitvee",
   "help.leavingBody":
     "Enigiemand kan 'n gedeelde lys via sy {menu}-kieslys verlaat, en die eienaar kan mense via die mense-ikoon verwyder. Net die eienaar kan 'n lys uitvee, en dan verdwyn dit vir almal. Wie verlaat of verwyder word, het 'n nuwe uitnodiging nodig om terug te kom.",
+  "help.archiveTitle": "Argiveer 'n lys",
+  "help.archiveBody":
+    "'n Lys wat jy weer gaan nodig hê — soos die paklys vir volgende jaar se reis — kan geargiveer word in plaas van uitgevee. Die eienaar argiveer dit via sy {menu}-kieslys, en dan skuif dit vir almal op die lys na die Geargiveer-afdeling onderaan die lyste. Herstel dit via dieselfde kieslys; as iets daarop nog afgemerk is, kan jy alles terugmerk sodat die lys weer gereed is.",
   "help.offlineTitle": "Sonder verbinding",
   "help.offlineBody":
     "Die Lys werk sonder 'n verbinding. Jou veranderinge word op jou toestel gehou en gestuur sodra jy weer aanlyn is.",

@@ -13,11 +13,22 @@ import { useI18n } from "../i18n/I18nContext.js";
 import { navigate } from "../router.js";
 import { type ListRow, useListsOverview } from "../sync/useListsOverview.js";
 import { useSharing } from "../sync/useSharing.js";
-import { GearIcon, HelpIcon, PeopleIcon, Spinner } from "../ui/icons.js";
+import { ChevronDownIcon, GearIcon, HelpIcon, PeopleIcon, Spinner } from "../ui/icons.js";
 import { useDragReorder } from "../ui/useDragReorder.js";
 import { InviteDialog, MembersDialog } from "./SharingDialogs.js";
 
 type ConfirmTarget = { row: ListRow; kind: "delete" | "leave" };
+
+/** Archived lists fold away under the others (ADR 0014); remembered per browser. */
+const ARCHIVED_EXPANDED_KEY = "dielys.archivedExpanded";
+
+function readArchivedExpanded(): boolean {
+  try {
+    return localStorage.getItem(ARCHIVED_EXPANDED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 export function HomePage() {
   const session = useSession();
@@ -30,6 +41,10 @@ export function HomePage() {
   const [newTitle, setNewTitle] = useState("");
   const [creating, setCreating] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState<ConfirmTarget | null>(null);
+  /** The archived list a restore is asking about: whether to untick what was
+   * ticked last time. Only asked when something is ticked (ADR 0014). */
+  const [restoring, setRestoring] = useState<ListRow | null>(null);
+  const [archivedExpanded, setArchivedExpanded] = useState(readArchivedExpanded);
   const [error, setError] = useState<string | null>(null);
 
   // An invite tapped while signed out is stashed (domain/pendingInvite.ts)
@@ -42,11 +57,32 @@ export function HomePage() {
   }, []);
 
   const rows = overview.rows?.filter((r) => r.title !== null) ?? null;
-  const reorder = useDragReorder(rows?.map((r) => r.membership.listId) ?? [], overview.moveList);
-  const rowsById = new Map(rows?.map((r) => [r.membership.listId, r]));
+  // Archived lists sit in their own fold and are not part of the drag order.
+  const active = rows?.filter((r) => !r.archived) ?? [];
+  const archived = rows?.filter((r) => r.archived) ?? [];
+  const reorder = useDragReorder(
+    active.map((r) => r.membership.listId),
+    overview.moveList,
+  );
+  const rowsById = new Map(active.map((r) => [r.membership.listId, r]));
   const shownRows = reorder.order.flatMap((id) => rowsById.get(id) ?? []);
 
   if (session.status !== "signed-in") return null;
+
+  function toggleArchived(): void {
+    const next = !archivedExpanded;
+    setArchivedExpanded(next);
+    try {
+      localStorage.setItem(ARCHIVED_EXPANDED_KEY, next ? "1" : "0");
+    } catch {
+      // Not remembered this time; the fold still works.
+    }
+  }
+
+  function restore(row: ListRow): void {
+    if (row.doneCount > 0) setRestoring(row);
+    else overview.restoreList(row.membership.listId, false);
+  }
 
   async function handleCreate(): Promise<void> {
     const title = newTitle.trim();
@@ -85,6 +121,165 @@ export function HomePage() {
         setError(t("home.errorLeave"));
       }
     }
+  }
+
+  /** One list's row, active or archived; only an active one is draggable. */
+  function renderRow(
+    row: ListRow,
+    drag: ReturnType<typeof reorder.rowProps> | Record<string, never>,
+  ) {
+    return (
+      <li
+        key={row.membership.listId}
+        className={row.archived ? "list-row archived" : "list-row"}
+        {...drag}
+      >
+        <span className="drag-handle" aria-hidden="true">
+          {row.archived ? "" : "⠿"}
+        </span>
+        <span className="accent-dot" style={{ background: accentColor(row.accent) }} />
+
+        <div className="row-title-wrap">
+          {editingId === row.membership.listId ? (
+            <input
+              className="text-input inline-edit"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={() => {
+                void overview.renameList(row.membership.listId, draft);
+                setEditingId(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+                if (e.key === "Escape") setEditingId(null);
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              className="row-title"
+              onClick={() => navigate(`/lists/${encodeURIComponent(row.membership.listId)}`)}
+            >
+              {row.title}
+            </button>
+          )}
+        </div>
+
+        {row.membership.memberCount > 1 && (
+          <button
+            type="button"
+            className="icon-button small"
+            aria-label={t("home.sharedMembers")}
+            onClick={() => void sharing.openMembers(row.membership.listId)}
+          >
+            <PeopleIcon />
+          </button>
+        )}
+
+        <span className="row-count">{row.itemCount > 0 ? row.itemCount : ""}</span>
+
+        <button
+          type="button"
+          className="icon-button small"
+          aria-label={t("home.listOptions")}
+          onClick={() =>
+            setMenuFor(menuFor === row.membership.listId ? null : row.membership.listId)
+          }
+        >
+          ⋯
+        </button>
+
+        {menuFor === row.membership.listId && (
+          <>
+            <button
+              type="button"
+              className="menu-overlay"
+              aria-label={t("common.closeMenu")}
+              onClick={() => setMenuFor(null)}
+            />
+            <div className="menu-popover">
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft(row.title ?? "");
+                  setEditingId(row.membership.listId);
+                  setMenuFor(null);
+                }}
+              >
+                {t("common.rename")}
+              </button>
+              <div className="accent-row">
+                {Array.from({ length: ACCENT_COUNT }, (_, i) => (
+                  <button
+                    key={accentColor(i)}
+                    type="button"
+                    className="accent-swatch"
+                    aria-label={t("home.colourOption", { n: i + 1 })}
+                    style={{ background: accentColor(i) }}
+                    onClick={() => {
+                      overview.setAccent(row.membership.listId, i);
+                      setMenuFor(null);
+                    }}
+                  />
+                ))}
+              </div>
+              {/* L3: only the owner may invite, so a list somebody else shared
+                does not offer it rather than offering it and being refused. */}
+              {row.membership.role === "owner" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sharing.openInvite(row.membership.listId, row.title ?? t("list.untitled"));
+                    setMenuFor(null);
+                  }}
+                >
+                  {t("common.share")}
+                </button>
+              )}
+              {/* ADR 0014: archiving puts the list away for everybody on it, so it
+                is the owner's, like a delete — and so is bringing it back. */}
+              {row.membership.role === "owner" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuFor(null);
+                    if (row.archived) restore(row);
+                    else overview.archiveList(row.membership.listId);
+                  }}
+                >
+                  {row.archived ? t("common.restore") : t("common.archive")}
+                </button>
+              )}
+              {/* One or the other, never both (ADR 0006): a delete takes the
+                list off every member's phone, so it is the owner's to make;
+                anybody else can still get it off their own, by leaving. */}
+              {row.membership.role === "owner" ? (
+                <button
+                  type="button"
+                  className="menu-danger"
+                  onClick={() => {
+                    setMenuFor(null);
+                    setConfirmTarget({ row, kind: "delete" });
+                  }}
+                >
+                  {t("common.delete")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuFor(null);
+                    setConfirmTarget({ row, kind: "leave" });
+                  }}
+                >
+                  {t("common.leave")}
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </li>
+    );
   }
 
   return (
@@ -130,151 +325,27 @@ export function HomePage() {
         </div>
       )}
 
-      {rows !== null && rows.length > 0 && (
+      {active.length > 0 && (
         <ul className="row-list">
-          {shownRows.map((row) => {
-            const drag = reorder.rowProps(row.membership.listId);
-            return (
-              <li key={row.membership.listId} className="list-row" {...drag}>
-                <span className="drag-handle" aria-hidden="true">
-                  ⠿
-                </span>
-                <span className="accent-dot" style={{ background: accentColor(row.accent) }} />
-
-                <div className="row-title-wrap">
-                  {editingId === row.membership.listId ? (
-                    <input
-                      className="text-input inline-edit"
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      onBlur={() => {
-                        void overview.renameList(row.membership.listId, draft);
-                        setEditingId(null);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") e.currentTarget.blur();
-                        if (e.key === "Escape") setEditingId(null);
-                      }}
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      className="row-title"
-                      onClick={() =>
-                        navigate(`/lists/${encodeURIComponent(row.membership.listId)}`)
-                      }
-                    >
-                      {row.title}
-                    </button>
-                  )}
-                </div>
-
-                {row.membership.memberCount > 1 && (
-                  <button
-                    type="button"
-                    className="icon-button small"
-                    aria-label={t("home.sharedMembers")}
-                    onClick={() => void sharing.openMembers(row.membership.listId)}
-                  >
-                    <PeopleIcon />
-                  </button>
-                )}
-
-                <span className="row-count">{row.itemCount > 0 ? row.itemCount : ""}</span>
-
-                <button
-                  type="button"
-                  className="icon-button small"
-                  aria-label={t("home.listOptions")}
-                  onClick={() =>
-                    setMenuFor(menuFor === row.membership.listId ? null : row.membership.listId)
-                  }
-                >
-                  ⋯
-                </button>
-
-                {menuFor === row.membership.listId && (
-                  <>
-                    <button
-                      type="button"
-                      className="menu-overlay"
-                      aria-label={t("common.closeMenu")}
-                      onClick={() => setMenuFor(null)}
-                    />
-                    <div className="menu-popover">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDraft(row.title ?? "");
-                          setEditingId(row.membership.listId);
-                          setMenuFor(null);
-                        }}
-                      >
-                        {t("common.rename")}
-                      </button>
-                      <div className="accent-row">
-                        {Array.from({ length: ACCENT_COUNT }, (_, i) => (
-                          <button
-                            key={accentColor(i)}
-                            type="button"
-                            className="accent-swatch"
-                            aria-label={t("home.colourOption", { n: i + 1 })}
-                            style={{ background: accentColor(i) }}
-                            onClick={() => {
-                              overview.setAccent(row.membership.listId, i);
-                              setMenuFor(null);
-                            }}
-                          />
-                        ))}
-                      </div>
-                      {/* L3: only the owner may invite, so a list somebody else shared
-                        does not offer it rather than offering it and being refused. */}
-                      {row.membership.role === "owner" && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            sharing.openInvite(
-                              row.membership.listId,
-                              row.title ?? t("list.untitled"),
-                            );
-                            setMenuFor(null);
-                          }}
-                        >
-                          {t("common.share")}
-                        </button>
-                      )}
-                      {/* One or the other, never both (ADR 0006): a delete takes the
-                        list off every member's phone, so it is the owner's to make;
-                        anybody else can still get it off their own, by leaving. */}
-                      {row.membership.role === "owner" ? (
-                        <button
-                          type="button"
-                          className="menu-danger"
-                          onClick={() => {
-                            setMenuFor(null);
-                            setConfirmTarget({ row, kind: "delete" });
-                          }}
-                        >
-                          {t("common.delete")}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setMenuFor(null);
-                            setConfirmTarget({ row, kind: "leave" });
-                          }}
-                        >
-                          {t("common.leave")}
-                        </button>
-                      )}
-                    </div>
-                  </>
-                )}
-              </li>
-            );
-          })}
+          {shownRows.map((row) => renderRow(row, reorder.rowProps(row.membership.listId)))}
         </ul>
+      )}
+
+      {archived.length > 0 && (
+        <div className="done-section">
+          <button
+            type="button"
+            className="done-toggle"
+            aria-expanded={archivedExpanded}
+            onClick={toggleArchived}
+          >
+            <span>{t("home.archivedCount", { n: archived.length })}</span>
+            <ChevronDownIcon rotated={archivedExpanded} />
+          </button>
+          {archivedExpanded && (
+            <ul className="row-list">{archived.map((row) => renderRow(row, {}))}</ul>
+          )}
+        </div>
       )}
 
       <form
@@ -320,6 +391,43 @@ export function HomePage() {
                 onClick={() => void handleConfirm()}
               >
                 {confirmTarget.kind === "delete" ? t("common.delete") : t("common.leave")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {restoring !== null && (
+        <div className="dialog-overlay">
+          <div className="dialog-box">
+            <h2>
+              {t("home.restoreListTitle", {
+                title: restoring.title ?? t("home.untitledFallback"),
+              })}
+            </h2>
+            <p>{t("home.restoreListBody")}</p>
+            <div className="dialog-actions">
+              <button type="button" onClick={() => setRestoring(null)}>
+                {t("common.cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  overview.restoreList(restoring.membership.listId, false);
+                  setRestoring(null);
+                }}
+              >
+                {t("home.keepTicks")}
+              </button>
+              <button
+                className="pill-button"
+                type="button"
+                onClick={() => {
+                  overview.restoreList(restoring.membership.listId, true);
+                  setRestoring(null);
+                }}
+              >
+                {t("home.untickAll")}
               </button>
             </div>
           </div>

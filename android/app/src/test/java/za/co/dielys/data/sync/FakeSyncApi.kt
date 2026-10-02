@@ -481,6 +481,7 @@ private class FakeEntities {
                     id = mutation.entityId,
                     title = patch.title ?: incompleteCreate(),
                     backgroundPhotoUrl = patch.backgroundPhotoUrl,
+                    archived = patch.archived ?: false,
                     deletedAt = patch.deletedAt,
                     updatedAt = stamp,
                 )
@@ -488,6 +489,8 @@ private class FakeEntities {
                 current.copy(
                     title = patch.title ?: current.title,
                     backgroundPhotoUrl = patch.backgroundPhotoUrl ?: current.backgroundPhotoUrl,
+                    // Not sticky, unlike the tombstone below it (ADR 0014).
+                    archived = patch.archived ?: current.archived,
                     deletedAt = current.deletedAt ?: patch.deletedAt,
                     updatedAt = stamp,
                 )

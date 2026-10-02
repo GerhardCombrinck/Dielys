@@ -198,6 +198,49 @@ class MigrationTest {
             db.close()
         }
 
+    @Test
+    fun `5 to 6 keeps every list and its unsent edits, none of them archived`() =
+        runTest {
+            val file = File(context.cacheDir, "migration-test-5-6.db")
+            file.delete()
+
+            createSchema(file, version = 5)
+
+            openAtVersion1(file).use { old ->
+                old.execSQL(
+                    """
+                    INSERT INTO lists
+                      (id, title, background_photo_url, deleted_at, updated_at, role,
+                       position, member_count, notify_events)
+                    VALUES ('list-1', 'Kampeer', NULL, NULL, '2026-09-01T06:00:00.000Z',
+                            'owner', 'a0', 2, 'added')
+                    """.trimIndent(),
+                )
+                old.execSQL(
+                    """
+                    INSERT INTO outbox
+                      (idempotency_key, list_id, entity_type, entity_id, body, created_at,
+                       attempts, dead)
+                    VALUES ('key-1', 'list-1', 'task', 'task-1', '{}', 1, 0, 0)
+                    """.trimIndent(),
+                )
+            }
+
+            val db =
+                Room
+                    .databaseBuilder(context, DielysDatabase::class.java, file.absolutePath)
+                    .addMigrations(*DielysDatabase.MIGRATIONS)
+                    .build()
+
+            val list = db.lists().find("list-1")
+            assertEquals("Kampeer", list?.title)
+            assertEquals(setOf("added"), list?.notify)
+            // Nothing was archived before the field existed (ADR 0014).
+            assertEquals(false, list?.archived)
+            assertEquals(listOf("key-1"), db.outbox().all().map { it.idempotencyKey })
+            db.close()
+        }
+
     /** Writes the tables and indices the exported schema for [version] declares. */
     private fun createSchema(
         file: File,

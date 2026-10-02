@@ -12,6 +12,8 @@ export const xh: Messages = {
   "common.cancel": "Rhoxisa",
   "common.close": "Vala",
   "common.delete": "Cima",
+  "common.archive": "Gcina",
+  "common.restore": "Buyisela",
   "common.rename": "Tshintsha igama",
   "common.share": "Yabelana",
   "common.edit": "Hlela",
@@ -43,6 +45,12 @@ export const xh: Messages = {
   "home.leaveListTitle": 'Shiya "{title}"?',
   "home.deleteListBody": "Oku kuyasusa kubo bonke abakulo. Oku akunakuguqulwa.",
   "home.untitledFallback": "olu luhlu",
+  "home.archivedCount": "OKUGCINIWEYO ({n})",
+  "home.restoreListTitle": 'Buyisela "{title}"?',
+  "home.restoreListBody":
+    "Luya kubuyela kuwo wonke umntu okulo. Susa zonke iziphawu ukuze lulungele ukusetyenziswa kwakhona?",
+  "home.untickAll": "Susa zonke iziphawu",
+  "home.keepTicks": "Gcina iziphawu",
 
   "list.backToLists": "Buyela kuluhlu",
   "list.untitled": "Uluhlu olungenasihloko",
@@ -169,6 +177,9 @@ export const xh: Messages = {
   "help.leavingTitle": "Ukushiya nokucima",
   "help.leavingBody":
     "Nabani na unokushiya uluhlu olwabelwanayo ngemenyu yalo ethi {menu}, kwaye umnini unokususa abantu ngomfanekiso wabantu. Ngumnini kuphela onokucima uluhlu, kwaye ukulucima kulususa kuwo wonke umntu. Nabani na oshiyayo okanye osuswayo ufuna isimemo esitsha ukuze abuye.",
+  "help.archiveTitle": "Ukugcina uluhlu",
+  "help.archiveBody":
+    "Uluhlu oza kuphinda ulufune — olokupakisha uhambo lonyaka ozayo, umzekelo — lunokugcinwa endaweni yokucinywa. Umnini uyalugcina ngemenyu yalo ethi {menu}, kwaye luya kwicandelo Okugciniweyo ezantsi kuluhlu, kuwo wonke umntu okulo. Lubuyisele ngemenyu efanayo; ukuba kusekho into ephawuliweyo, ungasusa zonke iziphawu ukuze uluhlu lulungele kwakhona.",
   "help.offlineTitle": "Ngaphandle konxibelelwano",
   "help.offlineBody":
     "I-Die Lys isebenza ngaphandle konxibelelwano. Utshintsho lwakho lugcinwa kwisixhobo sakho kwaye luthunyelwa nje ukuba ubuyele kwi-intanethi.",

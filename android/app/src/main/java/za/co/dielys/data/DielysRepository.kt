@@ -101,6 +101,57 @@ class DielysRepository
             commitList(current.copy(title = title), listId, ListPatch(title = title))
         }
 
+        /**
+         * Puts the list away for everybody on it, or brings it back (ADR 0014).
+         * Owner-only; the server refuses it from anybody else, as it does a
+         * delete.
+         *
+         * Bringing it back with [untick] also unticks everything ticked off last
+         * time, so it is ready to be used again. One transaction for the restore
+         * and every untick, so the outbox never holds a restored list that is
+         * still half ticked; each untick is the same patch a tap would send, so
+         * the other members see nothing new.
+         */
+        suspend fun setArchived(
+            listId: String,
+            archived: Boolean,
+            untick: Boolean = false,
+        ) {
+            val current = db.lists().find(listId) ?: return
+            val deviceId = session.deviceId
+            val ticked =
+                if (!archived &&
+                    untick
+                ) {
+                    db.tasks().inList(listId).filter { it.done }
+                } else {
+                    emptyList()
+                }
+            commit(
+                entity = {
+                    db.lists().upsert(current.copy(archived = archived))
+                    for (task in ticked) db.tasks().upsert(task.copy(done = false))
+                },
+                rows =
+                    listOf(
+                        outbox.list(
+                            listId = listId,
+                            entityId = listId,
+                            deviceId = deviceId,
+                            patch = ListPatch(archived = archived),
+                        ),
+                    ) +
+                        ticked.map { task ->
+                            outbox.task(
+                                listId = listId,
+                                entityId = task.id,
+                                deviceId = deviceId,
+                                patch = TaskPatch(done = false),
+                            )
+                        },
+            )
+        }
+
         suspend fun deleteList(listId: String) {
             val current = db.lists().find(listId) ?: return
             val deletedAt = Timestamps.iso(clock.nowMillis())

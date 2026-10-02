@@ -12,6 +12,8 @@ export const ss: Messages = {
   "common.cancel": "Khansela",
   "common.close": "Vala",
   "common.delete": "Susa",
+  "common.archive": "Gcina",
+  "common.restore": "Buyisela",
   "common.rename": "Shintja ligama",
   "common.share": "Yabelana",
   "common.edit": "Hlela",
@@ -41,6 +43,12 @@ export const ss: Messages = {
   "home.leaveListTitle": 'Shiya "{title}"?',
   "home.deleteListBody": "Loku kuyasususa kubo bonkhe labakulo. Loku angeke kuguculwe.",
   "home.untitledFallback": "loluhlu",
+  "home.archivedCount": "LOKUGCINIWE ({n})",
+  "home.restoreListTitle": 'Buyisela "{title}"?',
+  "home.restoreListBody":
+    "Lutawubuyela kubo bonkhe labakulo. Susa onkhe emamaki kute lulungele kusetjentiswa futsi?",
+  "home.untickAll": "Susa onkhe emamaki",
+  "home.keepTicks": "Gcina emamaki",
 
   "list.backToLists": "Buyela etinhlwini",
   "list.untitled": "Luhlu lolungenasihloko",
@@ -165,6 +173,9 @@ export const ss: Messages = {
   "help.leavingTitle": "Kushiya nekusula",
   "help.leavingBody":
     "Nome ngubani angashiya luhlu lolwabelwene ngemenyu yalo letsi {menu}, futsi umnikati angasusa bantfu ngemfanekiso webantfu. Ngumnikati kuphela longasula luhlu, futsi kulusula kulususa kubo bonkhe. Nome ngubani loshiyako nome losuswako udzinga simemo lesisha kute abuye.",
+  "help.archiveTitle": "Kugcina luhlu",
+  "help.archiveBody":
+    "Luhlu lotawuludzinga futsi — lwekupakisha luhambo lonyaka lotako, sibonelo — lungagcinwa esikhundleni sekusulwa. Umnikati uyalugcina ngemenyu yalo letsi {menu}, futsi luya esigabeni Lokugciniwe ngentasi kwetinhlu, kubo bonkhe labakulo. Lubuyisele ngemenyu lefanako; nangabe kusenalokumakiwe, ungasusa onkhe emamaki kute luhlu lulungele futsi.",
   "help.offlineTitle": "Ngaphandle kwekuchumana",
   "help.offlineBody":
     "I-Die Lys isebenta ngaphandle kwekuchumana. Tinguculo takho tigcinwa edivayisini yakho futsi titfunyelwa nawubuyela ku-inthanethi.",

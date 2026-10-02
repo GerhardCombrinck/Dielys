@@ -13,6 +13,7 @@ import {
   type ClientMessage,
   MAX_POSITION_LENGTH,
   MAX_TITLE_LENGTH,
+  type Mutation,
   type ServerMessage,
 } from "../src/types.js";
 import { PROTOCOL_VERSION } from "../src/version.js";
@@ -180,6 +181,8 @@ describe("changelog fixtures have the ChangeEnvelope shape", () => {
       } else {
         expect(change.entity.id).toBe(change.listId);
         expect("backgroundPhotoUrl" in change.entity).toBe(true);
+        // Always sent, even for a change stored before the field existed (ADR 0014).
+        expect(typeof change.entity.archived).toBe("boolean");
       }
 
       expect(change.entity.title.length).toBeLessThanOrEqual(MAX_TITLE_LENGTH);
@@ -259,6 +262,20 @@ describe("edge cases required by F4 are present", () => {
     expect(a.serverTimestamp).toBe(b.serverTimestamp);
     expect(a.deviceId).not.toBe(b.deviceId);
     expect(b.deviceId > a.deviceId).toBe(true);
+  });
+
+  it("includes an archived list, and a restore that sends false rather than null", () => {
+    const archived = changeFixtures.find((f) => f.file === "list-archived.json")
+      ?.parsed as ChangeEnvelope;
+    expect(archived.entityType).toBe("list");
+    expect(archived.entityType === "list" && archived.entity.archived).toBe(true);
+
+    // ADR 0014: restoring must be a value, because Android never sends an
+    // explicit null in a patch.
+    const restore = messageFixtures.find((f) => f.file === "mutate-list-restore.json")
+      ?.parsed as Mutation;
+    expect(restore.entityType).toBe("list");
+    expect(restore.patch).toEqual({ archived: false });
   });
 
   it("includes an empty collection", () => {

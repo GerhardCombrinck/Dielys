@@ -94,5 +94,12 @@ export function toEnvelope(row: ChangeRow, listId: string): ChangeEnvelope {
   if (row.entityType === "task") {
     return { ...base, entityType: "task", entity: JSON.parse(row.entityJson) as Task };
   }
-  return { ...base, entityType: "list", entity: JSON.parse(row.entityJson) as TaskList };
+  // A list stored before `archived` existed was not archived (ADR 0014), and
+  // the wire promises a value either way.
+  const list = JSON.parse(row.entityJson) as Partial<TaskList>;
+  return {
+    ...base,
+    entityType: "list",
+    entity: { ...list, archived: list.archived ?? false } as TaskList,
+  };
 }

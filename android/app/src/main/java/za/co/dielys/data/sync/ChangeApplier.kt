@@ -162,6 +162,7 @@ internal fun TaskList.toEntity(existing: ListEntity?): ListEntity =
         id = id,
         title = title,
         backgroundPhotoUrl = backgroundPhotoUrl,
+        archived = archived,
         deletedAt = deletedAt,
         updatedAt = updatedAt,
         role = existing?.role,

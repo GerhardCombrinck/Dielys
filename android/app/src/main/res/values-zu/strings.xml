@@ -94,6 +94,15 @@
     <string name="confirm_delete_list_title">Susa %1$s?</string>
     <string name="confirm_delete_list_body">Konke okukulo kuhamba nalo, futhi ngeke ukubuyise.</string>
     <string name="confirm_delete_shared_body">Lwabelwene nabanye. Ukulususa kulususa kuwo wonke amafoni, hhayi leli kuphela, futhi ngeke ukubuyise.</string>
+    <string name="action_archive">Gcina</string>
+    <string name="action_restore">Buyisela</string>
+    <string name="archived_count">OKUGCINIWE (%1$d)</string>
+    <string name="cd_expand_archived">Vula okugciniwe</string>
+    <string name="cd_collapse_archived">Goqa okugciniwe</string>
+    <string name="restore_list_title">Buyisela %1$s?</string>
+    <string name="restore_list_body">Luzobuyela kuwo wonke umuntu okulo. Susa wonke amamaki ukuze lulungele ukusetshenziswa futhi?</string>
+    <string name="action_untick_all">Susa wonke amamaki</string>
+    <string name="action_keep_ticks">Gcina amamaki</string>
 
     <string name="invited_title">Umenyelwe ohlwini</string>
     <string name="invited_body">Uyajoyina? Lowo oyabelane ngalo uzobona lokho okwengezayo.</string>
@@ -146,6 +155,8 @@
     <string name="help_together_body">Wonke umuntu osohlwini olwabelwene angangeza, amake, ahlele, afake inkanyezi futhi ahlele kabusha izinto, futhi izinguquko zivela kuwo wonke umuntu emizuzwaneni embalwa. Isithonjana sabantu eceleni kohlu sikhombisa ukuthi lwabelwene nobani.</string>
     <string name="help_leaving_title">Ukushiya nokususa</string>
     <string name="help_leaving_body">Noma ubani angashiya uhlu olwabelwene ngemenyu yalo ethi %1$s, futhi umnikazi angasusa abantu ngesithonjana sabantu. Umnikazi kuphela ongasusa uhlu, futhi ukulususa kulususa kuwo wonke umuntu. Noma ubani oshiyayo noma osuswayo udinga isimemo esisha ukuze abuye.</string>
+    <string name="help_archive_title">Ukugcina uhlu</string>
+    <string name="help_archive_body">Uhlu ozoludinga futhi — olokupakisha uhambo lonyaka ozayo, isibonelo — lungagcinwa esikhundleni sokususwa. Umnikazi ulugcina ngemenyu yalo ethi %1$s, futhi luya esigabeni Okugciniwe phansi kohlu, kuwo wonke umuntu okulo. Lubuyisele ngemenyu efanayo; uma kusekhona okumakiwe, ungasusa wonke amamaki ukuze uhlu lulungele futhi.</string>
     <string name="help_offline_title">Ngaphandle kokuxhumeka</string>
     <string name="help_offline_body">I-Die Lys isebenza ngaphandle kokuxhumeka. Izinguquko zakho zigcinwa kudivayisi yakho futhi zithunyelwa uma usuxhumekile futhi.</string>
     <string name="help_account_title">I-akhawunti yakho</string>

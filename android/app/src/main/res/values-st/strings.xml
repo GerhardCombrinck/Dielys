@@ -94,6 +94,15 @@
     <string name="confirm_delete_list_title">Hlakola %1$s?</string>
     <string name="confirm_delete_list_body">Tsohle tse ho lona di tsamaya le lona, mme ha di khutle.</string>
     <string name="confirm_delete_shared_body">Le arolelanwe. Ho le hlakola ho le tlosa difounong tsa bohle, eseng ena feela, mme ha le khutle.</string>
+    <string name="action_archive">Boloka</string>
+    <string name="action_restore">Kgutlisa</string>
+    <string name="archived_count">TSE BOLOKILWENG (%1$d)</string>
+    <string name="cd_expand_archived">Bula tse bolokilweng</string>
+    <string name="cd_collapse_archived">Kwala tse bolokilweng</string>
+    <string name="restore_list_title">Kgutlisa %1$s?</string>
+    <string name="restore_list_body">Le tla kgutlela ho bohle ba leng ho lona. Tlosa matshwao kaofela hore le lokele ho sebediswa hape?</string>
+    <string name="action_untick_all">Tlosa matshwao kaofela</string>
+    <string name="action_keep_ticks">Boloka matshwao</string>
 
     <string name="invited_title">O memilwe lenaneng</string>
     <string name="invited_body">O a kena? Ya e arolelaneng o tla bona seo o se eketsang.</string>
@@ -146,6 +155,8 @@
     <string name="help_together_body">Mang kapa mang ya lenaneng le arolelanweng a ka eketsa, tshwaya, fetola, beha naledi le ho hlophisa dintho botjha, mme diphetoho di hlaha ho bohle ka metsotswana. Letshwao la batho pela lenane le bontsha hore le arolelanwa le mang.</string>
     <string name="help_leaving_title">Ho tlohela le ho hlakola</string>
     <string name="help_leaving_body">Mang kapa mang a ka tlohela lenane le arolelanweng ka lenane la lona la %1$s, mme mong a ka tlosa batho ka letshwao la batho. Ke mong feela ya ka hlakolang lenane, mme ho le hlakola ho le tlosa ho bohle. Mang kapa mang ya tlohelang kapa ya tloswang o hloka memo e ntjha ho kgutla.</string>
+    <string name="help_archive_title">Ho boloka lenane</string>
+    <string name="help_archive_body">Lenane leo o tla le hloka hape — la ho paka leeto la selemo se tlang, ka mohlala — le ka bolokwa ho ena le ho hlakolwa. Mong o le boloka ka lenane la lona la %1$s, mme le ya karolong ya Tse bolokilweng ka tlase ho mananeo, ho bohle ba leng ho lona. Le kgutlise ka lenane le tshwanang; ha ho ntse ho ena le se tshwailweng, o ka tlosa matshwao kaofela hore lenane le lokele hape.</string>
     <string name="help_offline_title">Ntle le kgokahano</string>
     <string name="help_offline_body">Die Lys e sebetsa ntle le kgokahano. Diphetoho tsa hao di bolokwa sesebedisweng sa hao mme di romelwa hang ha o kgutlela inthaneteng.</string>
     <string name="help_account_title">Akhaonto ya hao</string>

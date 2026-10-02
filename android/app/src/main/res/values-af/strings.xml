@@ -99,6 +99,15 @@
     <string name="confirm_delete_list_title">Skrap %1$s?</string>
     <string name="confirm_delete_list_body">Alles daarop gaan saam, en jy kan dit nie terugkry nie.</string>
     <string name="confirm_delete_shared_body">Dit word gedeel. As jy dit skrap, verdwyn dit van almal se fone af, nie net hierdie een nie, en jy kan dit nie terugkry nie.</string>
+    <string name="action_archive">Argiveer</string>
+    <string name="action_restore">Herstel</string>
+    <string name="archived_count">GEARGIVEER (%1$d)</string>
+    <string name="cd_expand_archived">Vou geargiveer oop</string>
+    <string name="cd_collapse_archived">Vou geargiveer toe</string>
+    <string name="restore_list_title">Herstel %1$s?</string>
+    <string name="restore_list_body">Dit kom terug vir almal op die lys. Merk alles wat afgemerk is terug, sodat dit weer gereed is vir gebruik?</string>
+    <string name="action_untick_all">Merk alles terug</string>
+    <string name="action_keep_ticks">Hou merke</string>
 
     <string name="invited_title">Jy is na \'n lys uitgenooi</string>
     <string name="invited_body">Sluit aan? Wie ook al dit gedeel het, sal sien wat jy byvoeg.</string>
@@ -152,6 +161,8 @@
     <string name="help_together_body">Almal op \'n gedeelde lys kan items byvoeg, afmerk, wysig, \'n ster gee en herrangskik, en veranderinge wys binne sekondes vir almal. Die mense-ikoon langs \'n lys wys met wie dit gedeel is.</string>
     <string name="help_leaving_title">Verlaat en uitvee</string>
     <string name="help_leaving_body">Enigiemand kan \'n gedeelde lys via sy %1$s-kieslys verlaat, en die eienaar kan mense via die mense-ikoon verwyder. Net die eienaar kan \'n lys uitvee, en dan verdwyn dit vir almal. Wie verlaat of verwyder word, het \'n nuwe uitnodiging nodig om terug te kom.</string>
+    <string name="help_archive_title">Argiveer \'n lys</string>
+    <string name="help_archive_body">\'n Lys wat jy weer gaan nodig hê — soos die paklys vir volgende jaar se reis — kan geargiveer word in plaas van uitgevee. Die eienaar argiveer dit via sy %1$s-kieslys, en dan skuif dit vir almal op die lys na die Geargiveer-afdeling onderaan die lyste. Herstel dit via dieselfde kieslys; as iets daarop nog afgemerk is, kan jy alles terugmerk sodat die lys weer gereed is.</string>
     <string name="help_offline_title">Sonder verbinding</string>
     <string name="help_offline_body">Die Lys werk sonder \'n verbinding. Jou veranderinge word op jou toestel gehou en gestuur sodra jy weer aanlyn is.</string>
     <string name="help_account_title">Jou rekening</string>

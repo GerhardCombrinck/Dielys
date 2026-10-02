@@ -10,7 +10,7 @@ without the other two is incomplete (CODE_STANDARD.md F1, F4).
 
 - **`Task`** — id (UUIDv7), listId, title, done, starred, position (fractional index string),
   deletedAt (tombstone), updatedAt (server timestamp).
-- **`TaskList`** — id (UUIDv7), title, backgroundPhotoUrl, deletedAt, updatedAt.
+- **`TaskList`** — id (UUIDv7), title, backgroundPhotoUrl, archived, deletedAt, updatedAt.
 
 Bounds enforced at the boundary (F3): `MAX_TITLE_LENGTH` 1000, `MAX_POSITION_LENGTH` 256,
 `MAX_URL_LENGTH` 2048, `MAX_ID_LENGTH` 64. A message that breaches one is rejected with
@@ -52,6 +52,14 @@ edit clobber every field.
   a list gone from their own phone leaves it instead (`DELETE /lists/{listId}/members/{self}`).
   See `docs/adr/0006-owner-only-list-delete.md` for why the socket is where this has to be
   enforced too.
+- **Only the list's owner may archive or restore it** (`docs/adr/0014-archive-a-list.md`).
+  `archived` puts the list away for everybody on it — every member's lists screen moves it to
+  an Archived section — so it follows delete's rule: a list mutation that carries `archived`,
+  either value, from a member is refused with `forbidden`. Unlike a tombstone it is ordinary
+  per-field last-write-wins, and `archived: false` restores the list. It is a boolean rather
+  than a timestamp so that restoring is a value a client can send; a patch never needs an
+  explicit null for it. A list change stored before the field existed has no `archived` of its
+  own, and the server sends `false` for it, so a reader always gets a value.
 
 ## Messages
 

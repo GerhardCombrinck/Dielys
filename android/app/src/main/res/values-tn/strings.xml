@@ -94,6 +94,15 @@
     <string name="confirm_delete_list_title">Phimola %1$s?</string>
     <string name="confirm_delete_list_body">Tsotlhe tse di mo go yona di tsamaya le yona, mme ga di boe.</string>
     <string name="confirm_delete_shared_body">E abelanwe. Go e phimola go e tlosa mo difounong tsa botlhe, e seng eno fela, mme ga e boe.</string>
+    <string name="action_archive">Boloka</string>
+    <string name="action_restore">Busetsa</string>
+    <string name="archived_count">TSE DI BOLOKILWENG (%1$d)</string>
+    <string name="cd_expand_archived">Bula tse di bolokilweng</string>
+    <string name="cd_collapse_archived">Tswala tse di bolokilweng</string>
+    <string name="restore_list_title">Busetsa %1$s?</string>
+    <string name="restore_list_body">Le tla boela kwa go botlhe ba ba mo go lone. Tlosa matshwao otlhe gore le siamele go dirisiwa gape?</string>
+    <string name="action_untick_all">Tlosa matshwao otlhe</string>
+    <string name="action_keep_ticks">Boloka matshwao</string>
 
     <string name="invited_title">O laleditswe mo lenaaneng</string>
     <string name="invited_body">A o a tsenela? Yo o le abelaneng o tla bona se o se oketsang.</string>
@@ -146,6 +155,8 @@
     <string name="help_together_body">Mongwe le mongwe yo o mo lenaaneng le le abelanwang a ka oketsa, tshwaya, fetola, naya naledi le go rulaganya dilo sešwa, mme diphetogo di bonala mo go botlhe mo metsotswaneng. Letshwao la batho fa thoko ga lenaane le bontsha gore le abelanwa le mang.</string>
     <string name="help_leaving_title">Go tlogela le go phimola</string>
     <string name="help_leaving_body">Mongwe le mongwe a ka tlogela lenaane le le abelanwang ka lenaane la lone la %1$s, mme mong a ka ntsha batho ka letshwao la batho. Ke mong fela yo o ka phimolang lenaane, mme go le phimola go le tlosa mo go botlhe. Mongwe le mongwe yo o tlogelang kgotsa yo o ntshiwang o tlhoka taletso e ntšha go boa.</string>
+    <string name="help_archive_title">Go boloka lenaane</string>
+    <string name="help_archive_body">Lenaane le o tla le tlhokang gape — la go paka loeto la ngwaga o o tlang, ka sekai — le ka bolokwa go na le go phimolwa. Mong o le boloka ka lenaane la lone la %1$s, mme le ya kwa karolong ya Tse di bolokilweng kwa tlase ga manaane, mo go botlhe ba ba mo go lone. Le busetse ka lenaane le le tshwanang; fa go sa ntse go na le se se tshwailweng, o ka tlosa matshwao otlhe gore lenaane le siame gape.</string>
     <string name="help_offline_title">Kwa ntle ga kgolagano</string>
     <string name="help_offline_body">Die Lys e dira kwa ntle ga kgolagano. Diphetogo tsa gago di bolokwa mo sedirisiweng sa gago mme di romelwa ka bonako fa o boetse mo inthaneteng.</string>
     <string name="help_account_title">Akhaonto ya gago</string>

@@ -20,6 +20,9 @@ data class ListEntity(
     @PrimaryKey @ColumnInfo(name = "id") val id: String,
     @ColumnInfo(name = "title") val title: String,
     @ColumnInfo(name = "background_photo_url") val backgroundPhotoUrl: String? = null,
+    /** Put away for everybody on it, by its owner (ADR 0014). Still synced and
+     *  still opens; the lists screen just keeps it in its own section. */
+    @ColumnInfo(name = "archived", defaultValue = "0") val archived: Boolean = false,
     /** Tombstone (F5.3). A deleted row is kept, never removed. */
     @ColumnInfo(name = "deleted_at") val deletedAt: String? = null,
     /** Server timestamp, null while the row is only an optimistic local write. */
@@ -67,6 +70,10 @@ data class ListEntity(
      * construction, and must be able to delete before the claim has landed.
      */
     val mayDelete: Boolean get() = role != MembershipRole.MEMBER
+
+    /** Archiving puts the list away on every member's screen, so it is the
+     *  owner's to do and undo, under exactly [mayDelete]'s rule (ADR 0014). */
+    val mayArchive: Boolean get() = mayDelete
 
     /** Sync status is only interesting once someone else can make the local
      *  copy go stale — a solo list never has anything to be behind on. */

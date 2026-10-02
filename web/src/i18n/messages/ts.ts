@@ -12,6 +12,8 @@ export const ts: Messages = {
   "common.cancel": "Khansela",
   "common.close": "Pfala",
   "common.delete": "Susa",
+  "common.archive": "Hlayisa",
+  "common.restore": "Vuyisa",
   "common.rename": "Cinca vito",
   "common.share": "Avelana",
   "common.edit": "Cinca",
@@ -44,6 +46,12 @@ export const ts: Messages = {
   "home.deleteListBody":
     "Leswi swi wu susa eka hinkwavo lava nga eka wona. Leswi a swi nge cinciwi.",
   "home.untitledFallback": "nxaxamelo lowu",
+  "home.archivedCount": "LESWI HLAYISIWEKE ({n})",
+  "home.restoreListTitle": 'Vuyisa "{title}"?',
+  "home.restoreListBody":
+    "Wu ta vuyela eka hinkwavo lava nga eka wona. Susa swikombiso hinkwaswo leswaku wu lunghekela ku tirhisiwa nakambe?",
+  "home.untickAll": "Susa swikombiso hinkwaswo",
+  "home.keepTicks": "Hlayisa swikombiso",
 
   "list.backToLists": "Tlhelela eka minxaxamelo",
   "list.untitled": "Nxaxamelo lowu nga riki na nhlokomhaka",
@@ -176,6 +184,9 @@ export const ts: Messages = {
   "help.leavingTitle": "Ku siya no sula",
   "help.leavingBody":
     "Un'wana na un'wana a nga siya nxaxamelo lowu avelaniwaka hi menyu ya wona ya {menu}, naswona n'wini a nga susa vanhu hi xikombiso xa vanhu. I n'wini ntsena loyi a nga sulaka nxaxamelo, naswona ku wu sula swi wu susa eka hinkwavo. Un'wana na un'wana loyi a siyaka kumbe a susiwaka u lava xirhambo lexintshwa ku vuya.",
+  "help.archiveTitle": "Ku hlayisa nxaxamelo",
+  "help.archiveBody":
+    "Nxaxamelo lowu u nga ta wu lava nakambe — wa ku paka riendzo ra lembe leri taka, xikombiso — wu nga hlayisiwa ematshan'weni yo suriwa. N'wini u wu hlayisa hi menyu ya wona ya {menu}, naswona wu ya eka xiyenge xa Leswi hlayisiweke ehansi ka minxaxamelo, eka hinkwavo lava nga eka wona. Wu vuyise hi menyu leyi fanaka; loko ku ha ri na leswi fungiweke, u nga susa swikombiso hinkwaswo leswaku nxaxamelo wu lunghekela nakambe.",
   "help.offlineTitle": "Handle ka vuhlanganisi",
   "help.offlineBody":
     "Die Lys yi tirha handle ka vuhlanganisi. Ku cinca ka wena ku hlayisiwa eka xitirhisiwa xa wena naswona ku rhumeriwa hi ku hatlisa loko u tlhelela eka inthanete.",

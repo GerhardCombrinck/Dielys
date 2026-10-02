@@ -643,6 +643,11 @@ body.reordering * {
   padding: 0;
 }
 
+/* Put away (ADR 0014), so it reads quieter than the lists in use. */
+.list-row.archived .row-title {
+  color: rgba(var(--on-surface-rgb), 0.65);
+}
+
 .done-title {
   text-decoration: line-through;
   cursor: default;

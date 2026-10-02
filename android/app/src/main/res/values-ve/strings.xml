@@ -94,6 +94,15 @@
     <string name="confirm_delete_list_title">Thutha %1$s?</string>
     <string name="confirm_delete_list_body">Zwoṱhe zwi re khazwo zwi ya nazwo, nahone a zwi vhuyi.</string>
     <string name="confirm_delete_shared_body">Yo kovhekanywa. U i thutha zwi i bvisa kha dziphone dza vhoṱhe, hu si kha iyi fhedzi, nahone a i vhuyi.</string>
+    <string name="action_archive">Vhulunga</string>
+    <string name="action_restore">Vhuedzedza</string>
+    <string name="archived_count">ZWO VHULUNGWAHO (%1$d)</string>
+    <string name="cd_expand_archived">Vula zwo vhulungwaho</string>
+    <string name="cd_collapse_archived">Vala zwo vhulungwaho</string>
+    <string name="restore_list_title">Vhuedzedza %1$s?</string>
+    <string name="restore_list_body">Wo ḓo vhuyelela kha vhoṱhe vhane vha vha khawo. Bvisa zwiga zwoṱhe uri wo lugela u shumiswa hafhu?</string>
+    <string name="action_untick_all">Bvisa zwiga zwoṱhe</string>
+    <string name="action_keep_ticks">Vhulunga zwiga</string>
 
     <string name="invited_title">No rambiwa kha mutevhe</string>
     <string name="invited_body">Ni a dzhena? We a u kovhekana u do vhona zwine na engedza.</string>
@@ -146,6 +155,8 @@
     <string name="help_together_body">Muṅwe na muṅwe o re kha mutevhe wo kovhekanwaho a nga engedza, swaya, shandukisa, ṋea naledzi na u dzudzanya zwithu hafhu, nahone tshanduko dzi vhonala kha vhoṱhe nga miniṱhinyana. Tshiga tsha vhathu tsini ha mutevhe tshi sumbedza uri wo kovhekanwa na nnyi.</string>
     <string name="help_leaving_title">U litsha na u phumula</string>
     <string name="help_leaving_body">Muṅwe na muṅwe a nga litsha mutevhe wo kovhekanwaho nga mutevhe wawo wa %1$s, nahone muṋe a nga bvisa vhathu nga tshiga tsha vhathu. Ndi muṋe fhedzi ane a nga phumula mutevhe, nahone u u phumula zwi u bvisa kha vhoṱhe. Muṅwe na muṅwe ane a litsha kana a bviswa u ṱoḓa u rambwa hafhu u itela u vhuya.</string>
+    <string name="help_archive_title">U vhulunga mutevhe</string>
+    <string name="help_archive_body">Mutevhe une na ḓo u ṱoḓa hafhu — wa u paka lwendo lwa ṅwaha u ḓaho, sa tsumbo — u nga vhulungwa hu si u phumulwa. Muṋe u u vhulunga nga mutevhe wawo wa %1$s, nahone u ya kha tshipiḓa tsha Zwo vhulungwaho fhasi ha mitevhe, kha vhoṱhe vhane vha vha khawo. U vhuedzedze nga mutevhe u fanaho; arali hu tshi kha ḓi vha na zwo swaiwaho, ni nga bvisa zwiga zwoṱhe uri mutevhe u lugele hafhu.</string>
     <string name="help_offline_title">Hu si na vhukwamani</string>
     <string name="help_offline_body">Die Lys i shuma hu si na vhukwamani. Tshanduko dzaṋu dzi vhulungwa kha tshishumiswa tshaṋu nahone dzi rumelwa musi ni tshi vhuyelela kha inthanethe.</string>
     <string name="help_account_title">Akhaunthu yaṋu</string>

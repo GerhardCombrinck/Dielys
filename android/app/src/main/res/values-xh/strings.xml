@@ -94,6 +94,15 @@
     <string name="confirm_delete_list_title">Cima %1$s?</string>
     <string name="confirm_delete_list_body">Yonke into ekuyo ihamba nayo, kwaye ayibuyi.</string>
     <string name="confirm_delete_shared_body">Yabelwana ngayo. Ukuyicima kuyisusa kuzo zonke iifowuni, hayi kule kuphela, kwaye ayibuyi.</string>
+    <string name="action_archive">Gcina</string>
+    <string name="action_restore">Buyisela</string>
+    <string name="archived_count">OKUGCINIWEYO (%1$d)</string>
+    <string name="cd_expand_archived">Vula okugciniweyo</string>
+    <string name="cd_collapse_archived">Goqa okugciniweyo</string>
+    <string name="restore_list_title">Buyisela %1$s?</string>
+    <string name="restore_list_body">Luya kubuyela kuwo wonke umntu okulo. Susa zonke iziphawu ukuze lulungele ukusetyenziswa kwakhona?</string>
+    <string name="action_untick_all">Susa zonke iziphawu</string>
+    <string name="action_keep_ticks">Gcina iziphawu</string>
 
     <string name="invited_title">Umenyelwe kuluhlu</string>
     <string name="invited_body">Uyajoyina? Lowo wabelane ngalo uya kubona oko ukongezayo.</string>
@@ -146,6 +155,8 @@
     <string name="help_together_body">Wonke umntu okuluhlu olwabelwanayo unokongeza, aphawule, ahlele, afake inkwenkwezi aze alungelelanise ngokutsha izinto, kwaye utshintsho luvela kuwo wonke umntu kwimizuzwana embalwa. Umfanekiso wabantu ecaleni koluhlu ubonisa ukuba lwabelwana nabani.</string>
     <string name="help_leaving_title">Ukushiya nokucima</string>
     <string name="help_leaving_body">Nabani na unokushiya uluhlu olwabelwanayo ngemenyu yalo ethi %1$s, kwaye umnini unokususa abantu ngomfanekiso wabantu. Ngumnini kuphela onokucima uluhlu, kwaye ukulucima kulususa kuwo wonke umntu. Nabani na oshiyayo okanye osuswayo ufuna isimemo esitsha ukuze abuye.</string>
+    <string name="help_archive_title">Ukugcina uluhlu</string>
+    <string name="help_archive_body">Uluhlu oza kuphinda ulufune — olokupakisha uhambo lonyaka ozayo, umzekelo — lunokugcinwa endaweni yokucinywa. Umnini uyalugcina ngemenyu yalo ethi %1$s, kwaye luya kwicandelo Okugciniweyo ezantsi kuluhlu, kuwo wonke umntu okulo. Lubuyisele ngemenyu efanayo; ukuba kusekho into ephawuliweyo, ungasusa zonke iziphawu ukuze uluhlu lulungele kwakhona.</string>
     <string name="help_offline_title">Ngaphandle konxibelelwano</string>
     <string name="help_offline_body">I-Die Lys isebenza ngaphandle konxibelelwano. Utshintsho lwakho lugcinwa kwisixhobo sakho kwaye luthunyelwa nje ukuba ubuyele kwi-intanethi.</string>
     <string name="help_account_title">Iakhawunti yakho</string>

@@ -40,6 +40,8 @@ data class ListRow(
     val list: ListEntity,
     val itemCount: Int,
     val accent: Int? = null,
+    /** Ticked items, which restoring an archived list offers to untick (ADR 0014). */
+    val doneCount: Int = 0,
 )
 
 /** The invite dialog, from the moment it opens to the moment the mail is sent. */
@@ -154,7 +156,7 @@ class ListsViewModel
                 repo.observeItemCounts(),
                 firstSync.listsPulled,
             ) { lists, counts, pulled ->
-                val byListId = counts.associate { it.listId to it.count }
+                val byListId = counts.associateBy { it.listId }
                 val (arrived, announced) = lists.partition { it.list.hasArrived() }
                 // Still waiting while a list is announced and not named, even
                 // once the sync has finished: Room tells this flow about the rows
@@ -163,7 +165,10 @@ class ListsViewModel
                 if (arrived.isEmpty() && (!pulled || announced.isNotEmpty())) {
                     null
                 } else {
-                    arrived.map { ListRow(it.list, byListId[it.list.id] ?: 0, it.accent) }
+                    arrived.map {
+                        val count = byListId[it.list.id]
+                        ListRow(it.list, count?.count ?: 0, it.accent, count?.doneCount ?: 0)
+                    }
                 }
             }.asState(null)
 
@@ -229,6 +234,18 @@ class ListsViewModel
             beforeId: String?,
         ) {
             viewModelScope.launch { repo.moveList(listId, afterId, beforeId) }
+        }
+
+        /** Owner-only, for everybody on the list (ADR 0014). */
+        fun archive(listId: String) {
+            viewModelScope.launch { repo.setArchived(listId, archived = true) }
+        }
+
+        fun restore(
+            listId: String,
+            untick: Boolean,
+        ) {
+            viewModelScope.launch { repo.setArchived(listId, archived = false, untick = untick) }
         }
 
         fun delete(listId: String) {

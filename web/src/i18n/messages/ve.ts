@@ -12,6 +12,8 @@ export const ve: Messages = {
   "common.cancel": "Khanselani",
   "common.close": "Vala",
   "common.delete": "Thutha",
+  "common.archive": "Vhulunga",
+  "common.restore": "Vhuedzedza",
   "common.rename": "Shandukisa dzina",
   "common.share": "Kovhekana",
   "common.edit": "Shandukisa",
@@ -44,6 +46,12 @@ export const ve: Messages = {
   "home.deleteListBody":
     "Hezwi zwi u bvisa kha vhoṱhe vhane vha vha khawo. Hezwi a zwi nge zwa dovha zwa vhuyelela.",
   "home.untitledFallback": "uyu mutevhe",
+  "home.archivedCount": "ZWO VHULUNGWAHO ({n})",
+  "home.restoreListTitle": 'Vhuedzedza "{title}"?',
+  "home.restoreListBody":
+    "Wo ḓo vhuyelela kha vhoṱhe vhane vha vha khawo. Bvisa zwiga zwoṱhe uri wo lugela u shumiswa hafhu?",
+  "home.untickAll": "Bvisa zwiga zwoṱhe",
+  "home.keepTicks": "Vhulunga zwiga",
 
   "list.backToLists": "Vhuyani kha mitevhe",
   "list.untitled": "Mutevhe u si na thoho",
@@ -174,6 +182,9 @@ export const ve: Messages = {
   "help.leavingTitle": "U litsha na u phumula",
   "help.leavingBody":
     "Muṅwe na muṅwe a nga litsha mutevhe wo kovhekanwaho nga mutevhe wawo wa {menu}, nahone muṋe a nga bvisa vhathu nga tshiga tsha vhathu. Ndi muṋe fhedzi ane a nga phumula mutevhe, nahone u u phumula zwi u bvisa kha vhoṱhe. Muṅwe na muṅwe ane a litsha kana a bviswa u ṱoḓa u rambwa hafhu u itela u vhuya.",
+  "help.archiveTitle": "U vhulunga mutevhe",
+  "help.archiveBody":
+    "Mutevhe une na ḓo u ṱoḓa hafhu — wa u paka lwendo lwa ṅwaha u ḓaho, sa tsumbo — u nga vhulungwa hu si u phumulwa. Muṋe u u vhulunga nga mutevhe wawo wa {menu}, nahone u ya kha tshipiḓa tsha Zwo vhulungwaho fhasi ha mitevhe, kha vhoṱhe vhane vha vha khawo. U vhuedzedze nga mutevhe u fanaho; arali hu tshi kha ḓi vha na zwo swaiwaho, ni nga bvisa zwiga zwoṱhe uri mutevhe u lugele hafhu.",
   "help.offlineTitle": "Hu si na vhukwamani",
   "help.offlineBody":
     "Die Lys i shuma hu si na vhukwamani. Tshanduko dzaṋu dzi vhulungwa kha tshishumiswa tshaṋu nahone dzi rumelwa musi ni tshi vhuyelela kha inthanethe.",

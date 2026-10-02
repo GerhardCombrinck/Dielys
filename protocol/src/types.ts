@@ -37,6 +37,12 @@ export interface TaskList {
   id: string; // client-generated UUIDv7, F5.1
   title: string;
   backgroundPhotoUrl: string | null;
+  /**
+   * Put away for everybody on it, owner-only (ADR 0014). Ordinary per-field
+   * LWW, not sticky like `deletedAt`: `false` restores it. A change stored
+   * before the field existed has none; the server sends `false` for it.
+   */
+  archived: boolean;
   deletedAt: string | null;
   updatedAt: string;
 }
@@ -99,6 +105,9 @@ export interface TaskPatch {
 export interface ListPatch {
   title?: string;
   backgroundPhotoUrl?: string | null;
+  /** A boolean rather than a timestamp so restoring is a value a client can
+   * send — Android's outbound JSON never carries an explicit null (ADR 0014). */
+  archived?: boolean;
   deletedAt?: string | null;
 }
 

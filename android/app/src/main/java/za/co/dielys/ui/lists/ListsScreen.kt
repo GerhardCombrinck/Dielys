@@ -25,7 +25,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -35,6 +37,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -44,10 +47,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -91,6 +96,15 @@ fun ListsScreen(
 ) {
     val answer by viewModel.lists.collectAsStateWithLifecycle()
     val rows = answer.orEmpty()
+    // Archived lists (ADR 0014) sit in their own section under the others,
+    // folded away until asked for, and are not part of the drag order.
+    val active = rows.filterNot { it.list.archived }
+    val archived = rows.filter { it.list.archived }
+    var archivedExpanded by rememberSaveable { mutableStateOf(false) }
+
+    /** The list a restore is asking about: whether to untick what was ticked
+     *  last time. Only asked when something is ticked. */
+    var restoring by remember { mutableStateOf<ListEntity?>(null) }
     val members by membersViewModel.members.collectAsStateWithLifecycle()
     val invite by viewModel.invite.collectAsStateWithLifecycle()
     var creating by remember { mutableStateOf(false) }
@@ -110,7 +124,7 @@ fun ListsScreen(
     // same two-answers-for-a-moment problem the task list has, solved the same way.
     var draft by remember { mutableStateOf<List<ListRow>?>(null) }
     var draggingId by remember { mutableStateOf<String?>(null) }
-    val shown = draft ?: rows
+    val shown = draft ?: active
 
     // How long a spinner is worth watching is this screen's question, as it is
     // the join dialog's (#61); the view model only knows whether lists are here.
@@ -123,7 +137,7 @@ fun ListsScreen(
 
     LaunchedEffect(rows, draft) {
         val current = draft ?: return@LaunchedEffect
-        if (!draftStillWanted(current.map { it.list.id }, rows.map { it.list.id })) draft = null
+        if (!draftStillWanted(current.map { it.list.id }, active.map { it.list.id })) draft = null
     }
 
     Scaffold(
@@ -170,6 +184,9 @@ fun ListsScreen(
             } else {
                 Lists(
                     rows = shown,
+                    archived = archived,
+                    archivedExpanded = archivedExpanded,
+                    onToggleArchived = { archivedExpanded = !archivedExpanded },
                     draggingId = draggingId,
                     onDragStart = { index -> draggingId = shown.getOrNull(index)?.list?.id },
                     onDragMove = { from, to -> draft = shown.moved(from, to) },
@@ -186,6 +203,14 @@ fun ListsScreen(
                     onColour = { colouring = it.id },
                     onMembers = { membersViewModel.open(it.id) },
                     onShare = viewModel::invite,
+                    onArchive = { viewModel.archive(it.id) },
+                    onRestore = { row ->
+                        if (row.doneCount > 0) {
+                            restoring = row.list
+                        } else {
+                            viewModel.restore(row.list.id, untick = false)
+                        }
+                    },
                     onDelete = { deleting = it },
                     onLeave = { leaving = it },
                     modifier = Modifier.weight(1f),
@@ -231,6 +256,39 @@ fun ListsScreen(
             confirm = stringResource(R.string.action_delete),
             onConfirm = { viewModel.delete(list.id) },
             onDismiss = { deleting = null },
+        )
+    }
+
+    // Three answers, not ConfirmPrompt's two: untick and restore, restore as
+    // it is, or — tapping outside — neither (ADR 0014).
+    restoring?.let { list ->
+        AlertDialog(
+            onDismissRequest = { restoring = null },
+            title = {
+                Text(
+                    stringResource(
+                        R.string.restore_list_title,
+                        list.displayTitle(LocalContext.current),
+                    ),
+                )
+            },
+            text = { Text(stringResource(R.string.restore_list_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.restore(list.id, untick = true)
+                        restoring = null
+                    },
+                ) { Text(stringResource(R.string.action_untick_all)) }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.restore(list.id, untick = false)
+                        restoring = null
+                    },
+                ) { Text(stringResource(R.string.action_keep_ticks)) }
+            },
         )
     }
 
@@ -292,6 +350,9 @@ fun ListsScreen(
 @Composable
 private fun Lists(
     rows: List<ListRow>,
+    archived: List<ListRow>,
+    archivedExpanded: Boolean,
+    onToggleArchived: () -> Unit,
     draggingId: String?,
     onDragStart: (Int) -> Unit,
     onDragMove: (Int, Int) -> Unit,
@@ -302,6 +363,8 @@ private fun Lists(
     onColour: (ListEntity) -> Unit,
     onMembers: (ListEntity) -> Unit,
     onShare: (ListEntity) -> Unit,
+    onArchive: (ListEntity) -> Unit,
+    onRestore: (ListRow) -> Unit,
     onDelete: (ListEntity) -> Unit,
     onLeave: (ListEntity) -> Unit,
     modifier: Modifier = Modifier,
@@ -368,6 +431,8 @@ private fun Lists(
                 onColour = { onColour(row.list) },
                 onMembers = { onMembers(row.list) },
                 onShare = { onShare(row.list) },
+                onArchive = { onArchive(row.list) },
+                onRestore = { onRestore(row) },
                 onDelete = { onDelete(row.list) },
                 onLeave = { onLeave(row.list) },
                 dragging = dragging,
@@ -390,6 +455,76 @@ private fun Lists(
                         },
             )
         }
+
+        // After the active rows, so the drag — which only ever looks at the
+        // first rows.size items — never picks up the heading or an archived row.
+        if (archived.isNotEmpty()) {
+            item(key = ARCHIVED_HEADING_KEY) {
+                ArchivedHeading(
+                    count = archived.size,
+                    expanded = archivedExpanded,
+                    onClick = onToggleArchived,
+                    modifier = Modifier.animateItem(),
+                )
+            }
+            if (archivedExpanded) {
+                items(archived, key = { row -> row.list.id }) { row ->
+                    ListRow(
+                        row = row,
+                        dotColor = row.accent?.let(::accentColor) ?: listAccent(row.list.id),
+                        onOpen = { onOpen(row.list.id) },
+                        onRename = { onRename(row.list) },
+                        onColour = { onColour(row.list) },
+                        onMembers = { onMembers(row.list) },
+                        onShare = { onShare(row.list) },
+                        onArchive = { onArchive(row.list) },
+                        onRestore = { onRestore(row) },
+                        onDelete = { onDelete(row.list) },
+                        onLeave = { onLeave(row.list) },
+                        modifier = Modifier.animateItem(),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** The fold over the archived lists, in the task list's "DONE (n)" style. */
+@Composable
+private fun ArchivedHeading(
+    count: Int,
+    expanded: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val rotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        label = "archived-chevron",
+    )
+    val muted = MaterialTheme.colorScheme.onSurface.copy(alpha = ALPHA_MUTED)
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(start = 16.dp, end = 8.dp, top = 20.dp, bottom = 4.dp),
+    ) {
+        Text(
+            stringResource(R.string.archived_count, count),
+            style = MaterialTheme.typography.labelLarge,
+            color = muted,
+        )
+        Icon(
+            Icons.Filled.KeyboardArrowDown,
+            contentDescription =
+                stringResource(
+                    if (expanded) R.string.cd_collapse_archived else R.string.cd_expand_archived,
+                ),
+            tint = muted,
+            modifier = Modifier.padding(start = 4.dp).rotate(rotation),
+        )
     }
 }
 
@@ -418,6 +553,8 @@ private fun ListRow(
     onColour: () -> Unit,
     onMembers: () -> Unit,
     onShare: () -> Unit,
+    onArchive: () -> Unit,
+    onRestore: () -> Unit,
     onDelete: () -> Unit,
     onLeave: () -> Unit,
     modifier: Modifier = Modifier,
@@ -454,6 +591,13 @@ private fun ListRow(
             Text(
                 list.displayTitle(LocalContext.current),
                 style = MaterialTheme.typography.titleMedium,
+                // Put away, so it reads quieter than the lists in use.
+                color =
+                    if (list.archived) {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = ALPHA_MUTED)
+                    } else {
+                        Color.Unspecified
+                    },
             )
             // Until the first sync lands there is no server timestamp, which is
             // exactly the "made offline, not sent yet" state worth showing.
@@ -523,6 +667,19 @@ private fun ListRow(
                         onClick = {
                             menuOpen = false
                             onShare()
+                        },
+                    )
+                }
+                // ADR 0014: archiving puts the list away for everybody on it,
+                // so it is the owner's, like a delete — and so is bringing it back.
+                if (list.mayArchive) {
+                    val label =
+                        if (list.archived) R.string.action_restore else R.string.action_archive
+                    DropdownMenuItem(
+                        text = { Text(stringResource(label)) },
+                        onClick = {
+                            menuOpen = false
+                            if (list.archived) onRestore() else onArchive()
                         },
                     )
                 }
@@ -615,6 +772,9 @@ private const val ALPHA_MUTED = 0.65f
 /** How long the first sync after signing in gets before the screen stops
  *  waiting on it and lets a list be made anyway (#66). */
 private const val FIRST_SYNC_PATIENCE_MILLIS = 8_000L
+
+/** Not a list id — those are UUIDv7s — so it can share the LazyColumn's keys. */
+private const val ARCHIVED_HEADING_KEY = "archived-heading"
 
 /** Breathing room between cards, so neighbours read as separate surfaces. */
 private val CARD_GAP = 8.dp

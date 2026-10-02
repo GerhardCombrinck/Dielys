@@ -94,6 +94,15 @@
     <string name="confirm_delete_list_title">Susa %1$s?</string>
     <string name="confirm_delete_list_body">Konkhe lokukuwo kuhamba nawo, futsi ungeke uwubuyise.</string>
     <string name="confirm_delete_shared_body">Ubelwene nalabanye. Kuwususa kuwususa kuwo onkhe emafoni, hhayi leli kuphela, futsi ungeke uwubuyise.</string>
+    <string name="action_archive">Gcina</string>
+    <string name="action_restore">Buyisela</string>
+    <string name="archived_count">LOKUGCINIWE (%1$d)</string>
+    <string name="cd_expand_archived">Vula lokugciniwe</string>
+    <string name="cd_collapse_archived">Goca lokugciniwe</string>
+    <string name="restore_list_title">Buyisela %1$s?</string>
+    <string name="restore_list_body">Lutawubuyela kubo bonkhe labakulo. Susa onkhe emamaki kute lulungele kusetjentiswa futsi?</string>
+    <string name="action_untick_all">Susa onkhe emamaki</string>
+    <string name="action_keep_ticks">Gcina emamaki</string>
 
     <string name="invited_title">Umenyelwe eluhlwini</string>
     <string name="invited_body">Uyajoyina? Lowo labelane ngalo utawubona loko lokungetako.</string>
@@ -146,6 +155,8 @@
     <string name="help_together_body">Wonkhe umuntfu losoluhlwini lolwabelwene angengeta, amake, ahlele, afake inkhanyeti futsi ahlele kabusha tintfo, futsi tinguculo tivela kubo bonkhe emizuzwaneni lembalwa. Umfanekiso webantfu eceleni kweluhlu ukhombisa kutsi lwabelwene nabani.</string>
     <string name="help_leaving_title">Kushiya nekusula</string>
     <string name="help_leaving_body">Nome ngubani angashiya luhlu lolwabelwene ngemenyu yalo letsi %1$s, futsi umnikati angasusa bantfu ngemfanekiso webantfu. Ngumnikati kuphela longasula luhlu, futsi kulusula kulususa kubo bonkhe. Nome ngubani loshiyako nome losuswako udzinga simemo lesisha kute abuye.</string>
+    <string name="help_archive_title">Kugcina luhlu</string>
+    <string name="help_archive_body">Luhlu lotawuludzinga futsi — lwekupakisha luhambo lonyaka lotako, sibonelo — lungagcinwa esikhundleni sekusulwa. Umnikati uyalugcina ngemenyu yalo letsi %1$s, futsi luya esigabeni Lokugciniwe ngentasi kwetinhlu, kubo bonkhe labakulo. Lubuyisele ngemenyu lefanako; nangabe kusenalokumakiwe, ungasusa onkhe emamaki kute luhlu lulungele futsi.</string>
     <string name="help_offline_title">Ngaphandle kwekuchumana</string>
     <string name="help_offline_body">I-Die Lys isebenta ngaphandle kwekuchumana. Tinguculo takho tigcinwa edivayisini yakho futsi titfunyelwa nawubuyela ku-inthanethi.</string>
     <string name="help_account_title">I-akhawunti yakho</string>

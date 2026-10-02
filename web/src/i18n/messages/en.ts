@@ -9,6 +9,8 @@ export const en = {
   "common.cancel": "Cancel",
   "common.close": "Close",
   "common.delete": "Delete",
+  "common.archive": "Archive",
+  "common.restore": "Restore",
   "common.rename": "Rename",
   "common.share": "Share",
   "common.edit": "Edit",
@@ -38,6 +40,12 @@ export const en = {
   "home.leaveListTitle": 'Leave "{title}"?',
   "home.deleteListBody": "This removes it for everyone on it. This can't be undone.",
   "home.untitledFallback": "this list",
+  "home.archivedCount": "ARCHIVED ({n})",
+  "home.restoreListTitle": 'Restore "{title}"?',
+  "home.restoreListBody":
+    "It comes back for everyone on it. Untick everything that was ticked, so it is ready to use again?",
+  "home.untickAll": "Untick all",
+  "home.keepTicks": "Keep ticks",
 
   "list.backToLists": "Back to lists",
   "list.untitled": "Untitled list",
@@ -157,6 +165,9 @@ export const en = {
   "help.leavingTitle": "Leaving and deleting",
   "help.leavingBody":
     "Anyone can leave a shared list from its {menu} menu, and the owner can remove people from the people icon. Only the owner can delete a list, and deleting it removes it for everyone. Anyone who leaves or is removed needs a new invite to get back in.",
+  "help.archiveTitle": "Archiving a list",
+  "help.archiveBody":
+    "A list you will need again — packing for next year's trip, say — can be archived instead of deleted. The owner archives it from its {menu} menu, and it moves to the Archived section at the bottom of the lists, for everyone on it. Restore it from the same menu; if anything on it is still ticked, you can untick it all so the list is ready to use again.",
   "help.offlineTitle": "Offline",
   "help.offlineBody":
     "Die Lys works without a connection. Your changes are kept on your device and sent as soon as you are back online.",

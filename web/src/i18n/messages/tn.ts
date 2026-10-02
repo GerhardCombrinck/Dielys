@@ -12,6 +12,8 @@ export const tn: Messages = {
   "common.cancel": "Khansela",
   "common.close": "Tswala",
   "common.delete": "Phimola",
+  "common.archive": "Boloka",
+  "common.restore": "Busetsa",
   "common.rename": "Fetola leina",
   "common.share": "Abelana",
   "common.edit": "Fetola",
@@ -42,6 +44,12 @@ export const tn: Messages = {
   "home.deleteListBody":
     "Se se tlosa lenaane mo go botlhe ba ba mo go lone. Ga se kake sa boelwa morago.",
   "home.untitledFallback": "lenaane le",
+  "home.archivedCount": "TSE DI BOLOKILWENG ({n})",
+  "home.restoreListTitle": 'Busetsa "{title}"?',
+  "home.restoreListBody":
+    "Le tla boela kwa go botlhe ba ba mo go lone. Tlosa matshwao otlhe gore le siamele go dirisiwa gape?",
+  "home.untickAll": "Tlosa matshwao otlhe",
+  "home.keepTicks": "Boloka matshwao",
 
   "list.backToLists": "Boela kwa manaaneng",
   "list.untitled": "Lenaane le le se nang setlhogo",
@@ -167,6 +175,9 @@ export const tn: Messages = {
   "help.leavingTitle": "Go tlogela le go phimola",
   "help.leavingBody":
     "Mongwe le mongwe a ka tlogela lenaane le le abelanwang ka lenaane la lone la {menu}, mme mong a ka ntsha batho ka letshwao la batho. Ke mong fela yo o ka phimolang lenaane, mme go le phimola go le tlosa mo go botlhe. Mongwe le mongwe yo o tlogelang kgotsa yo o ntshiwang o tlhoka taletso e ntšha go boa.",
+  "help.archiveTitle": "Go boloka lenaane",
+  "help.archiveBody":
+    "Lenaane le o tla le tlhokang gape — la go paka loeto la ngwaga o o tlang, ka sekai — le ka bolokwa go na le go phimolwa. Mong o le boloka ka lenaane la lone la {menu}, mme le ya kwa karolong ya Tse di bolokilweng kwa tlase ga manaane, mo go botlhe ba ba mo go lone. Le busetse ka lenaane le le tshwanang; fa go sa ntse go na le se se tshwailweng, o ka tlosa matshwao otlhe gore lenaane le siame gape.",
   "help.offlineTitle": "Kwa ntle ga kgolagano",
   "help.offlineBody":
     "Die Lys e dira kwa ntle ga kgolagano. Diphetogo tsa gago di bolokwa mo sedirisiweng sa gago mme di romelwa ka bonako fa o boetse mo inthaneteng.",

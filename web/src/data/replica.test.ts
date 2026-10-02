@@ -152,6 +152,7 @@ describe("Replica.apply", () => {
       id: LIST,
       title: "Shop",
       backgroundPhotoUrl: null,
+      archived: false,
       deletedAt: null,
       updatedAt: "2026-09-21T00:00:00.000Z",
     };

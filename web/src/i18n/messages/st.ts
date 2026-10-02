@@ -12,6 +12,8 @@ export const st: Messages = {
   "common.cancel": "Hlakola",
   "common.close": "Koala",
   "common.delete": "Hlakola",
+  "common.archive": "Boloka",
+  "common.restore": "Kgutlisa",
   "common.rename": "Fetola lebitso",
   "common.share": "Arolelana",
   "common.edit": "Fetola",
@@ -41,6 +43,12 @@ export const st: Messages = {
   "home.leaveListTitle": 'Tlohela "{title}"?',
   "home.deleteListBody": "Sena se e tlosa ho bohle ba ho yona. Ha se khone ho khutliswa.",
   "home.untitledFallback": "lenane lena",
+  "home.archivedCount": "TSE BOLOKILWENG ({n})",
+  "home.restoreListTitle": 'Kgutlisa "{title}"?',
+  "home.restoreListBody":
+    "Le tla kgutlela ho bohle ba leng ho lona. Tlosa matshwao kaofela hore le lokele ho sebediswa hape?",
+  "home.untickAll": "Tlosa matshwao kaofela",
+  "home.keepTicks": "Boloka matshwao",
 
   "list.backToLists": "Khutlela manaaneng",
   "list.untitled": "Lenane le se nang sehlooho",
@@ -166,6 +174,9 @@ export const st: Messages = {
   "help.leavingTitle": "Ho tlohela le ho hlakola",
   "help.leavingBody":
     "Mang kapa mang a ka tlohela lenane le arolelanweng ka lenane la lona la {menu}, mme mong a ka tlosa batho ka letshwao la batho. Ke mong feela ya ka hlakolang lenane, mme ho le hlakola ho le tlosa ho bohle. Mang kapa mang ya tlohelang kapa ya tloswang o hloka memo e ntjha ho kgutla.",
+  "help.archiveTitle": "Ho boloka lenane",
+  "help.archiveBody":
+    "Lenane leo o tla le hloka hape — la ho paka leeto la selemo se tlang, ka mohlala — le ka bolokwa ho ena le ho hlakolwa. Mong o le boloka ka lenane la lona la {menu}, mme le ya karolong ya Tse bolokilweng ka tlase ho mananeo, ho bohle ba leng ho lona. Le kgutlise ka lenane le tshwanang; ha ho ntse ho ena le se tshwailweng, o ka tlosa matshwao kaofela hore lenane le lokele hape.",
   "help.offlineTitle": "Ntle le kgokahano",
   "help.offlineBody":
     "Die Lys e sebetsa ntle le kgokahano. Diphetoho tsa hao di bolokwa sesebedisweng sa hao mme di romelwa hang ha o kgutlela inthaneteng.",

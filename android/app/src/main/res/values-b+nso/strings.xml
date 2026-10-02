@@ -99,6 +99,15 @@
     <string name="confirm_delete_list_title">Phumula %1$s?</string>
     <string name="confirm_delete_list_body">Tšohle tše di lego go lona di sepela le lona, gomme ga di boe.</string>
     <string name="confirm_delete_shared_body">Le abelanwe. Go le phumula go le tloša difouneng tša bohle, e sego ye fela, gomme ga le boe.</string>
+    <string name="action_archive">Boloka</string>
+    <string name="action_restore">Bušetša</string>
+    <string name="archived_count">TŠE DI BOLOKILWEGO (%1$d)</string>
+    <string name="cd_expand_archived">Bula tše di bolokilwego</string>
+    <string name="cd_collapse_archived">Tswalela tše di bolokilwego</string>
+    <string name="restore_list_title">Bušetša %1$s?</string>
+    <string name="restore_list_body">Le tla boela go bohle bao ba lego go lona. Tloša maswao ka moka gore le loketše go šomišwa gape?</string>
+    <string name="action_untick_all">Tloša maswao ka moka</string>
+    <string name="action_keep_ticks">Boloka maswao</string>
 
     <string name="invited_title">O laleditšwe lenaneong</string>
     <string name="invited_body">O a tsenela? Yo a abelanego ka lona o tla bona seo o se oketšago.</string>
@@ -151,6 +160,8 @@
     <string name="help_together_body">Mang le mang yo a lego lenaneong leo le abelanwago a ka oketša, swaya, fetoša, tšea naledi le go beakanya dilo lefsa, gomme diphetogo di bonala go bohle ka metsotswana. Leswao la batho kgauswi le lenaneo le bontšha gore le abelanwa le mang.</string>
     <string name="help_leaving_title">Go tlogela le go phumola</string>
     <string name="help_leaving_body">Mang le mang a ka tlogela lenaneo leo le abelanwago ka lelokelelo la lona la %1$s, gomme mong a ka ntšha batho ka leswao la batho. Ke mong fela yo a ka phumolago lenaneo, gomme go le phumola go le tloša go bohle. Mang le mang yo a tlogelago goba a ntšhwago o hloka taletšo ye mpsha go boa.</string>
+    <string name="help_archive_title">Go boloka lenaneo</string>
+    <string name="help_archive_body">Lenaneo leo o tlago go le hloka gape — la go paka leeto la ngwaga wo o tlago, mohlala — le ka bolokwa go e na le go phumolwa. Mong o le boloka ka lelokelelo la lona la %1$s, gomme le ya karolong ya Tše di bolokilwego ka fase ga mananeo, go bohle bao ba lego go lona. Le bušetše ka lelokelelo le lona; ge go sa na le se se swailwego, o ka tloša maswao ka moka gore lenaneo le loke gape.</string>
     <string name="help_offline_title">Ntle le kgokagano</string>
     <string name="help_offline_body">Die Lys e šoma ntle le kgokagano. Diphetogo tša gago di bolokwa sedirišweng sa gago gomme di romelwa gang ge o boetše inthaneteng.</string>
     <string name="help_account_title">Akhaonto ya gago</string>

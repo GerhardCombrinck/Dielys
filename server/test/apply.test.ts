@@ -223,6 +223,7 @@ describe("applyListPatch", () => {
     id: "list-1",
     title: "Groceries",
     backgroundPhotoUrl: null,
+    archived: false,
     deletedAt: null,
     updatedAt: T1,
   };
@@ -262,6 +263,32 @@ describe("applyListPatch", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.entity.deletedAt).toBe(T1);
+  });
+
+  it("archives and restores, last write winning like any other field (ADR 0014)", () => {
+    const archived = applyListPatch(
+      list,
+      {},
+      { archived: true },
+      { entityId: "list-1" },
+      { serverTimestamp: T1, deviceId: "d1" },
+    );
+    expect(archived.ok).toBe(true);
+    if (!archived.ok) return;
+    expect(archived.entity.archived).toBe(true);
+    expect(archived.wrote).toEqual(["archived"]);
+
+    // Unlike a tombstone, `false` takes: archiving is meant to be undone.
+    const restored = applyListPatch(
+      archived.entity,
+      metaFor({ archived: [T1, "d1"] }),
+      { archived: false },
+      { entityId: "list-1" },
+      { serverTimestamp: T2, deviceId: "d1" },
+    );
+    expect(restored.ok).toBe(true);
+    if (!restored.ok) return;
+    expect(restored.entity.archived).toBe(false);
   });
 
   it("clears a background photo when asked", () => {

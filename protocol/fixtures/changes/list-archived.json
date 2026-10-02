@@ -1,17 +1,17 @@
 {
-  "seq": 1,
+  "seq": 7,
   "listId": "018f2f6c-6a3e-7c3a-8f1e-000000000002",
   "entityType": "list",
-  "idempotencyKey": "018f2f6c-6a3e-7c3a-8f1e-0000000000b1",
+  "idempotencyKey": "018f2f6c-6a3e-7c3a-8f1e-0000000000b2",
   "deviceId": "018f2f6c-6a3e-7c3a-8f1e-0000000000d1",
-  "serverTimestamp": "2026-09-08T08:55:00.000Z",
+  "serverTimestamp": "2026-10-02T08:00:00.000Z",
   "authorUserId": "018f2f6c-6a3e-7c3a-8f1e-0000000000e1",
   "entity": {
     "id": "018f2f6c-6a3e-7c3a-8f1e-000000000002",
     "title": "Groceries",
     "backgroundPhotoUrl": null,
-    "archived": false,
+    "archived": true,
     "deletedAt": null,
-    "updatedAt": "2026-09-08T08:55:00.000Z"
+    "updatedAt": "2026-10-02T08:00:00.000Z"
   }
 }

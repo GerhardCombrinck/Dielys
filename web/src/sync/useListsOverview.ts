@@ -13,13 +13,18 @@ import type { Membership } from "@dielys/protocol";
 import { useCallback, useEffect, useState } from "react";
 import { useDataStore, useReplicaVersion } from "../data/store.js";
 import { ensureAccents, getAccent, setAccent as storeAccent } from "../domain/accentStore.js";
-import { activeTasks, sortLists } from "../domain/taskOrder.js";
+import { activeTasks, doneTasks, sortLists } from "../domain/taskOrder.js";
 
 export interface ListRow {
   membership: Membership;
   title: string | null; // null until the changelog has answered at least once
   itemCount: number; // open (not done, not deleted) tasks only — matches Daos.kt's count query
   accent: number;
+  /** Put away for everybody on it (ADR 0014). A row stored before the field
+   * existed has none, which is not archived. */
+  archived: boolean;
+  /** Ticked items, which restoring an archived list offers to untick. */
+  doneCount: number;
 }
 
 export interface ListsOverview {
@@ -28,6 +33,8 @@ export interface ListsOverview {
   refresh(): void;
   createList(title: string): Promise<string>;
   renameList(listId: string, title: string): Promise<void>;
+  archiveList(listId: string): void;
+  restoreList(listId: string, untick: boolean): void;
   deleteList(listId: string): Promise<void>;
   moveList(listId: string, afterId: string | null, beforeId: string | null): Promise<void>;
   setAccent(listId: string, accent: number): void;
@@ -61,6 +68,8 @@ export function useListsOverview(): ListsOverview {
           title: local.list !== null && local.list.deletedAt === null ? local.list.title : null,
           itemCount: activeTasks(replica.tasksIn(local.id)).length,
           accent: getAccent(local.id) ?? 0,
+          archived: local.list?.archived === true,
+          doneCount: doneTasks(replica.tasksIn(local.id)).length,
         }));
 
   const refresh = useCallback(() => engine.request("sync"), [engine]);
@@ -79,6 +88,8 @@ export function useListsOverview(): ListsOverview {
       return id;
     },
     renameList: async (listId, title) => repo.renameList(listId, title),
+    archiveList: (listId) => repo.archiveList(listId),
+    restoreList: (listId, untick) => repo.restoreList(listId, untick),
     deleteList: async (listId) => repo.deleteList(listId),
     moveList: async (listId, afterId, beforeId) => repo.moveList(listId, afterId, beforeId),
     setAccent,

@@ -1524,7 +1524,10 @@ describe("only the owner deletes a list (ADR 0006)", () => {
   async function titleAsSeenBy(listId: string, token: string) {
     const response = await get(`/lists/${listId}/changes?since=0`, token);
     const body = (await response.json()) as {
-      changes: Array<{ entityType: string; entity: { title?: string; deletedAt?: string | null } }>;
+      changes: Array<{
+        entityType: string;
+        entity: { title?: string; archived?: boolean; deletedAt?: string | null };
+      }>;
     };
     return body.changes.filter((c) => c.entityType === "list").at(-1)?.entity;
   }
@@ -1578,6 +1581,36 @@ describe("only the owner deletes a list (ADR 0006)", () => {
 
     const seen = await titleAsSeenBy(listId, member.accessToken);
     expect(seen?.deletedAt).toBe(deleting.deletedAt);
+  });
+
+  it("lets only the owner archive and restore it, for everyone (ADR 0014)", async () => {
+    const { owner, member, listId } = await sharedList();
+
+    const refused = await post(
+      `/lists/${listId}/mutate`,
+      listPatch(listId, { archived: true }),
+      member.accessToken,
+    );
+    expect(refused.status).toBe(403);
+
+    // Sent from before anybody archived it, the list says so explicitly.
+    expect((await titleAsSeenBy(listId, member.accessToken))?.archived).toBe(false);
+
+    const archived = await post(
+      `/lists/${listId}/mutate`,
+      listPatch(listId, { archived: true }),
+      owner.accessToken,
+    );
+    expect(archived.status).toBe(200);
+    expect((await titleAsSeenBy(listId, member.accessToken))?.archived).toBe(true);
+
+    const restored = await post(
+      `/lists/${listId}/mutate`,
+      listPatch(listId, { archived: false }),
+      owner.accessToken,
+    );
+    expect(restored.status).toBe(200);
+    expect((await titleAsSeenBy(listId, member.accessToken))?.archived).toBe(false);
   });
 });
 

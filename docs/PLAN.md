@@ -116,6 +116,10 @@ Where Dielys is and what comes next. Short by design — the standard is in
       edits from another device stay quiet, and the notification names who did it. Wakes go
       `high` only to devices that will notify. `web/` sets the choice but does not show
       notifications; Web Push is its own later project.
+- [x] **Archiving a list** (ADR 0014) — a list made once and used again (next year's trip) is
+      put away instead of deleted. Owner-only, for everybody on it, like delete: `TaskList.archived`
+      goes down the changelog, and archived lists fold into an Archived section under the rest.
+      Restoring asks whether to untick everything, sent as ordinary `done: false` patches.
 
 ## Open questions
 

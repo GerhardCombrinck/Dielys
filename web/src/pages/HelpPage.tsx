@@ -16,6 +16,7 @@ const SECTIONS: { id: string; title: MessageKey; body: MessageKey }[] = [
   { id: "sharing", title: "help.sharingTitle", body: "help.sharingBody" },
   { id: "together", title: "help.togetherTitle", body: "help.togetherBody" },
   { id: "leaving", title: "help.leavingTitle", body: "help.leavingBody" },
+  { id: "archiving", title: "help.archiveTitle", body: "help.archiveBody" },
   { id: "offline", title: "help.offlineTitle", body: "help.offlineBody" },
   { id: "account", title: "help.accountTitle", body: "help.accountBody" },
 ];

@@ -45,7 +45,7 @@ abstract class DielysDatabase : RoomDatabase() {
     abstract fun listActivity(): ListActivityDao
 
     companion object {
-        const val VERSION = 5
+        const val VERSION = 6
         const val NAME = "dielys.db"
 
         /**
@@ -124,7 +124,27 @@ abstract class DielysDatabase : RoomDatabase() {
                 }
             }
 
+        /**
+         * 5 → 6: archived lists (ADR 0014). Nothing was archived before the
+         * field existed, so every existing row starts out not archived; the next
+         * change for a list that has been archived since brings the real value.
+         */
+        private val MIGRATION_5_6 =
+            object : Migration(5, 6) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "ALTER TABLE lists ADD COLUMN archived INTEGER NOT NULL DEFAULT 0",
+                    )
+                }
+            }
+
         val MIGRATIONS =
-            arrayOf<Migration>(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            arrayOf<Migration>(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6,
+            )
     }
 }

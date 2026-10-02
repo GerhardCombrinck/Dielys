@@ -94,6 +94,7 @@ export function applyListPatch(
       id: ids.entityId,
       title: patch.title,
       backgroundPhotoUrl: patch.backgroundPhotoUrl ?? null,
+      archived: patch.archived ?? false,
       deletedAt: patch.deletedAt ?? null,
       updatedAt: meta.serverTimestamp,
     };
@@ -103,7 +104,7 @@ export function applyListPatch(
   const next: TaskList = { ...current };
   const wrote: string[] = [];
 
-  function take<K extends "title" | "backgroundPhotoUrl" | "deletedAt">(
+  function take<K extends "title" | "backgroundPhotoUrl" | "archived" | "deletedAt">(
     field: K,
     incoming: TaskList[K] | undefined,
   ): void {
@@ -115,6 +116,8 @@ export function applyListPatch(
 
   take("title", patch.title);
   take("backgroundPhotoUrl", patch.backgroundPhotoUrl);
+  // Not sticky: archiving is meant to be undone (ADR 0014).
+  take("archived", patch.archived);
 
   // Sticky tombstone — see applyTaskPatch.
   if (!(patch.deletedAt === null && current.deletedAt !== null)) {

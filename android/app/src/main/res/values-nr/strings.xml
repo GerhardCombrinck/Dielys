@@ -95,6 +95,15 @@
     <string name="confirm_delete_list_title">Susa %1$s?</string>
     <string name="confirm_delete_list_body">Koke okuphezu kwawo kuyahamba nawo, begodu angeke ubuyiselwe.</string>
     <string name="confirm_delete_shared_body">Uhlanganyelwe. Ukuwususa kuwususa kiwo woke amafunu, ingasi leli kwaphela, begodu angeke ubuyiselwe.</string>
+    <string name="action_archive">Bulunga</string>
+    <string name="action_restore">Buyisa</string>
+    <string name="archived_count">OKUBULUNGIWEKO (%1$d)</string>
+    <string name="cd_expand_archived">Vula okubulungiweko</string>
+    <string name="cd_collapse_archived">Goqa okubulungiweko</string>
+    <string name="restore_list_title">Buyisa %1$s?</string>
+    <string name="restore_list_body">Lizokubuyela kiwo woke umuntu okulo. Susa amatshwayo woke bona lilungele ukusetjenziswa godu?</string>
+    <string name="action_untick_all">Susa amatshwayo woke</string>
+    <string name="action_keep_ticks">Bulunga amatshwayo</string>
 
     <string name="invited_title">Umenyelwe erhelweni</string>
     <string name="invited_body">Uyajoyina? Loyo owabelane ngalo uzokubona lokho okungezako.</string>
@@ -147,6 +156,8 @@
     <string name="help_together_body">Woke umuntu osererhelweni elabelwanako angangezelela, atshwaye, ahlele, afake inkwenkwezi begodu ahlele kabutjha izinto, begodu amatjhuguluko avela kiwo woke umuntu emizuzwaneni embalwa. Isithombe sabantu eceleni kwerhelo sitjengisa bona labelwana nabani.</string>
     <string name="help_leaving_title">Ukutjhiya nokususa</string>
     <string name="help_leaving_body">Nanyana ngubani angatjhiya irhelo elabelwanako ngemenyu yalo ethi %1$s, begodu umnikazi angasusa abantu ngesithombe sabantu. Ngumnikazi kwaphela ongasusa irhelo, begodu ukulisusa kulisusa kiwo woke umuntu. Nanyana ngubani otjhiyako namkha osuswako utlhoga isimemo esitjha bona abuye.</string>
+    <string name="help_archive_title">Ukubulunga irhelo</string>
+    <string name="help_archive_body">Irhelo ozolitlhoga godu — njengelokupakisha ikhambo lomnyaka ozako — lingabulungwa kunokobana lisuswe. Umnikazi ulibulunga ngemenyu yalo ethi %1$s, begodu liya esigabeni Okubulungiweko ngaphasi kwamarhelo, kiwo woke umuntu okulo. Libuyise ngemenyu efanako; nangabe kusese nento etjhwayiweko, ungasusa amatshwayo woke bona irhelo lilungele godu.</string>
     <string name="help_offline_title">Ngaphandle kokuhlanganiswa</string>
     <string name="help_offline_body">I-Die Lys isebenza ngaphandle kokuhlanganiswa. Amatjhuguluko wakho agcinwa kudivayisi yakho begodu athunyelwa msinyana nawubuyela ku-inthanethi.</string>
     <string name="help_account_title">I-akhawunti yakho</string>

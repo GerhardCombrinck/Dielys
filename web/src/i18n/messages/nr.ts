@@ -14,6 +14,8 @@ export const nr: Messages = {
   "common.cancel": "Khansela",
   "common.close": "Vala",
   "common.delete": "Susa",
+  "common.archive": "Bulunga",
+  "common.restore": "Buyisa",
   "common.rename": "Tjhugulula ibizo",
   "common.share": "Yabelana",
   "common.edit": "Hlela",
@@ -43,6 +45,12 @@ export const nr: Messages = {
   "home.leaveListTitle": 'Tjhiya "{title}"?',
   "home.deleteListBody": "Lokhu kuyalisusa kibo boke abakilo. Lokhu angeke kutjhugululwe.",
   "home.untitledFallback": "leli irhelo",
+  "home.archivedCount": "OKUBULUNGIWEKO ({n})",
+  "home.restoreListTitle": 'Buyisa "{title}"?',
+  "home.restoreListBody":
+    "Lizokubuyela kiwo woke umuntu okulo. Susa amatshwayo woke bona lilungele ukusetjenziswa godu?",
+  "home.untickAll": "Susa amatshwayo woke",
+  "home.keepTicks": "Bulunga amatshwayo",
 
   "list.backToLists": "Buyela emarhelweni",
   "list.untitled": "Irhelo elinganabizo",
@@ -169,6 +177,9 @@ export const nr: Messages = {
   "help.leavingTitle": "Ukutjhiya nokususa",
   "help.leavingBody":
     "Nanyana ngubani angatjhiya irhelo elabelwanako ngemenyu yalo ethi {menu}, begodu umnikazi angasusa abantu ngesithombe sabantu. Ngumnikazi kwaphela ongasusa irhelo, begodu ukulisusa kulisusa kiwo woke umuntu. Nanyana ngubani otjhiyako namkha osuswako utlhoga isimemo esitjha bona abuye.",
+  "help.archiveTitle": "Ukubulunga irhelo",
+  "help.archiveBody":
+    "Irhelo ozolitlhoga godu — njengelokupakisha ikhambo lomnyaka ozako — lingabulungwa kunokobana lisuswe. Umnikazi ulibulunga ngemenyu yalo ethi {menu}, begodu liya esigabeni Okubulungiweko ngaphasi kwamarhelo, kiwo woke umuntu okulo. Libuyise ngemenyu efanako; nangabe kusese nento etjhwayiweko, ungasusa amatshwayo woke bona irhelo lilungele godu.",
   "help.offlineTitle": "Ngaphandle kokuhlanganiswa",
   "help.offlineBody":
     "I-Die Lys isebenza ngaphandle kokuhlanganiswa. Amatjhuguluko wakho agcinwa kudivayisi yakho begodu athunyelwa msinyana nawubuyela ku-inthanethi.",

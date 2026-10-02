@@ -68,7 +68,7 @@ describe("ListRoom — migrations (G1)", () => {
     const { stub, listId } = room();
     await changesSince(stub, listId, 0);
     await runInDurableObject(stub, (_instance, state) => {
-      expect(currentVersion(state.storage.sql)).toBe(3);
+      expect(currentVersion(state.storage.sql)).toBe(4);
     });
   });
 
@@ -78,7 +78,7 @@ describe("ListRoom — migrations (G1)", () => {
     await changesSince(stub, listId, 0);
     await runInDurableObject(stub, (_instance, state) => {
       const rows = [...state.storage.sql.exec("SELECT version FROM _migrations ORDER BY version")];
-      expect(rows.map((r) => Number(r.version))).toEqual([1, 2, 3]);
+      expect(rows.map((r) => Number(r.version))).toEqual([1, 2, 3, 4]);
     });
   });
 });
@@ -332,6 +332,33 @@ describe("ListRoom — catch-up (F5.6)", () => {
     const second = await changesSince(stub, listId, CATCH_UP_PAGE_SIZE);
     expect(second.changes).toHaveLength(1);
     expect(second.truncated).toBe(false);
+  });
+
+  it("sends archived: false for a list change stored before the field existed", async () => {
+    const { stub, listId } = room();
+    await runInDurableObject(stub, (_instance, state) => {
+      state.storage.sql.exec(
+        `INSERT INTO changes (seq, idempotency_key, device_id, server_timestamp, entity_type, entity_json)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        1,
+        "key-old-list",
+        "device-a",
+        "2026-09-08T10:00:00.000Z",
+        "list",
+        JSON.stringify({
+          id: listId,
+          title: "Groceries",
+          backgroundPhotoUrl: null,
+          deletedAt: null,
+          updatedAt: "2026-09-08T10:00:00.000Z",
+        }),
+      );
+    });
+
+    const page = await changesSince(stub, listId, 0);
+    const change = page.changes[0];
+    expect(change?.entityType).toBe("list");
+    expect(change?.entityType === "list" && change.entity.archived).toBe(false);
   });
 
   it("rejects a malformed since rather than treating it as 0", async () => {

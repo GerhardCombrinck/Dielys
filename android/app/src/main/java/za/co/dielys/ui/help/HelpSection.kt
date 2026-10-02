@@ -13,6 +13,7 @@ enum class HelpSection(
     Sharing(R.string.help_sharing_title, R.string.help_sharing_body),
     Together(R.string.help_together_title, R.string.help_together_body),
     Leaving(R.string.help_leaving_title, R.string.help_leaving_body),
+    Archiving(R.string.help_archive_title, R.string.help_archive_body),
     Offline(R.string.help_offline_title, R.string.help_offline_body),
     Account(R.string.help_account_title, R.string.help_account_body),
 }

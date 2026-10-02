@@ -113,6 +113,15 @@
     <string name="confirm_delete_list_title">Delete %1$s?</string>
     <string name="confirm_delete_list_body">Everything on it goes with it, and there is no getting it back.</string>
     <string name="confirm_delete_shared_body">It is shared. Deleting it takes it off everybody\'s phone, not just this one, and there is no getting it back.</string>
+    <string name="action_archive">Archive</string>
+    <string name="action_restore">Restore</string>
+    <string name="archived_count">ARCHIVED (%1$d)</string>
+    <string name="cd_expand_archived">Show archived lists</string>
+    <string name="cd_collapse_archived">Hide archived lists</string>
+    <string name="restore_list_title">Restore %1$s?</string>
+    <string name="restore_list_body">It comes back for everyone on it. Untick everything that was ticked, so it is ready to use again?</string>
+    <string name="action_untick_all">Untick all</string>
+    <string name="action_keep_ticks">Keep ticks</string>
 
     <string name="invited_title">You were invited to a list</string>
     <string name="invited_body">Join it? Whoever shared it will see what you add.</string>
@@ -183,6 +192,8 @@
     <string name="help_together_body">Everyone on a shared list can add, tick off, edit, star and reorder items, and changes show up for everyone within seconds. The people icon beside a list shows who it is shared with.</string>
     <string name="help_leaving_title">Leaving and deleting</string>
     <string name="help_leaving_body">Anyone can leave a shared list from its %1$s menu, and the owner can remove people from the people icon. Only the owner can delete a list, and deleting it removes it for everyone. Anyone who leaves or is removed needs a new invite to get back in.</string>
+    <string name="help_archive_title">Archiving a list</string>
+    <string name="help_archive_body">A list you will need again — packing for next year\'s trip, say — can be archived instead of deleted. The owner archives it from its %1$s menu, and it moves to the Archived section at the bottom of the lists, for everyone on it. Restore it from the same menu; if anything on it is still ticked, you can untick it all so the list is ready to use again.</string>
     <string name="help_offline_title">Offline</string>
     <string name="help_offline_body">Die Lys works without a connection. Your changes are kept on your device and sent as soon as you are back online.</string>
     <string name="help_account_title">Your account</string>

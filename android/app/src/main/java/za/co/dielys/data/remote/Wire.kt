@@ -71,6 +71,8 @@ data class TaskList(
     val id: String,
     val title: String,
     val backgroundPhotoUrl: String? = null,
+    /** Put away for everybody on it (ADR 0014). Absent from an older server, which never archived anything. */
+    val archived: Boolean = false,
     val deletedAt: String? = null,
     val updatedAt: String,
 )
@@ -137,6 +139,8 @@ data class TaskPatch(
 data class ListPatch(
     val title: String? = null,
     val backgroundPhotoUrl: String? = null,
+    /** `false` restores — a value, so it survives [DielysJson.outbound] dropping nulls (ADR 0014). */
+    val archived: Boolean? = null,
     val deletedAt: String? = null,
 )
 

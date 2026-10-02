@@ -39,6 +39,17 @@ describe("who may change what on a list", () => {
     expect(mayApply("member", deleteTask)).toBe(true);
   });
 
+  it("only the owner archives the list, or restores it (ADR 0014)", () => {
+    const archive: Mutation = { ...base, entityType: "list", patch: { archived: true } };
+    const restore: Mutation = { ...base, entityType: "list", patch: { archived: false } };
+    expect(mayApply("owner", archive)).toBe(true);
+    expect(mayApply("owner", restore)).toBe(true);
+    expect(mayApply("member", archive)).toBe(false);
+    // Not sticky like a tombstone, so `false` is a real change and refused too.
+    expect(mayApply("member", restore)).toBe(false);
+    expect(mayApply(null, archive)).toBe(false);
+  });
+
   it("does not refuse a patch that clears deletedAt, which changes nothing (F5.3)", () => {
     const cleared: Mutation = { ...base, entityType: "list", patch: { deletedAt: null } };
     expect(mayApply("member", cleared)).toBe(true);

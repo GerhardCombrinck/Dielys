@@ -12,6 +12,8 @@ export const zu: Messages = {
   "common.cancel": "Khansela",
   "common.close": "Vala",
   "common.delete": "Susa",
+  "common.archive": "Gcina",
+  "common.restore": "Buyisela",
   "common.rename": "Shintsha igama",
   "common.share": "Yabelana",
   "common.edit": "Hlela",
@@ -41,6 +43,12 @@ export const zu: Messages = {
   "home.leaveListTitle": 'Shiya "{title}"?',
   "home.deleteListBody": "Lokhu kuyisusa kubo bonke abakuyo. Lokhu ngeke kuguqulwe.",
   "home.untitledFallback": "lolu hlu",
+  "home.archivedCount": "OKUGCINIWE ({n})",
+  "home.restoreListTitle": 'Buyisela "{title}"?',
+  "home.restoreListBody":
+    "Luzobuyela kuwo wonke umuntu okulo. Susa wonke amamaki ukuze lulungele ukusetshenziswa futhi?",
+  "home.untickAll": "Susa wonke amamaki",
+  "home.keepTicks": "Gcina amamaki",
 
   "list.backToLists": "Buyela ezinhlwini",
   "list.untitled": "Uhlu olungenasihloko",
@@ -165,6 +173,9 @@ export const zu: Messages = {
   "help.leavingTitle": "Ukushiya nokususa",
   "help.leavingBody":
     "Noma ubani angashiya uhlu olwabelwene ngemenyu yalo ethi {menu}, futhi umnikazi angasusa abantu ngesithonjana sabantu. Umnikazi kuphela ongasusa uhlu, futhi ukulususa kulususa kuwo wonke umuntu. Noma ubani oshiyayo noma osuswayo udinga isimemo esisha ukuze abuye.",
+  "help.archiveTitle": "Ukugcina uhlu",
+  "help.archiveBody":
+    "Uhlu ozoludinga futhi — olokupakisha uhambo lonyaka ozayo, isibonelo — lungagcinwa esikhundleni sokususwa. Umnikazi ulugcina ngemenyu yalo ethi {menu}, futhi luya esigabeni Okugciniwe phansi kohlu, kuwo wonke umuntu okulo. Lubuyisele ngemenyu efanayo; uma kusekhona okumakiwe, ungasusa wonke amamaki ukuze uhlu lulungele futhi.",
   "help.offlineTitle": "Ngaphandle kokuxhumeka",
   "help.offlineBody":
     "I-Die Lys isebenza ngaphandle kokuxhumeka. Izinguquko zakho zigcinwa kudivayisi yakho futhi zithunyelwa uma usuxhumekile futhi.",

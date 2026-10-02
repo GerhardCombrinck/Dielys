@@ -191,6 +191,10 @@ export function validateListPatch(input: unknown): Validated<ListPatch> {
     if (url !== null && !isBoundedString(url, MAX_URL_LENGTH)) return fail("backgroundPhotoUrl");
     patch.backgroundPhotoUrl = url;
   }
+  if ("archived" in input) {
+    if (typeof input.archived !== "boolean") return fail("archived");
+    patch.archived = input.archived;
+  }
   if ("deletedAt" in input) {
     if (input.deletedAt !== null && !isIsoTimestamp(input.deletedAt)) {
       return fail("deletedAt");

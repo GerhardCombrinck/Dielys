@@ -94,6 +94,15 @@
     <string name="confirm_delete_list_title">Susa %1$s?</string>
     <string name="confirm_delete_list_body">Hinkwaswo leswi nga eka rona swa famba na rona, naswona a swi vuyi.</string>
     <string name="confirm_delete_shared_body">Ri avelaniwa. Ku ri susa ku ri susa eka switirhisiwa hinkwaswo, ku nga ri leswi ntsena, naswona a swi vuyi.</string>
+    <string name="action_archive">Hlayisa</string>
+    <string name="action_restore">Vuyisa</string>
+    <string name="archived_count">LESWI HLAYISIWEKE (%1$d)</string>
+    <string name="cd_expand_archived">Pfula leswi hlayisiweke</string>
+    <string name="cd_collapse_archived">Pfala leswi hlayisiweke</string>
+    <string name="restore_list_title">Vuyisa %1$s?</string>
+    <string name="restore_list_body">Wu ta vuyela eka hinkwavo lava nga eka wona. Susa swikombiso hinkwaswo leswaku wu lunghekela ku tirhisiwa nakambe?</string>
+    <string name="action_untick_all">Susa swikombiso hinkwaswo</string>
+    <string name="action_keep_ticks">Hlayisa swikombiso</string>
 
     <string name="invited_title">U rhambiwile eka nxaxamelo</string>
     <string name="invited_body">Wa joyina? Loyi a avelaneke ha wona u ta vona leswi u swi engetelaka.</string>
@@ -146,6 +155,8 @@
     <string name="help_together_body">Un\'wana na un\'wana loyi a nga eka nxaxamelo lowu avelaniwaka a nga engetela, funga, lulamisa, nyika nyeleti no hlela swilo nakambe, naswona ku cinca ku humelela eka hinkwavo hi masekoni. Xikombiso xa vanhu etlhelo ka nxaxamelo xi komba leswaku wu avelaniwa na mani.</string>
     <string name="help_leaving_title">Ku siya no sula</string>
     <string name="help_leaving_body">Un\'wana na un\'wana a nga siya nxaxamelo lowu avelaniwaka hi menyu ya wona ya %1$s, naswona n\'wini a nga susa vanhu hi xikombiso xa vanhu. I n\'wini ntsena loyi a nga sulaka nxaxamelo, naswona ku wu sula swi wu susa eka hinkwavo. Un\'wana na un\'wana loyi a siyaka kumbe a susiwaka u lava xirhambo lexintshwa ku vuya.</string>
+    <string name="help_archive_title">Ku hlayisa nxaxamelo</string>
+    <string name="help_archive_body">Nxaxamelo lowu u nga ta wu lava nakambe — wa ku paka riendzo ra lembe leri taka, xikombiso — wu nga hlayisiwa ematshan\'weni yo suriwa. N\'wini u wu hlayisa hi menyu ya wona ya %1$s, naswona wu ya eka xiyenge xa Leswi hlayisiweke ehansi ka minxaxamelo, eka hinkwavo lava nga eka wona. Wu vuyise hi menyu leyi fanaka; loko ku ha ri na leswi fungiweke, u nga susa swikombiso hinkwaswo leswaku nxaxamelo wu lunghekela nakambe.</string>
     <string name="help_offline_title">Handle ka vuhlanganisi</string>
     <string name="help_offline_body">Die Lys yi tirha handle ka vuhlanganisi. Ku cinca ka wena ku hlayisiwa eka xitirhisiwa xa wena naswona ku rhumeriwa hi ku hatlisa loko u tlhelela eka inthanete.</string>
     <string name="help_account_title">Akhawunti ya wena</string>

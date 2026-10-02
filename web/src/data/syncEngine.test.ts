@@ -136,6 +136,7 @@ class FakeServer implements SyncApi {
         id: mutation.entityId,
         title: "",
         backgroundPhotoUrl: null,
+        archived: false,
         deletedAt: null,
         ...(existing as TaskList | undefined),
         ...mutation.patch,
@@ -183,6 +184,53 @@ describe("local-first writes", () => {
     expect(log.map((c) => c.entityType)).toEqual(["list", "task"]);
     expect(replica.cursor(listId)).toBe(2);
     expect(replica.pendingCount()).toBe(0);
+  });
+});
+
+describe("archiving a list (ADR 0014)", () => {
+  it("archives and restores through the changelog, as a value rather than a null", async () => {
+    const listId = await createSyncedList("Kampeer");
+
+    repo.archiveList(listId);
+    expect(replica.getList(listId)?.list?.archived).toBe(true);
+    expect(await engine.drain()).toBe("success");
+
+    repo.restoreList(listId, false);
+    expect(await engine.drain()).toBe("success");
+    const last = server.changelogs.get(listId)?.at(-1);
+    expect(last?.entityType === "list" && last.entity.archived).toBe(false);
+    expect(replica.getList(listId)?.list?.archived).toBe(false);
+  });
+
+  it("restoring with untick clears every tick in the same commit", async () => {
+    const listId = await createSyncedList("Kampeer");
+    const tent = repo.addTask(listId, "Tent", false);
+    const gas = repo.addTask(listId, "Gas", false);
+    repo.setDone(tent, true);
+    repo.archiveList(listId);
+    expect(await engine.drain()).toBe("success");
+
+    repo.restoreList(listId, true);
+    // The restore and the one untick, queued together.
+    expect(replica.pendingCount()).toBe(2);
+    expect(replica.getTask(tent)?.done).toBe(false);
+    expect(replica.getTask(gas)?.done).toBe(false);
+
+    expect(await engine.drain()).toBe("success");
+    const log = server.changelogs.get(listId) ?? [];
+    const tentNow = log.filter((c) => c.entityType === "task" && c.entity.id === tent).at(-1);
+    expect(tentNow?.entityType === "task" && tentNow.entity.done).toBe(false);
+  });
+
+  it("restoring without untick leaves the ticks alone", () => {
+    const listId = repo.createList("Kampeer");
+    const tent = repo.addTask(listId, "Tent", false);
+    repo.setDone(tent, true);
+    repo.archiveList(listId);
+
+    repo.restoreList(listId, false);
+    expect(replica.getTask(tent)?.done).toBe(true);
+    expect(replica.getList(listId)?.list?.archived).toBe(false);
   });
 });
 

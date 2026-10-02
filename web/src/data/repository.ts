@@ -45,6 +45,7 @@ export class Repository {
       id,
       title: trimmed,
       backgroundPhotoUrl: null,
+      archived: false,
       deletedAt: null,
       updatedAt: this.iso(),
     };
@@ -75,6 +76,32 @@ export class Repository {
     const trimmed = title.trim();
     if (trimmed === "") return;
     this.commitList(listId, { title: trimmed });
+  }
+
+  /** Out of the way for everybody on it, owner-only (ADR 0014). */
+  archiveList(listId: string): void {
+    this.commitList(listId, { archived: true });
+  }
+
+  /**
+   * Back among the lists — and, with `untick`, with everything ticked off last
+   * time ticked back on, ready to use again (ADR 0014). One commit for the
+   * restore and every untick, each the same patch a tap would send, the same
+   * as Android's `setArchived`.
+   */
+  restoreList(listId: string, untick: boolean): void {
+    const known = this.replica.getList(listId);
+    if (known === null || known.list === null) return;
+    const ticked = untick ? doneTasks(this.replica.tasksIn(listId)) : [];
+    const unticked = ticked.map((task) => ({ ...task, done: false }));
+    this.replica.commit(
+      { lists: [{ ...known, list: { ...known.list, archived: false } }], tasks: unticked },
+      [
+        this.listRow(listId, { archived: false }),
+        ...unticked.map((task) => this.taskRow(task, { done: false })),
+      ],
+    );
+    this.onCommit();
   }
 
   deleteList(listId: string): void {
@@ -210,6 +237,11 @@ export class Repository {
   }
 
   private commitTask(task: Task, patch: TaskPatch): void {
+    this.replica.commit({ tasks: [task] }, [this.taskRow(task, patch)]);
+    this.onCommit();
+  }
+
+  private taskRow(task: Task, patch: TaskPatch): NewOutboxRow {
     const mutation: TaskMutation = {
       type: "mutate",
       protocolVersion: PROTOCOL_VERSION,
@@ -220,16 +252,13 @@ export class Repository {
       entityType: "task",
       patch,
     };
-    this.replica.commit({ tasks: [task] }, [
-      {
-        key: mutation.idempotencyKey,
-        kind: "task",
-        listId: task.listId,
-        entityId: task.id,
-        body: mutation,
-      },
-    ]);
-    this.onCommit();
+    return {
+      key: mutation.idempotencyKey,
+      kind: "task",
+      listId: task.listId,
+      entityId: task.id,
+      body: mutation,
+    };
   }
 
   private commitList(listId: string, patch: ListPatch): void {

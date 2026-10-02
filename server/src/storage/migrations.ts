@@ -13,6 +13,7 @@
 import listV1 from "../../migrations/list/0001_initial.sql";
 import listV2 from "../../migrations/list/0002_list_state.sql";
 import listV3 from "../../migrations/list/0003_change_author.sql";
+import listV4 from "../../migrations/list/0004_list_archived.sql";
 import usersV1 from "../../migrations/users/0001_initial.sql";
 import usersV2 from "../../migrations/users/0002_devices.sql";
 import usersV3 from "../../migrations/users/0003_rate_limits.sql";
@@ -38,6 +39,7 @@ export const LIST_MIGRATIONS: readonly Migration[] = [
   { version: 1, name: "0001_initial", sql: listV1 },
   { version: 2, name: "0002_list_state", sql: listV2 },
   { version: 3, name: "0003_change_author", sql: listV3 },
+  { version: 4, name: "0004_list_archived", sql: listV4 },
 ];
 
 export const USERS_MIGRATIONS: readonly Migration[] = [

@@ -60,7 +60,7 @@ export function countActiveTasks(sql: SqlStorage): number {
 export function selectList(sql: SqlStorage, id: string): TaskList | null {
   const rows = [
     ...sql.exec(
-      "SELECT id, title, background_photo_url, deleted_at, updated_at FROM lists WHERE id = ?",
+      "SELECT id, title, background_photo_url, archived, deleted_at, updated_at FROM lists WHERE id = ?",
       id,
     ),
   ];
@@ -70,6 +70,7 @@ export function selectList(sql: SqlStorage, id: string): TaskList | null {
     id: String(row.id),
     title: String(row.title),
     backgroundPhotoUrl: row.background_photo_url === null ? null : String(row.background_photo_url),
+    archived: Number(row.archived) === 1,
     deletedAt: row.deleted_at === null ? null : String(row.deleted_at),
     updatedAt: String(row.updated_at),
   };
@@ -77,16 +78,18 @@ export function selectList(sql: SqlStorage, id: string): TaskList | null {
 
 export function upsertList(sql: SqlStorage, list: TaskList): void {
   sql.exec(
-    `INSERT INTO lists (id, title, background_photo_url, deleted_at, updated_at)
-     VALUES (?, ?, ?, ?, ?)
+    `INSERT INTO lists (id, title, background_photo_url, archived, deleted_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        title = excluded.title,
        background_photo_url = excluded.background_photo_url,
+       archived = excluded.archived,
        deleted_at = excluded.deleted_at,
        updated_at = excluded.updated_at`,
     list.id,
     list.title,
     list.backgroundPhotoUrl,
+    list.archived ? 1 : 0,
     list.deletedAt,
     list.updatedAt,
   );

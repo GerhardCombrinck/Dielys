@@ -267,9 +267,16 @@ interface TaskDao {
     suspend fun upsert(task: TaskEntity)
 
     /** Feeds the count on the lists screen's row: what is still to do, so a
-     * finished list reads 0 rather than however many things it once held. */
+     * finished list reads 0 rather than however many things it once held. The
+     * ticked ones are counted beside it, so restoring an archived list asks
+     * about unticking only when there is something to untick (ADR 0014). */
     @Query(
-        "SELECT list_id AS listId, COUNT(*) AS count FROM tasks WHERE deleted_at IS NULL AND done = 0 GROUP BY list_id",
+        """
+        SELECT list_id AS listId,
+               SUM(CASE WHEN done = 0 THEN 1 ELSE 0 END) AS count,
+               SUM(CASE WHEN done = 1 THEN 1 ELSE 0 END) AS doneCount
+        FROM tasks WHERE deleted_at IS NULL GROUP BY list_id
+        """,
     )
     fun observeCountsByList(): Flow<List<ListItemCount>>
 }
@@ -277,6 +284,7 @@ interface TaskDao {
 data class ListItemCount(
     val listId: String,
     val count: Int,
+    val doneCount: Int = 0,
 )
 
 @Dao
