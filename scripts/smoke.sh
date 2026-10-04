@@ -3,7 +3,8 @@
 #
 # Creates two disposable accounts, then drives the whole contract — registration,
 # login, list claim, mutation, idempotent retry, catch-up, the invite route up to
-# its send, push-token registration, refresh rotation and replay detection —
+# its send, push-token registration, refresh rotation, a lost refresh answer
+# and replay detection —
 # asserting the response at each step. It ends by deleting both accounts, which erases the list
 # too, so a run leaves nothing behind in the admin page's "who signed up".
 #
@@ -220,17 +221,30 @@ check "registering a push token needs a session" 401 "$(code_of "$R")" "$(body_o
 R=$(req -X POST "$BASE/auth/refresh" -H "$JSON" \
   -d "{\"refreshToken\":\"$REFRESH_A\",\"deviceId\":\"smoke-a\"}")
 check "refresh rotates" 200 "$(code_of "$R")" "$(body_of "$R")"
-ROTATED=$(field "$(body_of "$R")" '.refreshToken')
 
-# L1: a spent token coming back means it is loose. Every session for that user
-# goes, including the one the legitimate client is holding.
+# ADR 0013: the same device asking again before it has used what it was given
+# is a phone whose answer was lost, not a thief. It is answered again, and the
+# token it never received is retired.
+R=$(req -X POST "$BASE/auth/refresh" -H "$JSON" \
+  -d "{\"refreshToken\":\"$REFRESH_A\",\"deviceId\":\"smoke-a\"}")
+check "a lost refresh answer is answered again" 200 "$(code_of "$R")" "$(body_of "$R")"
+REISSUED=$(field "$(body_of "$R")" '.refreshToken')
+
+R=$(req -X POST "$BASE/auth/refresh" -H "$JSON" \
+  -d "{\"refreshToken\":\"$REISSUED\",\"deviceId\":\"smoke-a\"}")
+check "the re-issued token rotates" 200 "$(code_of "$R")" "$(body_of "$R")"
+CURRENT=$(field "$(body_of "$R")" '.refreshToken')
+
+# L1: once what it was exchanged for has been used, a spent token coming back
+# means it is loose. Every session for that user goes, including the one the
+# legitimate client is holding.
 R=$(req -X POST "$BASE/auth/refresh" -H "$JSON" \
   -d "{\"refreshToken\":\"$REFRESH_A\",\"deviceId\":\"smoke-a\"}")
 check "replayed refresh token is refused" 401 "$(code_of "$R")" "$(body_of "$R")"
 expect "replay error code" "$(field "$(body_of "$R")" '.code')" "token-reused"
 
 R=$(req -X POST "$BASE/auth/refresh" -H "$JSON" \
-  -d "{\"refreshToken\":\"$ROTATED\",\"deviceId\":\"smoke-a\"}")
+  -d "{\"refreshToken\":\"$CURRENT\",\"deviceId\":\"smoke-a\"}")
 check "the replay revoked every session for that user" 401 "$(code_of "$R")" "$(body_of "$R")"
 
 # ADR 0007, and the clean-up. The access tokens outlive the replay above: that

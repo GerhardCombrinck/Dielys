@@ -40,10 +40,11 @@ and closest to the Linux shell CI runs, so a script that works there works in CI
 scripts/smoke.sh https://dielys-dev.dielys.workers.dev
 ```
 
-29 checks over the whole contract: registration, login, list claim, mutation, an
+31 checks over the whole contract: registration, login, list claim, mutation, an
 idempotent retry that must return the original result at the same seq without
 adding a changelog row, catch-up, the invite route up to its send, push-token
-registration, refresh rotation with replay detection, and deleting both accounts.
+registration, refresh rotation, a lost refresh answer (ADR 0013), replay detection,
+and deleting both accounts.
 Exits non-zero on the first disagreement and prints the body.
 
 No admin token any more: registration is public ([ADR 0004](../docs/adr/0004-open-registration.md)),
