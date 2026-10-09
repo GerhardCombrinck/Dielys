@@ -73,9 +73,8 @@ and ADRs 0004–0008 in `docs/adr/` first.
 7. **Settings for guests** — `ui/settings/SettingsScreen.kt`: account section reads "Not signed
    in — sign in to sync and share" with a sign-in button; *Delete account* becomes *Delete all
    data* (local wipe only, with confirm). Language and new-item placement settings stay available.
-8. **Strings** in all 11 locales (`res/values*/strings.xml`). en and af written properly; the other
-   nine are machine-assisted drafts, as the existing ones are (see the DRAFT header comments). Escape
-   apostrophes (`\'`) — an unescaped one in `values-ts` has broken aapt before.
+8. **Strings** in both locales, en and af (`res/values*/strings.xml`). Escape apostrophes (`\'`)
+   — an unescaped one has broken aapt before.
 9. **Tests** (Robolectric/unit, same fakes as today: `FakeAuthApi`, `FakeSyncApi`, `SessionStack`):
    - guest creates/edits/deletes lists and tasks; no network calls made
    - guest signs in → lists uploaded and owned; account's server lists merge in
