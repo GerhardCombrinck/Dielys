@@ -18,6 +18,8 @@ import { activeTasks, doneTasks, sortLists } from "../domain/taskOrder.js";
 export interface ListRow {
   membership: Membership;
   title: string | null; // null until the changelog has answered at least once
+  /** Its changelog has not answered yet — still on its way, not deleted. */
+  pending: boolean;
   itemCount: number; // open (not done, not deleted) tasks only — matches Daos.kt's count query
   accent: number;
   /** Put away for everybody on it (ADR 0014). A row stored before the field
@@ -66,6 +68,7 @@ export function useListsOverview(): ListsOverview {
             notify: local.notify,
           },
           title: local.list !== null && local.list.deletedAt === null ? local.list.title : null,
+          pending: local.list === null,
           itemCount: activeTasks(replica.tasksIn(local.id)).length,
           accent: getAccent(local.id) ?? 0,
           archived: local.list?.archived === true,

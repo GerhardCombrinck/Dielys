@@ -125,6 +125,22 @@ input {
   border-top-color: var(--color-on-surface);
 }
 
+/* Under the lists on a first sign-in, while the rest are still arriving. */
+.loading-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 0 4px;
+  font-size: 14px;
+  color: rgba(var(--on-surface-rgb), 0.6);
+}
+
+.loading-more .spinner-muted {
+  width: 16px;
+  height: 16px;
+}
+
 .page-spinner {
   display: flex;
   justify-content: center;
@@ -586,35 +602,6 @@ body.reordering * {
      shared min-height, which this opts back out of) — a done list can be
      long, and it's not part of the height parity this fixes. */
   min-height: 0;
-}
-
-/* Stand-in for a list whose title has not arrived yet (first sign-in). */
-.skeleton-row {
-  min-height: 48px;
-  padding: 0 16px;
-}
-
-.skeleton-bar {
-  height: 12px;
-  border-radius: 6px;
-  background: rgba(var(--on-surface-rgb), 0.12);
-  animation: dl-pulse 1.4s ease-in-out infinite;
-}
-
-.skeleton-list {
-  margin-bottom: 8px;
-}
-
-@keyframes dl-pulse {
-  50% {
-    opacity: 0.4;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skeleton-bar {
-    animation: none;
-  }
 }
 
 .drag-handle {
