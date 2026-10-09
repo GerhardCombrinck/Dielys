@@ -189,7 +189,7 @@ Make a list for the groceries, the chores, or what to pack for the weekend, and 
 • Star what matters — starred items stay at the top
 • Drag to reorder, and give each list its own colour
 • No passwords — sign in with a link or code sent to your email
-• Eleven South African languages, including Afrikaans, isiZulu, isiXhosa and Sesotho
+• In English and Afrikaans
 
 No ads. No tracking. Your lists are yours, and you can delete your account at any time.
 
@@ -223,7 +223,7 @@ Maak 'n lys vir die inkopies, die takies, of wat om vir die naweek in te pak, en
 • Sterre vir wat saak maak — items met 'n ster bly bo
 • Sleep om die volgorde te verander, en gee elke lys sy eie kleur
 • Geen wagwoorde nie — meld aan met 'n skakel of kode wat na jou e-pos gestuur word
-• Elf Suid-Afrikaanse tale, insluitend Afrikaans, isiZulu, isiXhosa en Sesotho
+• In Afrikaans en Engels
 
 Geen advertensies nie. Geen naspeuring nie. Jou lyste is joune, en jy kan jou rekening enige tyd skrap.
 

@@ -91,7 +91,7 @@ interface SyncPrefs {
 }
 
 /**
- * The app's display language (#42), as a BCP-47 tag ("af", "zu", …) — null
+ * The app's display language (#42), as a BCP-47 tag ("af", "en") — null
  * means "follow the phone's own language", same as never having chosen one.
  * Its own interface for the same reason [NewTaskPlacement] has one: the
  * platform calls behind it aren't available to a JVM unit test.

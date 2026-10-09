@@ -8,17 +8,8 @@ import { createContext, type ReactNode, useCallback, useContext, useMemo, useSta
 import { APP_LANGUAGES, type LanguageTag } from "./languages.js";
 import { af } from "./messages/af.js";
 import { en, type MessageKey, type Messages } from "./messages/en.js";
-import { nr } from "./messages/nr.js";
-import { nso } from "./messages/nso.js";
-import { ss } from "./messages/ss.js";
-import { st } from "./messages/st.js";
-import { tn } from "./messages/tn.js";
-import { ts } from "./messages/ts.js";
-import { ve } from "./messages/ve.js";
-import { xh } from "./messages/xh.js";
-import { zu } from "./messages/zu.js";
 
-const MESSAGES: Record<LanguageTag, Messages> = { af, en, nr, xh, zu, nso, st, ss, tn, ve, ts };
+const MESSAGES: Record<LanguageTag, Messages> = { af, en };
 
 const LANGUAGE_KEY = "dielys.languageTag";
 

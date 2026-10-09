@@ -398,7 +398,7 @@ private fun DeleteAccountSection(
 }
 
 /**
- * #42: one of eleven official South African languages, or "System default"
+ * #42: English or Afrikaans, or "System default"
  * (null) to just follow the phone's own language. [SettingsViewModel] reads
  * the current choice fresh rather than as a `StateFlow` because picking one
  * recreates every Activity (via `AppCompatDelegate`) — this screen is gone by
