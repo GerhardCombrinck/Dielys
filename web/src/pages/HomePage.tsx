@@ -57,6 +57,9 @@ export function HomePage() {
   }, []);
 
   const rows = overview.rows?.filter((r) => r.title !== null) ?? null;
+  // Lists the server says we are on whose title has not arrived yet: hold
+  // their place so the screen does not look like it lost some.
+  const loadingCount = (overview.rows?.length ?? 0) - (rows?.length ?? 0);
   // Archived lists sit in their own fold and are not part of the drag order.
   const active = rows?.filter((r) => !r.archived) ?? [];
   const archived = rows?.filter((r) => r.archived) ?? [];
@@ -328,6 +331,17 @@ export function HomePage() {
       {active.length > 0 && (
         <ul className="row-list">
           {shownRows.map((row) => renderRow(row, reorder.rowProps(row.membership.listId)))}
+        </ul>
+      )}
+
+      {loadingCount > 0 && (
+        <ul className="row-list skeleton-list" aria-busy="true" aria-label={t("common.loading")}>
+          {Array.from({ length: loadingCount }, (_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: identical static placeholders
+            <li key={i} className="list-row skeleton-row">
+              <span className="skeleton-bar" style={{ width: `${45 + ((i * 17) % 35)}%` }} />
+            </li>
+          ))}
         </ul>
       )}
 

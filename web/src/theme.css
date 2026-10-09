@@ -588,6 +588,35 @@ body.reordering * {
   min-height: 0;
 }
 
+/* Stand-in for a list whose title has not arrived yet (first sign-in). */
+.skeleton-row {
+  min-height: 48px;
+  padding: 0 16px;
+}
+
+.skeleton-bar {
+  height: 12px;
+  border-radius: 6px;
+  background: rgba(var(--on-surface-rgb), 0.12);
+  animation: dl-pulse 1.4s ease-in-out infinite;
+}
+
+.skeleton-list {
+  margin-bottom: 8px;
+}
+
+@keyframes dl-pulse {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-bar {
+    animation: none;
+  }
+}
+
 .drag-handle {
   cursor: grab;
   /* A finger on the handle is a drag from the first pixel, never a scroll. */

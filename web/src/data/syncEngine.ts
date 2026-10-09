@@ -51,6 +51,7 @@ export function classify(error: unknown): Failure {
 
 const INITIAL_BACKOFF_MS = 1000;
 const MAX_BACKOFF_MS = 60_000;
+const CATCH_UP_PARALLEL = 6;
 const LOCK_NAME = "dielys.sync.lock";
 
 type Work = "drain" | "sync";
@@ -141,13 +142,35 @@ export class SyncEngine {
     const heads = new Map<string, number>();
     for (const m of memberships) if (m.maxSeq !== null) heads.set(m.listId, m.maxSeq);
     const sweep = !this.sweepDone;
-    for (const list of this.replica.allLists()) {
-      if (!sweep && this.isCaughtUp(list.id, heads.get(list.id))) continue;
-      const outcome = await this.catchUp(list.id);
-      if (outcome !== "success") return outcome;
-    }
+    const due = this.replica
+      .allLists()
+      .filter((list) => sweep || !this.isCaughtUp(list.id, heads.get(list.id)))
+      .map((list) => list.id);
+    const outcome = await this.catchUpAll(due);
+    if (outcome !== "success") return outcome;
     this.sweepDone = true;
     return "success";
+  }
+
+  /**
+   * Pulls several lists a few at a time. One after another, a first sign-in
+   * with many lists paid a full round trip per list before the last one
+   * appeared. Each pull still commits its own pages, so lists show up as they
+   * land; the first failure stops handing out more and is what gets returned.
+   */
+  private async catchUpAll(listIds: string[]): Promise<SyncOutcome> {
+    let next = 0;
+    let failure: SyncOutcome = "success";
+    const worker = async (): Promise<void> => {
+      while (failure === "success" && next < listIds.length) {
+        const listId = listIds[next++];
+        if (listId === undefined) return;
+        const outcome = await this.catchUp(listId);
+        if (outcome !== "success" && failure === "success") failure = outcome;
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(CATCH_UP_PARALLEL, listIds.length) }, worker));
+    return failure;
   }
 
   private isCaughtUp(listId: string, head: number | undefined): boolean {
