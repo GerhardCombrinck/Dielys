@@ -169,7 +169,7 @@ dependencies {
     // sideloaded or debug build gets UpdateAvailability.UPDATE_NOT_AVAILABLE
     // and the prompt simply never appears.
     implementation("com.google.android.play:app-update-ktx:2.1.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("com.squareup.okhttp3:okhttp:5.2.1")
 
