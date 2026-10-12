@@ -1212,6 +1212,34 @@ body.reordering * {
   background: var(--color-elevated);
 }
 
+/* "Move to…" (ADR 0015): one row per other list, the whole row the tap target. */
+.move-targets {
+  display: flex;
+  flex-direction: column;
+  max-height: 60vh;
+  overflow-y: auto;
+  margin: 0 -0.5rem;
+}
+
+.move-target {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  background: none;
+  border: none;
+  color: var(--color-on-surface);
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  padding: 0.75rem 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.move-target:hover {
+  background: rgba(var(--on-surface-rgb), 0.08);
+}
+
 /* The notification choice (ADR 0012): four checkboxes, one per kind of change. */
 .notify-options {
   display: flex;

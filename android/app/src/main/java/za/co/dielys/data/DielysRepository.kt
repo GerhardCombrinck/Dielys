@@ -1,6 +1,5 @@
 package za.co.dielys.data
 
-import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import za.co.dielys.data.local.DeviceIdentity
 import za.co.dielys.data.local.DielysDatabase
@@ -8,7 +7,6 @@ import za.co.dielys.data.local.ListAccentEntity
 import za.co.dielys.data.local.ListEntity
 import za.co.dielys.data.local.ListItemCount
 import za.co.dielys.data.local.ListWithAccent
-import za.co.dielys.data.local.OutboxEntity
 import za.co.dielys.data.local.TaskEntity
 import za.co.dielys.data.local.encodeNotifyEvents
 import za.co.dielys.data.remote.ListPatch
@@ -48,6 +46,7 @@ class DielysRepository
         private val session: DeviceIdentity,
         private val scheduler: SyncScheduler,
         private val clock: Clock,
+        private val mover: TaskMover,
     ) {
         /** Each live list with its colour, read together — see [ListAccentDao.observeLists]. */
         fun observeLists(): Flow<List<ListWithAccent>> = db.listAccents().observeLists()
@@ -79,7 +78,8 @@ class DielysRepository
             // which is a visible change of colour on the screen you just used.
             val accent = accents.next()
 
-            commit(
+            db.commitLocal(
+                scheduler,
                 entity = {
                     db.lists().upsert(ListEntity(id = id, title = title))
                     db.listAccents().assignIfUnset(ListAccentEntity(id, accent))
@@ -127,7 +127,8 @@ class DielysRepository
                 } else {
                     emptyList()
                 }
-            commit(
+            db.commitLocal(
+                scheduler,
                 entity = {
                     db.lists().upsert(current.copy(archived = archived))
                     for (task in ticked) db.tasks().upsert(task.copy(done = false))
@@ -188,17 +189,7 @@ class DielysRepository
             atTop: Boolean = true,
             id: String = Uuid7.generate(clock.nowMillis()),
         ): String {
-            val active = db.tasks().inList(listId).filterNot { it.done }
-            val position =
-                if (atTop) {
-                    val spot = spotUnderStarred(active) { it.starred }
-                    Position.between(
-                        active.getOrNull(spot - 1)?.position,
-                        active.getOrNull(spot)?.position,
-                    )
-                } else {
-                    Position.between(active.lastOrNull()?.position, null)
-                }
+            val position = db.tasks().newTaskPosition(listId, atTop)
 
             // A task create MUST carry title and position — the server invents
             // defaults for nothing only the client can know.
@@ -215,6 +206,13 @@ class DielysRepository
             commitTask(task, patch)
             return id
         }
+
+        /** Onto another list — see [TaskMover]. Returns the new task's id, or null. */
+        suspend fun moveTaskToList(
+            taskId: String,
+            targetListId: String,
+            atTop: Boolean = true,
+        ): String? = mover.moveTaskToList(taskId, targetListId, atTop)
 
         /**
          * Marking a task done also promotes it to the top of the Done section —
@@ -365,7 +363,8 @@ class DielysRepository
             val unseeded = ordered.filter { it.position == null }.map { it.id }.toSet()
             val seedWrites = seeded.filter { it.id in unseeded && it.id != listId }
 
-            commit(
+            db.commitLocal(
+                scheduler,
                 entity = {
                     for (list in seedWrites) db.lists().upsert(list)
                     db.lists().upsert(moved.copy(position = position))
@@ -393,7 +392,8 @@ class DielysRepository
             events: Set<String>,
         ) {
             val chosen = NotifyEvent.known(events)
-            commit(
+            db.commitLocal(
+                scheduler,
                 entity = { db.lists().setNotify(listId, encodeNotifyEvents(chosen)) },
                 rows = listOf(outbox.notify(listId = listId, events = chosen)),
             )
@@ -410,7 +410,7 @@ class DielysRepository
                     deviceId = session.deviceId,
                     patch = patch,
                 )
-            commit(entity = { db.tasks().upsert(task) }, rows = listOf(row))
+            db.commitLocal(scheduler, entity = { db.tasks().upsert(task) }, rows = listOf(row))
         }
 
         private suspend fun commitList(
@@ -425,18 +425,6 @@ class DielysRepository
                     deviceId = session.deviceId,
                     patch = patch,
                 )
-            commit(entity = { db.lists().upsert(list) }, rows = listOf(row))
-        }
-
-        /** F5.7, in one place so no caller can get it wrong. */
-        private suspend fun commit(
-            entity: suspend () -> Unit,
-            rows: List<OutboxEntity>,
-        ) {
-            db.withTransaction {
-                entity()
-                for (row in rows) db.outbox().enqueue(row)
-            }
-            scheduler.requestSync()
+            db.commitLocal(scheduler, entity = { db.lists().upsert(list) }, rows = listOf(row))
         }
     }

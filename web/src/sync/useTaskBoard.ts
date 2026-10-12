@@ -14,7 +14,13 @@ import type { NotifyEvent, Task, TaskList } from "@dielys/protocol";
 import { useEffect, useState } from "react";
 import { ListSocket } from "../api/socket.js";
 import { useDataStore, useReplicaVersion } from "../data/store.js";
-import { activeTasks, doneTasks } from "../domain/taskOrder.js";
+import { activeTasks, doneTasks, sortLists } from "../domain/taskOrder.js";
+
+/** A list a task here could be moved to (ADR 0015). */
+export interface MoveTarget {
+  id: string;
+  title: string;
+}
 
 export interface TaskBoard {
   list: TaskList | null;
@@ -32,6 +38,10 @@ export interface TaskBoard {
   rename(task: Task, title: string): Promise<void>;
   remove(task: Task): Promise<void>;
   move(taskId: string, afterId: string | null, beforeId: string | null): Promise<void>;
+  /** Every other list still in use, in the Lists page's order — archived
+   * ones left out, since moving onto a list that is put away would hide it. */
+  moveTargets: MoveTarget[];
+  moveToList(task: Task, targetListId: string, atTop: boolean): void;
   renameList(title: string): Promise<void>;
   deleteList(): Promise<void>;
 }
@@ -77,6 +87,14 @@ export function useTaskBoard(listId: string, deviceId: string): TaskBoard {
   }, [listId, deviceId, replica, engine, unclaimed]);
 
   const local = replica.getList(listId);
+  const moveTargets = sortLists(replica.allLists()).flatMap((other) =>
+    other.id !== listId &&
+    other.list !== null &&
+    other.list.deletedAt === null &&
+    !other.list.archived
+      ? [{ id: other.id, title: other.list.title }]
+      : [],
+  );
   const tasks = replica.tasksIn(listId);
 
   return {
@@ -95,6 +113,10 @@ export function useTaskBoard(listId: string, deviceId: string): TaskBoard {
     rename: async (task, title) => repo.renameTask(task.id, title),
     remove: async (task) => repo.deleteTask(task.id),
     move: async (taskId, afterId, beforeId) => repo.moveTask(taskId, afterId, beforeId),
+    moveTargets,
+    moveToList: (task, targetListId, atTop) => {
+      repo.moveTaskToList(task.id, targetListId, atTop);
+    },
     renameList: async (title) => repo.renameList(listId, title),
     deleteList: async () => repo.deleteList(listId),
   };

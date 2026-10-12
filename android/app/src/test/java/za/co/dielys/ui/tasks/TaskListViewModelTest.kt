@@ -40,6 +40,7 @@ class TaskListViewModelTest {
     private lateinit var phone: DeviceStack
     private lateinit var viewModel: TaskListViewModel
     private lateinit var listId: String
+    private var chimes = 0
 
     @Before
     fun setUp() {
@@ -67,6 +68,11 @@ class TaskListViewModelTest {
                 placement,
                 object : ListNotifications {
                     override suspend fun forget(listId: String) = Unit
+                },
+                object : TickChime {
+                    override fun play() {
+                        chimes++
+                    }
                 },
             )
     }
@@ -108,6 +114,19 @@ class TaskListViewModelTest {
                 assertEquals(listOf("Bread"), after.active.map { it.title })
                 assertEquals(listOf("Milk"), after.done.map { it.title })
             }
+        }
+
+    @Test
+    fun `ticking off chimes, and unticking does not`() =
+        runTest(dispatcher) {
+            open()
+            val milk = phone.repo.addTask(listId, "Milk")
+
+            viewModel.setDone(milk, true)
+            assertEquals(1, chimes)
+
+            viewModel.setDone(milk, false)
+            assertEquals(1, chimes)
         }
 
     /**

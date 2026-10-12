@@ -26,7 +26,9 @@ import {
   Spinner,
   StarIcon,
 } from "../ui/icons.js";
+import { playTickChime } from "../ui/tickChime.js";
 import { useDragReorder } from "../ui/useDragReorder.js";
+import { MoveToListDialog } from "./MoveToListDialog.js";
 import { NotifyDialog } from "./NotifyDialog.js";
 
 const DONE_EXPANDED_KEY_PREFIX = "dielys.doneExpanded.";
@@ -61,6 +63,8 @@ export function ListPage({ listId }: { listId: string }) {
   const [doneExpanded, setDoneExpanded] = useState(() => readDoneExpanded(listId));
   const [error, setError] = useState<string | null>(null);
   const [notifyOpen, setNotifyOpen] = useState(false);
+  // The task whose "Move to…" was picked, while the list picker is up for it.
+  const [moving, setMoving] = useState<string | null>(null);
   const reorder = useDragReorder(
     board.active.map((task) => task.id),
     board.move,
@@ -167,6 +171,18 @@ export function ListPage({ listId }: { listId: string }) {
         />
       )}
 
+      {moving !== null && (
+        <MoveToListDialog
+          targets={board.moveTargets}
+          onPick={(targetListId) => {
+            const task = activeById.get(moving);
+            if (task !== undefined) board.moveToList(task, targetListId, getNewItemsOnTop());
+            setMoving(null);
+          }}
+          onDismiss={() => setMoving(null)}
+        />
+      )}
+
       {error !== null && (
         <p className="error-text" role="alert">
           {error}
@@ -196,7 +212,10 @@ export function ListPage({ listId }: { listId: string }) {
                 type="button"
                 className="icon-button checkbox"
                 aria-label={t("list.markDone", { title: task.title })}
-                onClick={() => void board.setDone(task, true)}
+                onClick={() => {
+                  playTickChime();
+                  void board.setDone(task, true);
+                }}
               >
                 <span className="checkbox-box" />
               </button>
@@ -267,6 +286,15 @@ export function ListPage({ listId }: { listId: string }) {
                       }}
                     >
                       {t("common.edit")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuFor(null);
+                        setMoving(task.id);
+                      }}
+                    >
+                      {t("list.moveTo")}
                     </button>
                     <button
                       type="button"

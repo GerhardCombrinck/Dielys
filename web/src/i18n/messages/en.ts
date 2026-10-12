@@ -56,6 +56,9 @@ export const en = {
   "list.star": "Star",
   "list.unstar": "Unstar",
   "list.taskOptions": "Task options",
+  "list.moveTo": "Move to…",
+  "list.moveToTitle": "Move to list",
+  "list.moveToNone": "There are no other lists to move this to yet.",
   "list.doneCount": "DONE ({n})",
   "list.addItemPlaceholder": "Add an item",
   "list.addItem": "Add item",
@@ -125,6 +128,7 @@ export const en = {
   "settings.email": "Email",
   "settings.emailUnknown": "Unknown",
   "settings.newItemsGoTo": "New items go to",
+  "settings.tickSound": "Sound when ticking off",
   "settings.top": "Top",
   "settings.bottom": "Bottom",
   "settings.mobileSync": "Mobile background sync",
@@ -155,7 +159,7 @@ export const en = {
     "Type a name in the box at the bottom to make a list, and tap a list to open it. Drag lists to change their order — on a phone, press and hold first. The {menu} menu beside each list renames it, changes its colour, shares it or deletes it. Colours are only on your device; anyone you share with picks their own.",
   "help.itemsTitle": "Items",
   "help.itemsBody":
-    "Type in the box at the bottom of a list to add an item. Tick an item off when it is done — it moves to the Done section, where you can tick it back. Star an item to keep it at the top. In Settings you can choose whether new items go to the top or the bottom.",
+    "Type in the box at the bottom of a list to add an item. Tick an item off when it is done — it moves to the Done section, where you can tick it back. Star an item to keep it at the top. To put an item on a different list, open its menu (⋮) and choose Move to. In Settings you can choose whether new items go to the top or the bottom, and turn off the sound when you tick something off.",
   "help.sharingTitle": "Sharing a list",
   "help.sharingBody":
     "Only the person who made a list can share it. Open the {menu} menu, choose Share and type the other person's email address. They get an email with an invite link. The link works for seven days and only that email address can accept it, so they must sign in with the same address — on the web or in the Android app.",

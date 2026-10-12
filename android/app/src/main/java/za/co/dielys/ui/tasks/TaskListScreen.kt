@@ -168,6 +168,9 @@ fun TaskListScreen(
     // placeholder while its words are down there being changed.
     var editing by remember { mutableStateOf<TaskEntity?>(null) }
 
+    // The row whose "Move to…" was picked, while the list picker is up for it.
+    var moving by remember { mutableStateOf<TaskEntity?>(null) }
+
     // The field's own text, lifted up here so the list above it can preview
     // what is being typed before it is saved. A TextFieldValue rather than a
     // String because opening an edit has to put the cursor at the end of the
@@ -378,9 +381,18 @@ fun TaskListScreen(
                         draftText = TextFieldValue(task.title, TextRange(task.title.length))
                     },
                     onDelete = viewModel::delete,
+                    onMoveTo = { moving = it },
                 )
             }
         }
+    }
+
+    moving?.let { task ->
+        MoveToListDialog(
+            viewModel = viewModel,
+            onPick = { targetId -> viewModel.moveToList(task.id, targetId) },
+            onDismiss = { moving = null },
+        )
     }
 }
 
@@ -559,6 +571,7 @@ private class RowActions(
     val star: (TaskEntity) -> Unit,
     val rename: (TaskEntity) -> Unit,
     val delete: (String) -> Unit,
+    val moveTo: (TaskEntity) -> Unit,
 )
 
 /**
@@ -583,6 +596,7 @@ private fun rememberRowActions(
     onStar: (String, Boolean) -> Unit,
     onRename: (TaskEntity) -> Unit,
     onDelete: (String) -> Unit,
+    onMoveTo: (TaskEntity) -> Unit,
 ): RowActions {
     // #56: ticking the row pinned to the top sends that key down into the Done
     // section and the viewport follows it there. Put it back. Any other row
@@ -625,6 +639,7 @@ private fun rememberRowActions(
     return RowActions(
         rename = onRename,
         delete = onDelete,
+        moveTo = onMoveTo,
         toggle = { id, value ->
             repin = listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset
             onToggle(id, value)
@@ -662,6 +677,7 @@ private fun Tasks(
     onStar: (String, Boolean) -> Unit,
     onRename: (TaskEntity) -> Unit,
     onDelete: (String) -> Unit,
+    onMoveTo: (TaskEntity) -> Unit,
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -687,7 +703,7 @@ private fun Tasks(
     val ghost = ghostRowState(ghostText, ghostId, active)
 
     val actions =
-        rememberRowActions(active, done, listState, onToggle, onStar, onRename, onDelete)
+        rememberRowActions(active, done, listState, onToggle, onStar, onRename, onDelete, onMoveTo)
 
     // The one row being worked on: the one being typed into existence, or the
     // one whose words are down in the bar (#63). Both want the same thing —
@@ -759,6 +775,7 @@ private fun Tasks(
                         onStar = { actions.star(task) },
                         onRename = { actions.rename(task) },
                         onDelete = { actions.delete(task.id) },
+                        onMoveTo = { actions.moveTo(task) },
                     )
                 }
             }
@@ -821,6 +838,7 @@ private fun LazyListScope.taskRows(
             onStar = { chrome.actions.star(task) },
             onRename = { chrome.actions.rename(task) },
             onDelete = { chrome.actions.delete(task.id) },
+            onMoveTo = { chrome.actions.moveTo(task) },
             modifier =
                 Modifier
                     .zIndex(if (dragging) 1f else 0f)
@@ -939,6 +957,7 @@ private fun TaskRow(
     onStar: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
+    onMoveTo: () -> Unit,
     modifier: Modifier = Modifier,
     dragging: Boolean = false,
     highlighted: Boolean = false,
@@ -1116,6 +1135,13 @@ private fun TaskRow(
                             onClick = {
                                 menuOpen = false
                                 onRename()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.action_move_to)) },
+                            onClick = {
+                                menuOpen = false
+                                onMoveTo()
                             },
                         )
                         DropdownMenuItem(

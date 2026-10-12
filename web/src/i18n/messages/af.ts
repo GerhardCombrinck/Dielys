@@ -54,6 +54,9 @@ export const af: Messages = {
   "list.star": "Ster",
   "list.unstar": "Verwyder ster",
   "list.taskOptions": "Taakopsies",
+  "list.moveTo": "Skuif na…",
+  "list.moveToTitle": "Skuif na lys",
+  "list.moveToNone": "Daar is nog geen ander lyste om dit na te skuif nie.",
   "list.doneCount": "KLAAR ({n})",
   "list.addItemPlaceholder": "Voeg 'n item by",
   "list.addItem": "Voeg item by",
@@ -127,6 +130,7 @@ export const af: Messages = {
   "settings.email": "E-pos",
   "settings.emailUnknown": "Onbekend",
   "settings.newItemsGoTo": "Nuwe items gaan na",
+  "settings.tickSound": "Klank wanneer jy afmerk",
   "settings.top": "Bo",
   "settings.bottom": "Onder",
   "settings.mobileSync": "Sinkronisasie op die foon",
@@ -157,7 +161,7 @@ export const af: Messages = {
     "Tik 'n naam in die blokkie onderaan om 'n lys te maak, en tik op 'n lys om dit oop te maak. Sleep lyste om hul volgorde te verander — op 'n foon druk en hou jy eers. Die {menu}-kieslys langs elke lys hernoem dit, verander sy kleur, deel dit of vee dit uit. Kleure is net op jou toestel; enigiemand met wie jy deel, kies hul eie.",
   "help.itemsTitle": "Items",
   "help.itemsBody":
-    "Tik in die blokkie onderaan 'n lys om 'n item by te voeg. Merk 'n item af wanneer dit klaar is — dit skuif na die Klaar-afdeling, waar jy dit weer kan terugmerk. Gee 'n item 'n ster om dit bo te hou. In Instellings kies jy of nuwe items bo of onder bygevoeg word.",
+    "Tik in die blokkie onderaan 'n lys om 'n item by te voeg. Merk 'n item af wanneer dit klaar is — dit skuif na die Klaar-afdeling, waar jy dit weer kan terugmerk. Gee 'n item 'n ster om dit bo te hou. Om 'n item na 'n ander lys te skuif, maak sy kieslys (⋮) oop en kies Skuif na. In Instellings kies jy of nuwe items bo of onder bygevoeg word, en kan jy die klank afskakel wanneer jy iets afmerk.",
   "help.sharingTitle": "'n Lys deel",
   "help.sharingBody":
     "Net die persoon wat 'n lys gemaak het, kan dit deel. Maak die {menu}-kieslys oop, kies Deel en tik die ander persoon se e-posadres in. Hulle kry 'n e-pos met 'n uitnodigingskakel. Die skakel werk vir sewe dae en net daardie e-posadres kan dit aanvaar, so hulle moet met dieselfde adres aanmeld — op die web of in die Android-toep.",

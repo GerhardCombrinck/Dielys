@@ -33,6 +33,8 @@ import za.co.dielys.data.remote.OkHttpListSockets
 import za.co.dielys.data.remote.SyncApi
 import za.co.dielys.data.sync.SyncScheduler
 import za.co.dielys.data.sync.WorkManagerSyncScheduler
+import za.co.dielys.ui.tasks.SoundPoolTickChime
+import za.co.dielys.ui.tasks.TickChime
 import javax.inject.Singleton
 
 @Module
@@ -115,6 +117,11 @@ abstract class BindingsModule {
     @Binds
     @Singleton
     abstract fun newTaskPlacement(impl: UiPrefs): NewTaskPlacement
+
+    /** Tested on the JVM, where there is no audio to play. */
+    @Binds
+    @Singleton
+    abstract fun tickChime(impl: SoundPoolTickChime): TickChime
 
     /** Same reason as [newTaskPlacement] — one seam, two faces of [UiPrefs]. */
     @Binds

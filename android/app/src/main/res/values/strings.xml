@@ -13,6 +13,9 @@
     <string name="action_join">Join</string>
     <string name="action_edit">Edit</string>
     <string name="action_delete">Delete</string>
+    <string name="action_move_to">Move to…</string>
+    <string name="move_to_title">Move to list</string>
+    <string name="move_to_none">There are no other lists to move this to yet.</string>
     <string name="action_rename">Rename</string>
     <string name="action_share">Share</string>
     <string name="label_email">Email</string>
@@ -141,6 +144,7 @@
     <string name="settings_account">Account</string>
     <string name="settings_email_unknown">Unknown</string>
     <string name="settings_new_items_go_to">New items go to</string>
+    <string name="settings_tick_sound">Sound when ticking off</string>
     <string name="settings_top">Top</string>
     <string name="settings_bottom">Bottom</string>
     <string name="settings_sign_out">Sign out</string>
@@ -185,7 +189,7 @@
     <string name="help_lists_title">Lists</string>
     <string name="help_lists_body">Type a name in the box at the bottom to make a list, and tap a list to open it. Drag lists to change their order — on a phone, press and hold first. The %1$s menu beside each list renames it, changes its colour, shares it or deletes it. Colours are only on your device; anyone you share with picks their own.</string>
     <string name="help_items_title">Items</string>
-    <string name="help_items_body">Type in the box at the bottom of a list to add an item. Tick an item off when it is done — it moves to the Done section, where you can tick it back. Star an item to keep it at the top. In Settings you can choose whether new items go to the top or the bottom.</string>
+    <string name="help_items_body">Type in the box at the bottom of a list to add an item. Tick an item off when it is done — it moves to the Done section, where you can tick it back. Star an item to keep it at the top. To put an item on a different list, open its menu (⋮) and choose Move to. In Settings you can choose whether new items go to the top or the bottom, and turn off the sound when you tick something off.</string>
     <string name="help_sharing_title">Sharing a list</string>
     <string name="help_sharing_body">Only the person who made a list can share it. Open the %1$s menu, choose Share and type the other person\'s email address. They get an email with an invite link. The link works for seven days and only that email address can accept it, so they must sign in with the same address — on the web or in the Android app.</string>
     <string name="help_together_title">Using a shared list</string>

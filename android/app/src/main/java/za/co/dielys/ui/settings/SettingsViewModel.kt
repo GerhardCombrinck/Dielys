@@ -54,6 +54,10 @@ class SettingsViewModel
 
         fun setNewItemsOnTop(value: Boolean) = uiPrefs.setNewItemsOnTop(value)
 
+        val tickSound: StateFlow<Boolean> = uiPrefs.tickSound
+
+        fun setTickSound(value: Boolean) = uiPrefs.setTickSound(value)
+
         val syncEnabled: StateFlow<Boolean> = syncPrefs.syncEnabled
         val syncIntervalMinutes: StateFlow<Long> = syncPrefs.syncIntervalMinutes
 

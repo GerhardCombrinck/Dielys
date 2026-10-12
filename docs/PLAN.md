@@ -120,6 +120,11 @@ Where Dielys is and what comes next. Short by design — the standard is in
       put away instead of deleted. Owner-only, for everybody on it, like delete: `TaskList.archived`
       goes down the changelog, and archived lists fold into an Archived section under the rest.
       Restoring asks whether to untick everything, sent as ordinary `done: false` patches.
+- [x] **Moving an item to another list** (ADR 0015) — "Move to…" in an item's menu. A new task on
+      the target and a tombstone on the source, in one local transaction; no protocol change.
+- [x] **Tick-off chime** — a short two-note chime when an item is ticked off, on Android and web,
+      with a Settings switch (on by default). Android stays quiet when the phone is on silent or
+      vibrate. One WAV for both apps, drawn by `docs/sound/make_chime.py`.
 
 ## Open questions
 

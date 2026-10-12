@@ -58,6 +58,7 @@ class DeviceStack(
             session = FixedDevice(deviceId),
             scheduler = scheduler,
             clock = clock,
+            mover = TaskMover(db, OutboxFactory(clock), FixedDevice(deviceId), scheduler, clock),
         )
 
     fun close() = db.close()

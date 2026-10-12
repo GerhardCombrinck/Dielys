@@ -169,6 +169,8 @@ fun SettingsScreen(
                 )
             }
 
+            TickSoundSection(viewModel)
+
             LanguageSection(viewModel)
 
             BackgroundSyncSection(viewModel)
@@ -488,6 +490,42 @@ private fun LanguageOption(
     }
 }
 
+/** The chime for ticking an item off — on by default, and only ever on this phone. */
+@Composable
+private fun TickSoundSection(viewModel: SettingsViewModel) {
+    val on by viewModel.tickSound.collectAsStateWithLifecycle()
+
+    SettingsCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            CardTitle(
+                stringResource(R.string.settings_tick_sound),
+                modifier = Modifier.weight(1f).padding(end = 12.dp),
+            )
+            SettingsSwitch(checked = on, onCheckedChange = viewModel::setTickSound)
+        }
+    }
+}
+
+@Composable
+private fun SettingsSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        colors =
+            SwitchDefaults.colors(
+                checkedTrackColor = MaterialTheme.colorScheme.secondary,
+                checkedThumbColor = Color.White,
+                checkedBorderColor = Color.Transparent,
+                uncheckedTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                uncheckedThumbColor = Color.White,
+                uncheckedBorderColor = Color.Transparent,
+            ),
+    )
+}
+
 /**
  * The half-hourly floor (H3.12), as something a person can turn off or
  * stretch out. Push and the socket both still work either way — this only
@@ -506,20 +544,7 @@ private fun BackgroundSyncSection(viewModel: SettingsViewModel) {
                 stringResource(R.string.settings_background_sync),
                 modifier = Modifier.weight(1f).padding(end = 12.dp),
             )
-            Switch(
-                checked = enabled,
-                onCheckedChange = viewModel::setSyncEnabled,
-                colors =
-                    SwitchDefaults.colors(
-                        checkedTrackColor = MaterialTheme.colorScheme.secondary,
-                        checkedThumbColor = Color.White,
-                        checkedBorderColor = Color.Transparent,
-                        uncheckedTrackColor =
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                        uncheckedThumbColor = Color.White,
-                        uncheckedBorderColor = Color.Transparent,
-                    ),
-            )
+            SettingsSwitch(checked = enabled, onCheckedChange = viewModel::setSyncEnabled)
         }
         if (enabled) {
             PickerField(

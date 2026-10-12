@@ -19,6 +19,7 @@ import za.co.dielys.data.DielysRepository
 import za.co.dielys.data.ListAccents
 import za.co.dielys.data.local.DoneSectionPrefs
 import za.co.dielys.data.local.ListEntity
+import za.co.dielys.data.local.ListWithAccent
 import za.co.dielys.data.local.NewTaskPlacement
 import za.co.dielys.data.local.TaskEntity
 import za.co.dielys.data.notify.ListNotifications
@@ -66,6 +67,7 @@ class TaskListViewModel
         private val doneSection: DoneSectionPrefs,
         placement: NewTaskPlacement,
         private val notifications: ListNotifications,
+        private val chime: TickChime,
     ) : ViewModel() {
         private val listId = MutableStateFlow<String?>(null)
 
@@ -114,6 +116,20 @@ class TaskListViewModel
                         )
                     }
                 }.asState(TaskBoard())
+
+        /**
+         * Where a task on this list could be moved to: every other list still
+         * in use, in the order the lists screen shows them. Archived ones are
+         * left out — moving something onto a list that is put away would hide it.
+         */
+        val moveTargets: StateFlow<List<ListWithAccent>> =
+            listId
+                .filterNotNull()
+                .flatMapLatest { id ->
+                    repo.observeLists().map { lists ->
+                        lists.filter { it.list.id != id && !it.list.archived }
+                    }
+                }.asState(emptyList())
 
         val pending: StateFlow<Int> = repo.observePendingCount().asState(0)
         val stuck: StateFlow<Int> = repo.observeStuckCount().asState(0)
@@ -172,6 +188,8 @@ class TaskListViewModel
             taskId: String,
             done: Boolean,
         ) {
+            // On the tap, not when Room answers: the sound is for the gesture.
+            if (done) chime.play()
             viewModelScope.launch { repo.setDone(taskId, done) }
         }
 
@@ -193,6 +211,15 @@ class TaskListViewModel
 
         fun delete(taskId: String) {
             viewModelScope.launch { repo.deleteTask(taskId) }
+        }
+
+        /** Onto another list, landing where a new item would there (ADR 0015). */
+        fun moveToList(
+            taskId: String,
+            targetListId: String,
+        ) {
+            val atTop = newItemsOnTop.value
+            viewModelScope.launch { repo.moveTaskToList(taskId, targetListId, atTop) }
         }
 
         /**

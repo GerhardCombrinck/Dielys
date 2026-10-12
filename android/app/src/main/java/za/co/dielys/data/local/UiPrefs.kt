@@ -172,6 +172,16 @@ class UiPrefs
             prefs.edit().putBoolean(KEY_DONE_EXPANDED_PREFIX + listId, expanded).apply()
         }
 
+        private val _tickSound = MutableStateFlow(prefs.getBoolean(KEY_TICK_SOUND, true))
+
+        /** Whether ticking an item off plays the chime. On by default. */
+        val tickSound: StateFlow<Boolean> = _tickSound.asStateFlow()
+
+        fun setTickSound(value: Boolean) {
+            prefs.edit().putBoolean(KEY_TICK_SOUND, value).apply()
+            _tickSound.value = value
+        }
+
         private val _syncEnabled = MutableStateFlow(prefs.getBoolean(KEY_SYNC_ENABLED, true))
 
         override val syncEnabled: StateFlow<Boolean> = _syncEnabled.asStateFlow()
@@ -266,6 +276,7 @@ class UiPrefs
 
         private companion object {
             const val KEY_NEW_ITEMS_ON_TOP = "new-items-on-top"
+            const val KEY_TICK_SOUND = "tick-sound"
             const val KEY_DONE_EXPANDED_PREFIX = "done-expanded-"
             const val KEY_SYNC_ENABLED = "sync-enabled"
             const val KEY_SYNC_INTERVAL_MINUTES = "sync-interval-minutes"

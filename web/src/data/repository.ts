@@ -111,14 +111,7 @@ export class Repository {
   addTask(listId: string, title: string, atTop: boolean): string {
     const trimmed = title.trim();
     if (trimmed === "") return "";
-    const active = activeTasks(this.replica.tasksIn(listId));
-    let position: string;
-    if (atTop) {
-      const spot = spotUnderStarred(active, (t) => t.starred);
-      position = between(active[spot - 1]?.position ?? null, active[spot]?.position ?? null);
-    } else {
-      position = between(active.at(-1)?.position ?? null, null);
-    }
+    const position = this.newTaskPosition(listId, atTop);
     const task: Task = {
       id: uuid7(this.now()),
       listId,
@@ -175,6 +168,44 @@ export class Repository {
     if (task === null) return;
     const deletedAt = this.iso();
     this.commitTask({ ...task, deletedAt }, { deletedAt });
+  }
+
+  /**
+   * Onto another list, as a new task there and a tombstone here, in one
+   * commit (ADR 0015) — the same as Android's `moveTaskToList`. A fresh id,
+   * because the old one is tombstoned for good (F5.3); title and star come
+   * along, and a starred one goes to the very top. Returns the new id, or ""
+   * when there was nothing to move.
+   */
+  moveTaskToList(taskId: string, targetListId: string, atTop: boolean): string {
+    const task = this.replica.getTask(taskId);
+    if (task === null || task.deletedAt !== null || task.listId === targetListId) return "";
+    const position = task.starred
+      ? between(null, activeTasks(this.replica.tasksIn(targetListId)).at(0)?.position ?? null)
+      : this.newTaskPosition(targetListId, atTop);
+    const copy: Task = {
+      id: uuid7(this.now()),
+      listId: targetListId,
+      title: task.title,
+      done: false,
+      starred: task.starred,
+      position,
+      deletedAt: null,
+      updatedAt: this.iso(),
+    };
+    const deletedAt = this.iso();
+    const gone: Task = { ...task, deletedAt };
+    this.replica.commit({ tasks: [copy, gone] }, [
+      // A create MUST carry title and position; the star rides along with it.
+      this.taskRow(copy, {
+        title: copy.title,
+        position,
+        ...(copy.starred ? { starred: true } : {}),
+      }),
+      this.taskRow(gone, { deletedAt }),
+    ]);
+    this.onCommit();
+    return copy.id;
   }
 
   /** One row written, siblings never renumbered (F5.5, H3.9). */
@@ -234,6 +265,14 @@ export class Repository {
       { key: uuid7(this.now()), kind: "notify", listId, entityId: `notify:${listId}`, body },
     ]);
     this.onCommit();
+  }
+
+  /** Where `addTask` puts a new task: under the starred rows, or at the bottom (#62). */
+  private newTaskPosition(listId: string, atTop: boolean): string {
+    const active = activeTasks(this.replica.tasksIn(listId));
+    if (!atTop) return between(active.at(-1)?.position ?? null, null);
+    const spot = spotUnderStarred(active, (t) => t.starred);
+    return between(active[spot - 1]?.position ?? null, active[spot]?.position ?? null);
   }
 
   private commitTask(task: Task, patch: TaskPatch): void {

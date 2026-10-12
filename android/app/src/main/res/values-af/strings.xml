@@ -8,6 +8,9 @@
     <string name="action_join">Sluit aan</string>
     <string name="action_edit">Wysig</string>
     <string name="action_delete">Vee uit</string>
+    <string name="action_move_to">Skuif na…</string>
+    <string name="move_to_title">Skuif na lys</string>
+    <string name="move_to_none">Daar is nog geen ander lyste om dit na te skuif nie.</string>
     <string name="action_rename">Hernoem</string>
     <string name="action_share">Deel</string>
     <string name="label_email">E-pos</string>
@@ -127,6 +130,7 @@
     <string name="settings_account">Rekening</string>
     <string name="settings_email_unknown">Onbekend</string>
     <string name="settings_new_items_go_to">Nuwe items gaan na</string>
+    <string name="settings_tick_sound">Klank wanneer jy afmerk</string>
     <string name="settings_top">Bo</string>
     <string name="settings_bottom">Onder</string>
     <string name="settings_sign_out">Meld af</string>
@@ -154,7 +158,7 @@
     <string name="help_lists_title">Lyste</string>
     <string name="help_lists_body">Tik \'n naam in die blokkie onderaan om \'n lys te maak, en tik op \'n lys om dit oop te maak. Sleep lyste om hul volgorde te verander — op \'n foon druk en hou jy eers. Die %1$s-kieslys langs elke lys hernoem dit, verander sy kleur, deel dit of vee dit uit. Kleure is net op jou toestel; enigiemand met wie jy deel, kies hul eie.</string>
     <string name="help_items_title">Items</string>
-    <string name="help_items_body">Tik in die blokkie onderaan \'n lys om \'n item by te voeg. Merk \'n item af wanneer dit klaar is — dit skuif na die Klaar-afdeling, waar jy dit weer kan terugmerk. Gee \'n item \'n ster om dit bo te hou. In Instellings kies jy of nuwe items bo of onder bygevoeg word.</string>
+    <string name="help_items_body">Tik in die blokkie onderaan \'n lys om \'n item by te voeg. Merk \'n item af wanneer dit klaar is — dit skuif na die Klaar-afdeling, waar jy dit weer kan terugmerk. Gee \'n item \'n ster om dit bo te hou. Om \'n item na \'n ander lys te skuif, maak sy kieslys (⋮) oop en kies Skuif na. In Instellings kies jy of nuwe items bo of onder bygevoeg word, en kan jy die klank afskakel wanneer jy iets afmerk.</string>
     <string name="help_sharing_title">\'n Lys deel</string>
     <string name="help_sharing_body">Net die persoon wat \'n lys gemaak het, kan dit deel. Maak die %1$s-kieslys oop, kies Deel en tik die ander persoon se e-posadres in. Hulle kry \'n e-pos met \'n uitnodigingskakel. Die skakel werk vir sewe dae en net daardie e-posadres kan dit aanvaar, so hulle moet met dieselfde adres aanmeld — op die web of in die Android-toep.</string>
     <string name="help_together_title">\'n Gedeelde lys gebruik</string>

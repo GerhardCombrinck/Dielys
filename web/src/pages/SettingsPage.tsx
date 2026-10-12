@@ -7,7 +7,12 @@ import { type ReactNode, useEffect, useState } from "react";
 import { deleteAccount, getSyncSettings, patchSyncSettings } from "../api/auth.js";
 import { ApiError } from "../api/client.js";
 import { useSession } from "../auth/SessionContext.js";
-import { getNewItemsOnTop, setNewItemsOnTop } from "../domain/uiPrefs.js";
+import {
+  getNewItemsOnTop,
+  getTickSound,
+  setNewItemsOnTop,
+  setTickSound,
+} from "../domain/uiPrefs.js";
 import { APP_LANGUAGES, useI18n } from "../i18n/I18nContext.js";
 import { navigate } from "../router.js";
 import { BackChevronIcon, ChevronDownIcon } from "../ui/icons.js";
@@ -35,6 +40,7 @@ export function SettingsPage() {
   const session = useSession();
   const { t, plural, chosenTag, setLanguage } = useI18n();
   const [newItemsOnTop, setNewItemsOnTopState] = useState(getNewItemsOnTop);
+  const [tickSound, setTickSoundState] = useState(getTickSound);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -139,6 +145,25 @@ export function SettingsPage() {
               onClick={() => choosePlacement(false)}
             >
               {t("settings.bottom")}
+            </button>
+          </div>
+        </section>
+
+        <section className="settings-card">
+          <div className="settings-switch-row">
+            <h2 id="settings-tick-sound-title">{t("settings.tickSound")}</h2>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={tickSound}
+              aria-labelledby="settings-tick-sound-title"
+              className="settings-switch"
+              onClick={() => {
+                setTickSound(!tickSound);
+                setTickSoundState(!tickSound);
+              }}
+            >
+              <span className="settings-switch-knob" />
             </button>
           </div>
         </section>
