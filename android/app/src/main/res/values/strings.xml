@@ -67,6 +67,7 @@
     <string name="edit_item_placeholder">Edit the item</string>
     <string name="empty_list_title">Nothing on this list</string>
     <string name="empty_list_subtitle">Type below to add the first thing.</string>
+    <string name="archived_read_only">This list is archived. It can\'t be changed until it is restored.</string>
 
     <!-- Lists screen. `lists_tagline` sits under the title and describes what
          the app is for, so unlike the wordmark above it it does get translated

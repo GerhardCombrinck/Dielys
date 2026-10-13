@@ -73,6 +73,10 @@ export function ListPage({ listId }: { listId: string }) {
   const shownActive = reorder.order.flatMap((id) => activeById.get(id) ?? []);
 
   const accent = accentColor(getAccent(listId) ?? hashedAccent(listId));
+  // An archived list is put away (ADR 0014): it still opens, to be read, but
+  // nothing on it changes until it is restored — no adding, ticking, starring,
+  // renaming or dragging.
+  const readOnly = board.list?.archived === true;
 
   async function handleAdd(): Promise<void> {
     const title = newTitle.trim();
@@ -106,7 +110,7 @@ export function ListPage({ listId }: { listId: string }) {
           <BackChevronIcon />
         </button>
         <span className="accent-dot" style={{ background: accent, marginLeft: "6px" }} />
-        {editingTitle ? (
+        {editingTitle && !readOnly ? (
           <input
             className="text-input inline-edit"
             value={titleDraft}
@@ -124,6 +128,7 @@ export function ListPage({ listId }: { listId: string }) {
           <button
             type="button"
             className="page-title-button"
+            disabled={readOnly}
             onClick={() => {
               setTitleDraft(board.list?.title ?? "");
               setEditingTitle(true);
@@ -204,14 +209,17 @@ export function ListPage({ listId }: { listId: string }) {
       {board.active.length > 0 && (
         <ul className="row-list">
           {shownActive.map((task) => (
-            <li key={task.id} className="task-row" {...reorder.rowProps(task.id)}>
-              <span className="drag-handle" aria-hidden="true">
-                ⠿
-              </span>
+            <li key={task.id} className="task-row" {...(readOnly ? {} : reorder.rowProps(task.id))}>
+              {!readOnly && (
+                <span className="drag-handle" aria-hidden="true">
+                  ⠿
+                </span>
+              )}
               <button
                 type="button"
                 className="icon-button checkbox"
                 aria-label={t("list.markDone", { title: task.title })}
+                disabled={readOnly}
                 onClick={() => {
                   playTickChime();
                   void board.setDone(task, true);
@@ -221,7 +229,7 @@ export function ListPage({ listId }: { listId: string }) {
               </button>
 
               <div className="row-title-wrap">
-                {editingTaskId === task.id ? (
+                {editingTaskId === task.id && !readOnly ? (
                   <input
                     className="text-input inline-edit"
                     value={taskDraft}
@@ -239,6 +247,7 @@ export function ListPage({ listId }: { listId: string }) {
                   <button
                     type="button"
                     className="row-title"
+                    disabled={readOnly}
                     onClick={() => {
                       setTaskDraft(task.title);
                       setEditingTaskId(task.id);
@@ -254,21 +263,24 @@ export function ListPage({ listId }: { listId: string }) {
                 className={task.starred ? "icon-button starred" : "icon-button"}
                 aria-label={task.starred ? t("list.unstar") : t("list.star")}
                 style={task.starred ? undefined : { opacity: 0.5 }}
+                disabled={readOnly}
                 onClick={() => void board.setStarred(task, !task.starred)}
               >
                 <StarIcon filled={task.starred} />
               </button>
 
-              <button
-                type="button"
-                className="icon-button"
-                aria-label={t("list.taskOptions")}
-                onClick={() => setMenuFor(menuFor === task.id ? null : task.id)}
-              >
-                <DotsVerticalIcon />
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label={t("list.taskOptions")}
+                  onClick={() => setMenuFor(menuFor === task.id ? null : task.id)}
+                >
+                  <DotsVerticalIcon />
+                </button>
+              )}
 
-              {menuFor === task.id && (
+              {menuFor === task.id && !readOnly && (
                 <>
                   <button
                     type="button"
@@ -328,6 +340,7 @@ export function ListPage({ listId }: { listId: string }) {
                     type="button"
                     className="icon-button checkbox"
                     aria-label={t("list.markNotDone", { title: task.title })}
+                    disabled={readOnly}
                     onClick={() => void board.setDone(task, false)}
                   >
                     <span className="checkbox-box checked">
@@ -342,28 +355,32 @@ export function ListPage({ listId }: { listId: string }) {
         </div>
       )}
 
-      <form
-        className="add-bar"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void handleAdd();
-        }}
-      >
-        <input
-          className="text-input"
-          placeholder={t("list.addItemPlaceholder")}
-          value={newTitle}
-          onChange={(e) => setNewTitle(e.target.value)}
-        />
-        <button
-          className={newTitle.trim() === "" ? "add-bar-submit" : "add-bar-submit ready"}
-          type="submit"
-          aria-label={t("list.addItem")}
-          disabled={adding || newTitle.trim() === ""}
+      {readOnly ? (
+        <p className="archived-note">{t("list.archivedReadOnly")}</p>
+      ) : (
+        <form
+          className="add-bar"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleAdd();
+          }}
         >
-          <LogoMarkIcon />
-        </button>
-      </form>
+          <input
+            className="text-input"
+            placeholder={t("list.addItemPlaceholder")}
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+          />
+          <button
+            className={newTitle.trim() === "" ? "add-bar-submit" : "add-bar-submit ready"}
+            type="submit"
+            aria-label={t("list.addItem")}
+            disabled={adding || newTitle.trim() === ""}
+          >
+            <LogoMarkIcon />
+          </button>
+        </form>
+      )}
     </div>
   );
 }

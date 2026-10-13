@@ -20,7 +20,12 @@ last time.
 - **`TaskList.archived`, a boolean, in the list's changelog.** It is list state, like the title,
   so it goes down the same changelog and every member's screen agrees. An archived list moves to
   a collapsed **Archived** section at the bottom of the lists screen, on every phone and browser
-  on it. It is still synced, still opens, and can still be edited; it is only out of the way.
+  on it. It is still synced and still opens, but **read-only** (amended 2026-10-12): the list
+  screen on both clients drops the add bar for a note saying it is archived, and nothing on it
+  can be ticked, unticked, starred, renamed, moved, deleted or dragged until it is restored. Put
+  away means put away — a list that still took edits invited stray taps on something nobody
+  was using. This is a client rule only; the server does not refuse task edits on an archived
+  list, so an older client can still make them.
 - **Only the owner archives or restores** — the same rule, in the same place
   (`domain/permissions.ts` `mayApply`), as delete (ADR 0006): a person invited onto a list does
   not get to move it off the screen of the person who made it. A list mutation carrying

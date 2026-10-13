@@ -62,6 +62,7 @@ export const en = {
   "list.doneCount": "DONE ({n})",
   "list.addItemPlaceholder": "Add an item",
   "list.addItem": "Add item",
+  "list.archivedReadOnly": "This list is archived. It can't be changed until it is restored.",
 
   "signin.intro": "Sign in with your email — we'll mail you a link, no password to remember.",
   "signin.sending": "Sending…",

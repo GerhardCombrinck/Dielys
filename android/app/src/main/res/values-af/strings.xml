@@ -61,6 +61,7 @@
     <string name="edit_item_placeholder">Wysig die item</string>
     <string name="empty_list_title">Niks op hierdie lys nie</string>
     <string name="empty_list_subtitle">Tik hieronder om die eerste ding by te voeg.</string>
+    <string name="archived_read_only">Hierdie lys is geargiveer. Dit kan nie verander word voordat dit herstel is nie.</string>
 
     <!-- Lists screen. -->
     <string name="lists_title">Lyste</string>

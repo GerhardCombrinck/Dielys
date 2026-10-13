@@ -60,6 +60,8 @@ export const af: Messages = {
   "list.doneCount": "KLAAR ({n})",
   "list.addItemPlaceholder": "Voeg 'n item by",
   "list.addItem": "Voeg item by",
+  "list.archivedReadOnly":
+    "Hierdie lys is geargiveer. Dit kan nie verander word voordat dit herstel is nie.",
 
   "signin.intro": "Meld aan met jou e-pos — ons pos jou 'n skakel, geen wagwoord om te onthou nie.",
   "signin.sending": "Stuur tans…",

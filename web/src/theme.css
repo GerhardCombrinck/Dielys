@@ -1262,3 +1262,23 @@ body.reordering * {
   height: 18px;
   accent-color: var(--list-accent, var(--color-primary));
 }
+
+/* An archived list (ADR 0014) is read-only: its controls stay where they are,
+   to show state, but nothing answers a tap. */
+.icon-button:disabled,
+.row-title:disabled,
+.page-title-button:disabled {
+  cursor: default;
+}
+
+.icon-button:disabled:hover {
+  background: none;
+}
+
+/* Where the add bar would be, saying why it is not. */
+.archived-note {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 14px;
+  color: rgba(var(--on-surface-rgb), 0.6);
+}

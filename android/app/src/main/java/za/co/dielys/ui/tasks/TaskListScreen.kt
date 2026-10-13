@@ -162,6 +162,11 @@ fun TaskListScreen(
     val stuck by viewModel.stuck.collectAsStateWithLifecycle()
     val newItemsOnTop by viewModel.newItemsOnTop.collectAsStateWithLifecycle()
 
+    // An archived list is put away (ADR 0014): it still opens, to be read, but
+    // nothing on it changes until it is restored — no adding, ticking, starring,
+    // editing or dragging.
+    val readOnly = currentList?.archived == true
+
     // The row being edited, if any. Editing happens in the add bar rather than
     // in a dialog over the list (#63): it is the same question the bar already
     // asks, so it gets the same controls — and the row itself greys out to a
@@ -325,6 +330,7 @@ fun TaskListScreen(
             AddTaskBar(
                 value = draftText,
                 editing = editing != null,
+                readOnly = readOnly,
                 field = field,
                 onValueChange = { draftText = it },
                 onCancel = {
@@ -346,12 +352,13 @@ fun TaskListScreen(
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
             if (board.isEmpty && ghostText == null) {
-                NoRows(loaded = board.loaded)
+                NoRows(loaded = board.loaded, readOnly = readOnly)
             } else {
                 Tasks(
                     active = active,
                     done = board.done,
                     accent = accent,
+                    readOnly = readOnly,
                     draggingId = draggingId,
                     highlightedId = highlighted,
                     ghostText = ghostText,
@@ -660,6 +667,7 @@ private fun Tasks(
     active: List<TaskEntity>,
     done: List<TaskEntity>,
     accent: Color,
+    readOnly: Boolean,
     draggingId: String?,
     highlightedId: String?,
     ghostText: String?,
@@ -722,6 +730,9 @@ private fun Tasks(
         if (index >= 0) listState.scrollToWorkingRow(index)
     }
 
+    // Nothing on an archived list moves (ADR 0014).
+    val drag = if (readOnly) Modifier else Modifier.taskDragGestures(reorder, count, callbacks)
+
     LazyColumn(
         state = listState,
         // A gap between cards, not a line inside one: CARD_GAP is what keeps
@@ -734,7 +745,7 @@ private fun Tasks(
             Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
-                .taskDragGestures(reorder, count, callbacks),
+                .then(drag),
     ) {
         // Split around the placeholder rather than bracketed by two of them: a
         // new item goes in under the starred block, which can be anywhere from
@@ -742,6 +753,7 @@ private fun Tasks(
         val chrome =
             RowChrome(
                 accent = accent,
+                readOnly = readOnly,
                 draggingId = draggingId,
                 highlightedId = highlightedId,
                 editing = EditingRow(editingId, editingText),
@@ -770,6 +782,7 @@ private fun Tasks(
                     TaskRow(
                         task = task,
                         accent = accent,
+                        readOnly = readOnly,
                         modifier = Modifier.animateItem(),
                         onToggle = { actions.toggle(task.id, it) },
                         onStar = { actions.star(task) },
@@ -790,6 +803,7 @@ private fun Tasks(
  */
 private class RowChrome(
     val accent: Color,
+    val readOnly: Boolean,
     val draggingId: String?,
     val highlightedId: String?,
     val editing: EditingRow,
@@ -832,6 +846,7 @@ private fun LazyListScope.taskRows(
         TaskRow(
             task = task,
             accent = chrome.accent,
+            readOnly = chrome.readOnly,
             dragging = dragging,
             highlighted = task.id == chrome.highlightedId,
             onToggle = { chrome.actions.toggle(task.id, it) },
@@ -959,10 +974,13 @@ private fun TaskRow(
     onDelete: () -> Unit,
     onMoveTo: () -> Unit,
     modifier: Modifier = Modifier,
+    readOnly: Boolean = false,
     dragging: Boolean = false,
     highlighted: Boolean = false,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    // Only a still-to-do row on a list in use can be edited (#69, ADR 0014).
+    val editable = !task.done && !readOnly
     // Done gives up its card entirely and sits straight on the page, so the
     // Done section reads as a list of what is no longer in the way rather than
     // more of the same stack. Animated, so ticking something off fades its card
@@ -1025,8 +1043,8 @@ private fun TaskRow(
     // Tapping the title opens it for editing, the same as Edit on the options
     // menu (#69). Editing happens in the bar now rather than in a dialog, so a
     // stray tap costs an X rather than a wall over the list. A done row has no
-    // Edit to offer — the bar only edits active rows — so its tap stays a plain
-    // acknowledgement. The shared interaction source puts the ripple on the Row
+    // Edit to offer — the bar only edits active rows — and neither does a row on
+    // an archived list, so for those the tap does nothing. The shared interaction source puts the ripple on the Row
     // while the click target stays the Text, so it does not read as if only the
     // words were hit.
     val press = remember { MutableInteractionSource() }
@@ -1073,6 +1091,7 @@ private fun TaskRow(
             TaskCheckbox(
                 checked = task.done,
                 accent = accent,
+                enabled = !readOnly,
                 onCheckedChange = onToggle,
                 modifier = Modifier.padding(start = 2.dp),
             )
@@ -1085,11 +1104,11 @@ private fun TaskRow(
                     Modifier
                         .weight(1f)
                         .clickable(
+                            enabled = editable,
                             interactionSource = press,
                             indication = null,
-                            onClickLabel =
-                                if (task.done) null else stringResource(R.string.action_edit),
-                            onClick = { if (!task.done) onRename() },
+                            onClickLabel = stringResource(R.string.action_edit),
+                            onClick = onRename,
                         ).padding(start = 8.dp, top = 16.dp, bottom = 16.dp)
                         .alpha(if (task.done) DONE_ALPHA else 1f),
             )
@@ -1097,8 +1116,11 @@ private fun TaskRow(
             // A done row is meant to recede: it keeps the tick and the title and
             // gives up every control on the right, so the eye passes over it on
             // the way to what is still to do. Un-tick it to get them back.
+            //
+            // On an archived list the star stays, so it still says which rows
+            // were starred, but does nothing; the options menu goes.
             if (!task.done) {
-                IconButton(onClick = onStar) {
+                IconButton(onClick = onStar, enabled = !readOnly) {
                     // Both states draw the same path at the same stroke width, so
                     // the star is the same size whichever way it is toggled — the
                     // filled one just also fills that path, rather than switching
@@ -1121,7 +1143,9 @@ private fun TaskRow(
                             },
                     )
                 }
+            }
 
+            if (editable) {
                 Box {
                     IconButton(onClick = { menuOpen = true }) {
                         Icon(
@@ -1222,6 +1246,7 @@ private fun TaskCheckbox(
     accent: Color,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     // Both states in the list's colour, and the ticked one quieter — the same
     // hierarchy as before, now saying which list it belongs to as well.
@@ -1236,7 +1261,7 @@ private fun TaskCheckbox(
             modifier
                 .size(CHECKBOX_TOUCH_TARGET)
                 .clip(CircleShape)
-                .clickable(onClick = { onCheckedChange(!checked) }),
+                .clickable(enabled = enabled, onClick = { onCheckedChange(!checked) }),
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -1267,16 +1292,39 @@ private fun TaskCheckbox(
  * The one place words are typed on this screen: a new item, or an existing one
  * being changed (#63). [editing] is the whole difference — it puts a way out
  * next to the field and turns the add button into a save.
+ *
+ * On an archived list (ADR 0014) there is nothing to type: the bar is a note
+ * saying why, and why nothing on the list answers a tap.
  */
 @Composable
 private fun AddTaskBar(
     value: TextFieldValue,
     editing: Boolean,
+    readOnly: Boolean,
     field: FocusRequester,
     onValueChange: (TextFieldValue) -> Unit,
     onCancel: () -> Unit,
     onSubmit: () -> Unit,
 ) {
+    if (readOnly) {
+        // Archived from another phone while something was being typed here:
+        // what was in the field goes with it, the same as backing out.
+        LaunchedEffect(Unit) { onCancel() }
+        Surface(tonalElevation = 3.dp) {
+            Text(
+                stringResource(R.string.archived_read_only),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .windowInsetsPadding(WindowInsets.navigationBars)
+                        .padding(horizontal = 24.dp, vertical = 20.dp),
+            )
+        }
+        return
+    }
+
     val dark = isSystemInDarkTheme()
 
     Surface(tonalElevation = 3.dp) {
@@ -1375,7 +1423,10 @@ private fun AddTaskBar(
 /** No rows to draw — because the list has none, or because Room has not said
  *  yet. Only the first of those gets to say "nothing here" (#65). */
 @Composable
-private fun NoRows(loaded: Boolean) {
+private fun NoRows(
+    loaded: Boolean,
+    readOnly: Boolean,
+) {
     if (!loaded) {
         Loading()
         return
@@ -1389,10 +1440,13 @@ private fun NoRows(loaded: Boolean) {
             stringResource(R.string.empty_list_title),
             style = MaterialTheme.typography.titleMedium,
         )
-        Text(
-            stringResource(R.string.empty_list_subtitle),
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        // There is no bar below to type into on an archived list.
+        if (!readOnly) {
+            Text(
+                stringResource(R.string.empty_list_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
     }
 }
 
