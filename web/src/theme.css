@@ -1282,3 +1282,120 @@ body.reordering * {
   font-size: 14px;
   color: rgba(var(--on-surface-rgb), 0.6);
 }
+
+/* Admin page (#84): a wide, tabular desktop layout, not the narrow auth card. */
+
+.admin-page {
+  flex: 1;
+  width: 100%;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  color: var(--color-on-surface);
+}
+
+.admin-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-header h1 {
+  margin: 0;
+}
+
+.admin-token-form {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 30rem;
+}
+
+.admin-token-form .pill-button {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.admin-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.875rem 1rem;
+  border-radius: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.admin-tile span {
+  font-size: 0.8125rem;
+  color: rgba(var(--on-surface-rgb), 0.65);
+}
+
+.admin-tile strong {
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-surface);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 0.625rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tbody tr:hover {
+  background: rgba(var(--on-surface-rgb), 0.05);
+}
+
+.admin-table th {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: rgba(var(--on-surface-rgb), 0.06);
+}
+
+.admin-table th button {
+  all: unset;
+  cursor: pointer;
+}
+
+.admin-table th button:hover {
+  text-decoration: underline;
+}
+
+.admin-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-table .actions {
+  text-align: right;
+  width: 1%;
+}
+
+.admin-note {
+  font-size: 0.8125rem;
+  color: rgba(var(--on-surface-rgb), 0.6);
+}

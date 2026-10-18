@@ -46,6 +46,10 @@ export function AdminPage() {
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [sort, setSort] = useState<{ key: SortKey | null; dir: "asc" | "desc" }>({
+    key: null,
+    dir: "desc",
+  });
 
   const load = useCallback(async (withToken: string): Promise<void> => {
     if (withToken.trim() === "") return;
@@ -112,95 +116,136 @@ export function AdminPage() {
     if (stored !== null && stored.trim() !== "") void load(stored);
   }, [load]);
 
+  const rows = sortAccounts(stats?.accounts ?? [], sort);
+
+  function toggleSort(key: SortKey): void {
+    setSort((current) =>
+      current.key === key
+        ? { key, dir: current.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: key === "email" ? "asc" : "desc" },
+    );
+  }
+
   return (
-    <div className="auth-page">
-      <div className="auth-card">
-        <div className="auth-header">
-          <h1>Admin</h1>
-        </div>
+    <div className="admin-page">
+      <header className="admin-header">
+        <h1>Admin</h1>
+        <form
+          className="admin-token-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void load(token);
+          }}
+        >
+          <input
+            className="text-input"
+            type="password"
+            placeholder="Admin token"
+            value={token}
+            onChange={(event) => setToken(event.target.value)}
+            disabled={busy}
+          />
+          <button className="pill-button" type="submit" disabled={busy || token.trim() === ""}>
+            {busy ? "Loading…" : "Load stats"}
+          </button>
+        </form>
+      </header>
+      {problem !== null && <p className="error-text">{problem}</p>}
 
-        <div className="auth-stage">
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              void load(token);
-            }}
-          >
-            <input
-              className="text-input"
-              type="password"
-              placeholder="Admin token"
-              value={token}
-              onChange={(event) => setToken(event.target.value)}
-              disabled={busy}
-            />
-            {problem !== null && <p className="error-text">{problem}</p>}
-            <button
-              className="pill-button full-width"
-              type="submit"
-              style={{ marginTop: "1.25rem" }}
-              disabled={busy || token.trim() === ""}
-            >
-              {busy ? "Loading…" : "Load stats"}
-            </button>
-          </form>
+      {stats !== null && (
+        <>
+          <div className="admin-summary">
+            <SummaryTile label="Users" value={stats.users} />
+            <SummaryTile label="Open lists" value={stats.openLists} />
+            <SummaryTile label="Archived lists" value={stats.archivedLists} />
+            <SummaryTile label="Open items" value={stats.openItems} />
+            <SummaryTile label="Done items" value={stats.doneItems} />
+          </div>
 
-          {stats !== null && (
-            <>
-              <div className="settings-section">
-                <StatRow label="Users" value={stats.users} />
-                <StatRow label="Open lists" value={stats.openLists} />
-                <StatRow label="Archived lists" value={stats.archivedLists} />
-                <StatRow label="Open items" value={stats.openItems} />
-                <StatRow label="Done items" value={stats.doneItems} />
-              </div>
-
-              <div className="settings-section">
-                <h2>Who signed up</h2>
-                <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
-                  {stats.accounts.map((account) => (
-                    <li
-                      key={account.userId}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "0.5rem",
-                        padding: "0.125rem 0",
-                      }}
+          <table className="admin-table">
+            <thead>
+              <tr>
+                {COLUMNS.map((column) => (
+                  <th
+                    key={column.key}
+                    className={column.key === "email" ? undefined : "num"}
+                    aria-sort={
+                      sort.key === column.key
+                        ? sort.dir === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : "none"
+                    }
+                  >
+                    <button type="button" onClick={() => toggleSort(column.key)}>
+                      {column.label}
+                      {sort.key === column.key && (sort.dir === "asc" ? " ▲" : " ▼")}
+                    </button>
+                  </th>
+                ))}
+                <th aria-label="Actions" />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((account) => (
+                <tr key={account.userId}>
+                  <td>{account.email}</td>
+                  <td className="num">{account.openLists}</td>
+                  <td className="num">{account.archivedLists}</td>
+                  <td className="num">{account.openItems}</td>
+                  <td className="num">{account.doneItems}</td>
+                  <td className="actions">
+                    <button
+                      className="text-button menu-danger"
+                      type="button"
+                      onClick={() => void remove(account)}
+                      disabled={busy || deleting !== null}
                     >
-                      <span style={{ overflowWrap: "anywhere" }}>
-                        {account.email}
-                        <small style={{ display: "block", opacity: 0.7 }}>
-                          Lists {account.openLists} open · {account.archivedLists} archived
-                          {" — "}Items {account.openItems} open · {account.doneItems} done
-                        </small>
-                      </span>
-                      <button
-                        className="text-button menu-danger"
-                        type="button"
-                        onClick={() => void remove(account)}
-                        disabled={busy || deleting !== null}
-                      >
-                        {deleting === account.userId ? "Deleting…" : "Delete"}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+                      {deleting === account.userId ? "Deleting…" : "Delete"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="admin-note">
+            Newest accounts first until you sort. A list shared between accounts counts for each
+            member, so the rows can add up to more than the totals above.
+          </p>
+        </>
+      )}
     </div>
   );
 }
 
-function StatRow({ label, value }: { label: string; value: number }) {
+type SortKey = "email" | "openLists" | "archivedLists" | "openItems" | "doneItems";
+
+const COLUMNS: { key: SortKey; label: string }[] = [
+  { key: "email", label: "Account" },
+  { key: "openLists", label: "Open lists" },
+  { key: "archivedLists", label: "Archived lists" },
+  { key: "openItems", label: "Open items" },
+  { key: "doneItems", label: "Done items" },
+];
+
+/** `key: null` is the server's order, newest account first. */
+function sortAccounts(
+  accounts: Account[],
+  sort: { key: SortKey | null; dir: "asc" | "desc" },
+): Account[] {
+  const { key, dir } = sort;
+  if (key === null) return accounts;
+  const sign = dir === "asc" ? 1 : -1;
+  return [...accounts].sort((a, b) =>
+    key === "email" ? sign * a.email.localeCompare(b.email) : sign * (a[key] - b[key]),
+  );
+}
+
+function SummaryTile({ label, value }: { label: string; value: number }) {
   return (
-    <p style={{ display: "flex", justifyContent: "space-between", margin: "0.5rem 0" }}>
+    <div className="admin-tile">
       <span>{label}</span>
       <strong>{value.toLocaleString()}</strong>
-    </p>
+    </div>
   );
 }
