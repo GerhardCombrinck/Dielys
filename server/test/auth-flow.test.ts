@@ -309,6 +309,10 @@ describe("admin stats (#84)", () => {
     expect(stats.accounts).toContainEqual({
       userId: ownerId,
       email: `${ownerEmail.slice(0, ownerEmail.indexOf("@"))}@…`,
+      openLists: 1,
+      archivedLists: 0,
+      openItems: 2,
+      doneItems: 0,
     });
     expect(emails).not.toContain(otherEmail);
     expect(emails.some((e) => e.endsWith(domain))).toBe(false);

@@ -89,6 +89,7 @@ import {
   recordListHead,
   selectAccountDeletionRequest,
   selectAccountsNewestFirst,
+  selectAllMemberships,
   selectDevicesForList,
   selectDistinctListIds,
   selectListMembers,
@@ -1292,6 +1293,12 @@ export class UsersRoom extends DurableObject {
    *  rather than this room reaching into ListRoom itself. */
   async listIds(): Promise<string[]> {
     return selectDistinctListIds(this.sql);
+  }
+
+  /** Every (account, list) membership (#84) — the admin stats route joins
+   *  these against each list's own counts to total them per account. */
+  async allMemberships(): Promise<{ userId: string; listId: string }[]> {
+    return selectAllMemberships(this.sql);
   }
 
   /** Every account's id and email, newest first (#84) — raw; the Worker

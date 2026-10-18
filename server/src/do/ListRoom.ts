@@ -29,7 +29,7 @@ import {
   toEnvelope,
 } from "../storage/changes.js";
 import {
-  countActiveTasks,
+  countActiveTasksByDone,
   readRoomMeta,
   selectFieldMeta,
   selectList,
@@ -163,8 +163,9 @@ export class ListRoom extends DurableObject {
   }
 
   /**
-   * Admin-only aggregate counts (#84): whether this list is (soft-)deleted,
-   * and how many of its tasks are not. No auth of its own (see the class
+   * Admin-only aggregate counts (#84): whether this list is (soft-)deleted or
+   * archived, and how many of its tasks that are not deleted are open vs
+   * done. No auth of its own (see the class
    * docstring) — reached only from the Worker's ADMIN_TOKEN-gated
    * `/admin/stats` handler, the same way `erase`/`disconnectAll` above are
    * reached only from the account-deletion path.
@@ -174,12 +175,20 @@ export class ListRoom extends DurableObject {
    * not deleted with zero tasks, rather than being excluded — it exists to
    * whoever claimed it, even if nothing has synced yet.
    */
-  async stats(): Promise<{ deleted: boolean; taskCount: number }> {
+  async stats(): Promise<{
+    deleted: boolean;
+    archived: boolean;
+    openTasks: number;
+    doneTasks: number;
+  }> {
     const listId = this.listId();
     const list = listId === null ? null : selectList(this.sql, listId);
+    const { open, done } = countActiveTasksByDone(this.sql);
     return {
       deleted: list !== null && list.deletedAt !== null,
-      taskCount: countActiveTasks(this.sql),
+      archived: list?.archived === true,
+      openTasks: open,
+      doneTasks: done,
     };
   }
 

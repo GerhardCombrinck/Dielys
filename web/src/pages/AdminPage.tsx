@@ -1,5 +1,6 @@
 /**
- * `dielys.com/admin` (#84) — total accounts, lists and items, for the one
+ * `dielys.com/admin` (#84) — total accounts, lists (open/archived) and items
+ * (open/done), overall and per account, for the one
  * person who runs this service to check on out of curiosity. Gated by the
  * `ADMIN_TOKEN` secret (the same one `scripts/create-user.ts` uses), not a
  * user session — App.tsx checks this route ahead of the sign-in gate, same
@@ -21,14 +22,19 @@ import { API_BASE_URL } from "../api/client.js";
 
 const ADMIN_TOKEN_KEY = "dielys.adminToken";
 
-interface Stats {
+interface Counts {
+  openLists: number;
+  archivedLists: number;
+  openItems: number;
+  doneItems: number;
+}
+
+interface Stats extends Counts {
   users: number;
-  lists: number;
-  items: number;
   accounts: Account[];
 }
 
-interface Account {
+interface Account extends Counts {
   userId: string;
   /** Local part only — the server never sends the domain (#84). */
   email: string;
@@ -143,8 +149,10 @@ export function AdminPage() {
             <>
               <div className="settings-section">
                 <StatRow label="Users" value={stats.users} />
-                <StatRow label="Lists" value={stats.lists} />
-                <StatRow label="Items" value={stats.items} />
+                <StatRow label="Open lists" value={stats.openLists} />
+                <StatRow label="Archived lists" value={stats.archivedLists} />
+                <StatRow label="Open items" value={stats.openItems} />
+                <StatRow label="Done items" value={stats.doneItems} />
               </div>
 
               <div className="settings-section">
@@ -161,7 +169,13 @@ export function AdminPage() {
                         padding: "0.125rem 0",
                       }}
                     >
-                      <span style={{ overflowWrap: "anywhere" }}>{account.email}</span>
+                      <span style={{ overflowWrap: "anywhere" }}>
+                        {account.email}
+                        <small style={{ display: "block", opacity: 0.7 }}>
+                          Lists {account.openLists} open · {account.archivedLists} archived
+                          {" — "}Items {account.openItems} open · {account.doneItems} done
+                        </small>
+                      </span>
                       <button
                         className="text-button menu-danger"
                         type="button"

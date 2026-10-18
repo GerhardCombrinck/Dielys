@@ -51,10 +51,17 @@ export function upsertTask(sql: SqlStorage, task: Task): void {
 }
 
 /** Live items only — the same filter `web/`'s and Android's own item counts
- *  use, so an admin total means what a member sees, not a changelog size. */
-export function countActiveTasks(sql: SqlStorage): number {
-  const row = sql.exec("SELECT COUNT(*) AS n FROM tasks WHERE deleted_at IS NULL").one();
-  return Number(row.n);
+ *  use, so an admin total means what a member sees, not a changelog size —
+ *  split by whether they are ticked off. */
+export function countActiveTasksByDone(sql: SqlStorage): { open: number; done: number } {
+  const row = sql
+    .exec(
+      `SELECT COALESCE(SUM(CASE WHEN done = 0 THEN 1 ELSE 0 END), 0) AS open,
+              COALESCE(SUM(CASE WHEN done <> 0 THEN 1 ELSE 0 END), 0) AS done
+         FROM tasks WHERE deleted_at IS NULL`,
+    )
+    .one();
+  return { open: Number(row.open), done: Number(row.done) };
 }
 
 export function selectList(sql: SqlStorage, id: string): TaskList | null {

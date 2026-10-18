@@ -334,6 +334,15 @@ export function selectDistinctListIds(sql: SqlStorage): string[] {
   );
 }
 
+/** Every (account, list) membership (#84) — what the admin stats route
+ *  needs to work out per-account list and item counts. */
+export function selectAllMemberships(sql: SqlStorage): { userId: string; listId: string }[] {
+  return [...sql.exec("SELECT user_id, list_id FROM memberships")].map((row) => ({
+    userId: String(row.user_id),
+    listId: String(row.list_id),
+  }));
+}
+
 /** How many people are on a list at all. Zero means it is unclaimed. */
 export function countListMembers(sql: SqlStorage, listId: string): number {
   const row = sql.exec("SELECT COUNT(*) AS n FROM memberships WHERE list_id = ?", listId).one();

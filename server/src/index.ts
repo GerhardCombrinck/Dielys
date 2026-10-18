@@ -699,7 +699,8 @@ async function handleCreateUser(request: Request, env: Env, now: number): Promis
 /**
  * `GET /admin/stats` (#84) — total accounts (with each account's id and email,
  * the email's domain obscured — curiosity about who signed up, not a directory), plus
- * lists and items across every list anyone has a membership on. `UsersRoom`
+ * lists (open vs archived) and items (open vs done) across every list anyone
+ * has a membership on, in total and per account. `UsersRoom`
  * answers what it knows directly; the per-list deleted/task-count numbers
  * live in each list's own `ListRoom`, so this fans out to all of them the
  * same way `eraseAccount` does for account deletion, and sums what comes
@@ -714,36 +715,71 @@ async function handleAdminStats(request: Request, env: Env): Promise<Response> {
     return errorResponse("unauthorized", 401);
   }
 
-  const [accounts, listIds] = await Promise.all([
+  const [accounts, listIds, memberships] = await Promise.all([
     usersRoom(env).accounts(),
     usersRoom(env).listIds(),
+    usersRoom(env).allMemberships(),
   ]);
 
-  const perList = await Promise.all(
-    listIds.map((listId) =>
-      listRoom(env, listId)
-        .stats()
-        .catch((error: unknown) => {
-          log("error", "worker.admin.stats.list-failed", { listId, error: String(error) });
-          return null;
-        }),
-    ),
+  const perList = new Map<string, Awaited<ReturnType<ReturnType<typeof listRoom>["stats"]>>>();
+  await Promise.all(
+    listIds.map(async (listId) => {
+      try {
+        perList.set(listId, await listRoom(env, listId).stats());
+      } catch (error: unknown) {
+        log("error", "worker.admin.stats.list-failed", { listId, error: String(error) });
+      }
+    }),
   );
 
-  let lists = 0;
-  let items = 0;
-  for (const stat of perList) {
-    if (stat === null || stat.deleted) continue;
-    lists += 1;
-    items += stat.taskCount;
+  const empty = (): AdminCounts => ({ openLists: 0, archivedLists: 0, openItems: 0, doneItems: 0 });
+  const add = (
+    counts: AdminCounts,
+    stat: { archived: boolean; openTasks: number; doneTasks: number },
+  ) => {
+    if (stat.archived) counts.archivedLists += 1;
+    else counts.openLists += 1;
+    counts.openItems += stat.openTasks;
+    counts.doneItems += stat.doneTasks;
+  };
+
+  // Totals count each list once; a list shared between accounts counts for
+  // each of its members in the per-account rows, so those do not sum to them.
+  const totals = empty();
+  for (const stat of perList.values()) {
+    if (!stat.deleted) add(totals, stat);
+  }
+  const perUser = new Map<string, AdminCounts>();
+  for (const { userId, listId } of memberships) {
+    const stat = perList.get(listId);
+    if (stat === undefined || stat.deleted) continue;
+    let counts = perUser.get(userId);
+    if (counts === undefined) {
+      counts = empty();
+      perUser.set(userId, counts);
+    }
+    add(counts, stat);
   }
 
   return Response.json({
     users: accounts.length,
-    lists,
-    items,
-    accounts: accounts.map(({ userId, email }) => ({ userId, email: obscureEmail(email) })),
+    lists: totals.openLists + totals.archivedLists,
+    items: totals.openItems + totals.doneItems,
+    ...totals,
+    accounts: accounts.map(({ userId, email }) => ({
+      userId,
+      email: obscureEmail(email),
+      ...(perUser.get(userId) ?? empty()),
+    })),
   });
+}
+
+/** Per-account (and overall) list and item counts on `/admin/stats` (#84). */
+interface AdminCounts {
+  openLists: number;
+  archivedLists: number;
+  openItems: number;
+  doneItems: number;
 }
 
 /**
