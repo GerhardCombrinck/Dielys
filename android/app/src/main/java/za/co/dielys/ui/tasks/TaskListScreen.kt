@@ -181,6 +181,9 @@ fun TaskListScreen(
     // String because opening an edit has to put the cursor at the end of the
     // title — a plain String keeps the old selection, which is the start.
     var draftText by remember { mutableStateOf(TextFieldValue()) }
+    // So the keyboard handing back what was just submitted, after its Done key
+    // cleared the field, can be told apart from typing (see [SubmittedEcho]).
+    val echo = remember { SubmittedEcho() }
     val field = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
 
@@ -332,13 +335,15 @@ fun TaskListScreen(
                 editing = editing != null,
                 readOnly = readOnly,
                 field = field,
-                onValueChange = { draftText = it },
+                onValueChange = { draftText = echo.next(it, draftText) },
                 onCancel = {
                     editing = null
+                    echo.forget()
                     draftText = TextFieldValue()
                 },
                 onSubmit = {
                     val trimmed = draftText.text.trim()
+                    echo.submitted(trimmed)
                     val added = submitDraft(trimmed, editing, viewModel::add, viewModel::rename)
                     draftText = TextFieldValue()
                     editing = null
