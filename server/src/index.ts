@@ -37,6 +37,7 @@ import {
   applyCorrections,
   buildCommandPrompt,
   buildVoicePrompt,
+  fallbackActions,
   instantMatch,
   normalise as normaliseVoiceText,
   parseCommand,
@@ -861,13 +862,9 @@ async function handleVoiceCommand(request: Request, env: Env): Promise<Response>
   modelMs = Date.now() - modelStarted;
   const actions = applyCorrections(parseCommand(raw, req, heard), req.corrections);
   if (actions.length > 0) return reply(actions, "model");
-  // The model failed or gave nothing traceable: the transcript as one item is
-  // still better than losing what was said.
-  const fallback = heard.replace(/[.!?]+$/, "");
-  return reply(
-    [{ type: "add", text: fallback.charAt(0).toUpperCase() + fallback.slice(1) }],
-    "fallback",
-  );
+  // The model failed or gave nothing traceable: the transcript itself is still
+  // better than losing what was said.
+  return reply(fallbackActions(heard), "fallback");
 }
 
 /**

@@ -45,9 +45,10 @@ fun ProvideDictation(content: @Composable () -> Unit) {
 
     correcting?.let { task ->
         TextPrompt(
-            title = stringResource(R.string.voice_correct_title),
+            title = stringResource(R.string.voice_correct_title, task.title),
             label = stringResource(R.string.voice_correct_label),
-            initial = task.title,
+            // Empty, so the fix is typed straight in; the title shows what is being fixed.
+            initial = "",
             onDismiss = { correcting = null },
             onConfirm = { text ->
                 correcting = null

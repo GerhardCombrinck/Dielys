@@ -3,6 +3,7 @@ import {
   applyCorrections,
   buildCommandPrompt,
   buildVoicePrompt,
+  fallbackActions,
   instantMatch,
   parseCommand,
   soundSkeleton,
@@ -127,6 +128,26 @@ describe("voice command", () => {
   it("leaves lists alone when the speaker named none", () => {
     expect(parseCommand("Coffee", parsed.value, "add coffee")).toEqual([
       { type: "add", text: "Coffee" },
+    ]);
+  });
+  it("drops known items nobody said, even when the model adds them", () => {
+    const req = { ...parsed.value, dictionary: ["Melk", "Brood", "Koffie"] };
+    expect(parseCommand("Coffee\nMelk\nBrood", req, "add coffee")).toEqual([
+      { type: "add", text: "Coffee" },
+    ]);
+  });
+  it("splits a comma list the model kept on one line", () => {
+    expect(parseCommand("Coffee, Bread, Milk", parsed.value, "add coffee bread milk")).toEqual([
+      { type: "add", text: "Coffee" },
+      { type: "add", text: "Bread" },
+      { type: "add", text: "Milk" },
+    ]);
+  });
+  it("splits the transcript fallback at commas", () => {
+    expect(fallbackActions("eggs, bread and peanut butter, milk.")).toEqual([
+      { type: "add", text: "Eggs" },
+      { type: "add", text: "Bread and peanut butter" },
+      { type: "add", text: "Milk" },
     ]);
   });
   it("reads NONE as nothing to add", () => {

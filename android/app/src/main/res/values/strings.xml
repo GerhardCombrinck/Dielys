@@ -239,6 +239,6 @@
         <item quantity="other">%d items</item>
     </plurals>
     <string name="voice_correct_action">Correct dictation</string>
-    <string name="voice_correct_title">Correct dictation</string>
+    <string name="voice_correct_title">Correct “%1$s”</string>
     <string name="voice_correct_label">What it should say</string>
 </resources>

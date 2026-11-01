@@ -208,6 +208,6 @@
         <item quantity="other">%d items</item>
     </plurals>
     <string name="voice_correct_action">Korrigeer diktee</string>
-    <string name="voice_correct_title">Korrigeer diktee</string>
+    <string name="voice_correct_title">Korrigeer “%1$s”</string>
     <string name="voice_correct_label">Wat dit moet wees</string>
 </resources>

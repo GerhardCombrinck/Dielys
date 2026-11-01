@@ -264,7 +264,7 @@ export function validateVoiceCommandRequest(input: unknown): Validated<VoiceComm
   };
 }
 
-export const VOICE_COMMAND_PROMPT_VERSION = 5;
+export const VOICE_COMMAND_PROMPT_VERSION = 6;
 
 /** The versioned instruction prompt. The answer is one item per line, parsed by [parseCommand]. */
 export function buildCommandPrompt(req: VoiceCommandRequest, heard: string): ChatMessage[] {
@@ -275,7 +275,7 @@ export function buildCommandPrompt(req: VoiceCommandRequest, heard: string): Cha
     // Placeholders, not real items: a small model copies a real example answer.
     "Only when the speaker names another of their lists, write that item as <item> @ <list>.",
     "Rules:",
-    "- One action per item to add. 'add coffee add bread and milk' is three items: Coffee, Bread, Milk. 'voeg melk en brood by' is two.",
+    "- Each line is one thing to buy or do. Split lists into separate lines: commas, 'and' and 'en' separate items. 'eggs, bread, milk' is three lines: Eggs, Bread, Milk. 'add coffee add bread and milk' is three items: Coffee, Bread, Milk. 'voeg melk en brood by' is two. Never put a comma inside a line.",
     "- Add every item that was said, including ones in their known spellings. Known spellings only show how to write an item; they do not mean it is already on a list, so never leave an item out because it is there.",
     "- Do not split names that are one item, like 'salt and pepper chips' or 'mac and cheese', when the known spellings show them as one.",
     "- Leave out command words (add, put, voeg by, sit op, please, asseblief) and the list name from the item text.",
@@ -300,6 +300,20 @@ export function buildCommandPrompt(req: VoiceCommandRequest, heard: string): Cha
     { role: "system", content: system },
     { role: "user", content: lines.join("\n") },
   ];
+}
+
+/**
+ * The transcript as items when the model gave nothing usable: split at commas,
+ * so "Eggs, bread, milk" is three items rather than one, each with a capital.
+ */
+export function fallbackActions(heard: string): VoiceAction[] {
+  return heard
+    .replace(/[.!?]+$/, "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter((part) => part !== "")
+    .slice(0, MAX_VOICE_ACTIONS)
+    .map((part) => ({ type: "add" as const, text: part.charAt(0).toUpperCase() + part.slice(1) }));
 }
 
 /** What the model wrote per item, before the guard looks at it. */
@@ -333,9 +347,14 @@ function candidates(raw: string): Candidate[] | null {
     const clean = line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim();
     if (clean === "" || /^none$/i.test(clean)) return [];
     const at = clean.lastIndexOf("@");
-    return at < 0
-      ? [{ text: clean }]
-      : [{ text: clean.slice(0, at).trim(), list: clean.slice(at + 1).trim() }];
+    const text = at < 0 ? clean : clean.slice(0, at);
+    const list = at < 0 ? undefined : clean.slice(at + 1).trim();
+    // A comma list the model kept on one line is still several items.
+    return text
+      .split(",")
+      .map((part) => part.trim())
+      .filter((part) => part !== "")
+      .map((part) => (list === undefined ? { text: part } : { text: part, list }));
   });
 }
 
@@ -355,6 +374,7 @@ export function parseCommand(raw: string, req: VoiceCommandRequest, heard: strin
     dictionary: req.dictionary,
     corrections: req.corrections,
   };
+  const said: VoiceCleanupRequest = { ...context, dictionary: [] };
   const listsByKey = new Map(req.lists.map((name) => [normalise(name), name]));
   const here = normalise(req.listName);
   const actions: VoiceAction[] = [];
@@ -362,7 +382,9 @@ export function parseCommand(raw: string, req: VoiceCommandRequest, heard: strin
     if (actions.length >= MAX_VOICE_ACTIONS) break;
     const text = tidy(item.text);
     if (text === "" || text.length > MAX_VOICE_TEXT_LENGTH) continue;
-    if (!traceable(text, context) && !soundsLikeHeard(text, heard, context)) continue;
+    // Traced to what was said, not to the dictionary: the model invented "Melk,
+    // Brood" from known items nobody spoke (benchmark af-3).
+    if (!traceable(text, said) && !soundsLikeHeard(text, heard, said)) continue;
     const key = item.list === undefined ? undefined : normalise(item.list);
     const list = key === undefined || key === here ? undefined : listsByKey.get(key);
     actions.push(list === undefined ? { type: "add", text } : { type: "add", text, list });
