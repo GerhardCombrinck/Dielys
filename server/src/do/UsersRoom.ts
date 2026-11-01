@@ -2,12 +2,14 @@ import { DurableObject } from "cloudflare:workers";
 import {
   type AuthErrorCode,
   type ListMember,
+  MAX_STORED_VOICE_CORRECTIONS,
   type Membership,
   type MembershipRole,
   NOTIFY_EVENTS,
   type NotifyEvent,
   type SyncSettings,
   type SyncSettingsPatch,
+  type VoiceCorrectionRecord,
 } from "@dielys/protocol";
 import { INVITE_TOKEN_TTL_SECONDS, signInviteToken } from "../auth/jwt.js";
 import { generateMagicCode, hashMagicCode } from "../auth/magiccode.js";
@@ -58,6 +60,7 @@ import {
 } from "../push/fcm.js";
 import { applyPendingMigrations, USERS_MIGRATIONS } from "../storage/migrations.js";
 import {
+  addVoiceCorrectionSubmission,
   countListMembers,
   countUsers,
   deleteAccountDeletionRequest,
@@ -105,6 +108,7 @@ import {
   selectSyncSettings,
   selectUserByEmail,
   selectUserById,
+  selectVoiceCorrections,
   selectWsTicket,
   updateMembershipNotify,
   updateMembershipPosition,
@@ -185,6 +189,9 @@ export interface Session {
  * `auth/jwt.ts` is barred from storage access (D1); it also puts the one
  * CPU-expensive operation in the object with the larger CPU budget.
  */
+/** Distinct corrections kept in the shared library; the winners answered are capped separately. */
+const SHARED_CORRECTIONS_KEPT = 5000;
+
 export class UsersRoom extends DurableObject {
   private readonly sql: SqlStorage;
   /**
@@ -1036,6 +1043,32 @@ export class UsersRoom extends DurableObject {
     // Answered in the protocol's order, the same way `/auth/memberships` reads
     // it back, so a client comparing the two never sees a spurious difference.
     return { ok: true, value: { listId, events: NOTIFY_EVENTS.filter((e) => events.includes(e)) } };
+  }
+
+  /** The shared voice library: the winning correction per mishearing (ADR 0016). */
+  async getVoiceCorrections(): Promise<VoiceCorrectionRecord[]> {
+    return selectVoiceCorrections(this.sql, MAX_STORED_VOICE_CORRECTIONS).map((row) => ({
+      heard: row.heard,
+      saved: row.saved,
+      language: row.language === "af" ? "af" : "en",
+    }));
+  }
+
+  /** Counts one submission of a correction towards the shared library. Anonymous: no user id is kept. */
+  async addVoiceCorrection(
+    record: VoiceCorrectionRecord,
+    heardKey: string,
+    savedKey: string,
+    now: number,
+  ): Promise<void> {
+    this.ctx.storage.transactionSync(() => {
+      addVoiceCorrectionSubmission(
+        this.sql,
+        { heardKey, savedKey, heard: record.heard, saved: record.saved, language: record.language },
+        now,
+        SHARED_CORRECTIONS_KEPT,
+      );
+    });
   }
 
   /** The caller's background-sync setting (ADR 0010, PROTOCOL.md

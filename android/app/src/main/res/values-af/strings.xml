@@ -197,4 +197,17 @@
     <string name="notify_more">+%1$d meer</string>
     <string name="sync_channel_name">Sinkroniseer</string>
     <string name="sync_notification">Werk jou lyste by</string>
+    <string name="cd_hold_to_talk">Hou om te praat. Tik om taal te wissel.</string>
+    <string name="voice_not_heard">Kon dit nie hoor nie. Probeer weer.</string>
+    <string name="voice_mic_denied">Laat die mikrofoon toe in Instellings om met die toep te praat.</string>
+    <string name="voice_unavailable">Stem is nou nie beskikbaar nie. Probeer weer.</string>
+    <string name="voice_added">%1$s bygevoeg</string>
+    <string name="voice_added_to">%1$s by %2$s gevoeg</string>
+    <plurals name="voice_items">
+        <item quantity="one">%d item</item>
+        <item quantity="other">%d items</item>
+    </plurals>
+    <string name="voice_correct_action">Korrigeer diktee</string>
+    <string name="voice_correct_title">Korrigeer diktee</string>
+    <string name="voice_correct_label">Wat dit moet wees</string>
 </resources>

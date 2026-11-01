@@ -14,6 +14,9 @@ export default defineConfig({
   },
   plugins: [
     cloudflareTest({
+      // The `ai` binding only exists remotely; tests never call the model, so
+      // do not open a remote proxy session (it needs a Cloudflare login).
+      remoteBindings: false,
       wrangler: { configPath: "./wrangler.jsonc" },
       miniflare: {
         // Secrets are not in wrangler.jsonc (I1), and `.dev.vars` is gitignored,

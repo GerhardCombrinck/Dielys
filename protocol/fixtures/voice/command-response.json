@@ -1,0 +1,8 @@
+{
+  "heard": "add coffee add bread and milk to woolies",
+  "actions": [
+    { "type": "add", "text": "Coffee" },
+    { "type": "add", "text": "Bread", "list": "Woolies" },
+    { "type": "add", "text": "Milk", "list": "Woolies" }
+  ]
+}

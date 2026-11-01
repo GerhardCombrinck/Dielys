@@ -25,6 +25,7 @@
     // the link, since both send someone to the same installed app.
     "APP_BASE_URL": "https://dielys.com"
   },
+  "ai": { "binding": "AI" },
   "durable_objects": {
     "bindings": [
       { "name": "LIST_ROOM", "class_name": "ListRoom" },
@@ -41,6 +42,7 @@
     "dev": {
       "name": "dielys-dev",
       "vars": { "ENVIRONMENT": "dev", "APP_BASE_URL": "https://dielys.com" },
+      "ai": { "binding": "AI" },
       "durable_objects": {
         "bindings": [
           { "name": "LIST_ROOM", "class_name": "ListRoom" },
@@ -57,6 +59,7 @@
     "prod": {
       "name": "dielys-prod",
       "vars": { "ENVIRONMENT": "prod", "APP_BASE_URL": "https://dielys.com" },
+      "ai": { "binding": "AI" },
       // dielys.com is the App Link domain a magic-link email points at (ADR
       // 0005) — it has to resolve to this Worker so Android can fetch
       // /.well-known/assetlinks.json to verify the app owns it, and so a link

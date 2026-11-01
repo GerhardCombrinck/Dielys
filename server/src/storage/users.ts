@@ -822,3 +822,62 @@ export function deleteAccountDeletionRequestsForUser(sql: SqlStorage, userId: st
 export function deleteExpiredAccountDeletionRequests(sql: SqlStorage, before: string): void {
   sql.exec("DELETE FROM account_deletion_requests WHERE expires_at < ?", before);
 }
+
+/**
+ * The shared voice library (ADR 0016): for each mishearing, the correction
+ * submitted most often, the latest on a tie. Most recently touched first.
+ */
+export function selectVoiceCorrections(
+  sql: SqlStorage,
+  limit: number,
+): { heard: string; saved: string; language: string }[] {
+  return [
+    ...sql.exec(
+      `SELECT heard, saved, language FROM (
+         SELECT heard, saved, language, last_at,
+           ROW_NUMBER() OVER (
+             PARTITION BY heard_key, language
+             ORDER BY submissions DESC, last_at DESC
+           ) AS rank
+         FROM shared_voice_corrections
+       )
+       WHERE rank = 1
+       ORDER BY last_at DESC
+       LIMIT ?`,
+      limit,
+    ),
+  ].map((row) => ({
+    heard: String(row.heard),
+    saved: String(row.saved),
+    language: String(row.language),
+  }));
+}
+
+/** Counts one submission of a correction, and keeps the table to the [keep] most recently touched rows. */
+export function addVoiceCorrectionSubmission(
+  sql: SqlStorage,
+  record: { heardKey: string; savedKey: string; heard: string; saved: string; language: string },
+  now: number,
+  keep: number,
+): void {
+  sql.exec(
+    `INSERT INTO shared_voice_corrections
+       (heard_key, language, saved_key, heard, saved, submissions, last_at)
+     VALUES (?, ?, ?, ?, ?, 1, ?)
+     ON CONFLICT (heard_key, language, saved_key)
+     DO UPDATE SET submissions = submissions + 1, heard = excluded.heard,
+       saved = excluded.saved, last_at = excluded.last_at`,
+    record.heardKey,
+    record.language,
+    record.savedKey,
+    record.heard,
+    record.saved,
+    now,
+  );
+  sql.exec(
+    `DELETE FROM shared_voice_corrections WHERE rowid NOT IN (
+       SELECT rowid FROM shared_voice_corrections ORDER BY last_at DESC LIMIT ?
+     )`,
+    keep,
+  );
+}

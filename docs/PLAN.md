@@ -125,6 +125,13 @@ Where Dielys is and what comes next. Short by design — the standard is in
 - [x] **Tick-off chime** — a short two-note chime when an item is ticked off, on Android and web,
       with a Settings switch (on by default). Android stays quiet when the phone is on silent or
       vibrate. One WAV for both apps, drawn by `docs/sound/make_chime.py`.
+- [ ] **Voice input** (ADR 0016, [VOICE.md](VOICE.md)) — hold the send button, say one item,
+      release; it lands in the field cleaned up and you tap Done. Google's recognizer on the
+      phone, then a small LLM on Workers AI that knows your items and learns from your fixes
+      (corrections synced to the account). Android 13+, items only. **Phase 0 first:** a
+      recorded bake-off against Whisper that must reach 95% of items needing no edit in both
+      English and Afrikaans, with waits of 2 s for new items and 0.5 s for known ones. Web voice
+      and "Hey Google" are later phases.
 
 ## Open questions
 

@@ -228,4 +228,17 @@
     <string name="notify_more">+%1$d more</string>
     <string name="sync_channel_name">Syncing</string>
     <string name="sync_notification">Updating your lists</string>
+    <string name="cd_hold_to_talk">Hold to talk. Tap to switch language.</string>
+    <string name="voice_not_heard">Could not hear that. Try again.</string>
+    <string name="voice_mic_denied">Allow the microphone in Settings to talk to the app.</string>
+    <string name="voice_unavailable">Voice is not available right now. Try again.</string>
+    <string name="voice_added">Added %1$s</string>
+    <string name="voice_added_to">Added %1$s to %2$s</string>
+    <plurals name="voice_items">
+        <item quantity="one">%d item</item>
+        <item quantity="other">%d items</item>
+    </plurals>
+    <string name="voice_correct_action">Correct dictation</string>
+    <string name="voice_correct_title">Correct dictation</string>
+    <string name="voice_correct_label">What it should say</string>
 </resources>

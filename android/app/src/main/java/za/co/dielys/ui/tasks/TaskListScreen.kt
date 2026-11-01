@@ -285,116 +285,123 @@ fun TaskListScreen(
             ?.let(::accentColor)
             ?: listAccent(listId)
 
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            TopAppBar(
-                // The same height as the lists screen's bar (#59). The actions
-                // sit centred in it, so anything shorter puts the chip and the
-                // sync icon 8dp higher here than on the screen you just left.
-                expandedHeight = 96.dp,
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(12.dp).background(accent, CircleShape))
-                        Text(
-                            currentList?.displayTitle(LocalContext.current) ?: "",
-                            modifier = Modifier.padding(start = 14.dp),
+    ProvideDictation {
+        Scaffold(
+            modifier = modifier,
+            topBar = {
+                TopAppBar(
+                    // The same height as the lists screen's bar (#59). The actions
+                    // sit centred in it, so anything shorter puts the chip and the
+                    // sync icon 8dp higher here than on the screen you just left.
+                    expandedHeight = 96.dp,
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(12.dp).background(accent, CircleShape))
+                            Text(
+                                currentList?.displayTitle(LocalContext.current) ?: "",
+                                modifier = Modifier.padding(start = 14.dp),
+                            )
+                        }
+                    },
+                    colors =
+                        TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.background,
+                        ),
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.cd_back),
+                            )
+                        }
+                    },
+                    actions = {
+                        SharedListActions(
+                            list = currentList,
+                            pending = pending,
+                            stuck = stuck,
+                            onSetNotify = viewModel::setNotify,
                         )
-                    }
-                },
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                    ),
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.cd_back),
-                        )
-                    }
-                },
-                actions = {
-                    SharedListActions(
-                        list = currentList,
-                        pending = pending,
-                        stuck = stuck,
-                        onSetNotify = viewModel::setNotify,
-                    )
-                    // The same control in the same place as the lists screen
-                    // (#59), so crossing between the two does not rearrange the
-                    // header under the thumb already reaching for it.
-                    HelpButton(onClick = onHelp)
-                    SettingsButton(onClick = onSettings)
-                },
-            )
-        },
-        bottomBar = {
-            AddTaskBar(
-                value = draftText,
-                editing = editing != null,
-                readOnly = readOnly,
-                field = field,
-                onValueChange = { draftText = echo.next(it, draftText) },
-                onCancel = {
-                    editing = null
-                    echo.forget()
-                    draftText = TextFieldValue()
-                },
-                onSubmit = {
-                    val trimmed = draftText.text.trim()
-                    echo.submitted(trimmed)
-                    val added = submitDraft(trimmed, editing, viewModel::add, viewModel::rename)
-                    draftText = TextFieldValue()
-                    editing = null
-                    if (added != null) {
-                        pendingId = added
-                        pendingText = trimmed
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            if (board.isEmpty && ghostText == null) {
-                NoRows(loaded = board.loaded, readOnly = readOnly)
-            } else {
-                Tasks(
-                    active = active,
-                    done = board.done,
-                    accent = accent,
-                    readOnly = readOnly,
-                    draggingId = draggingId,
-                    highlightedId = highlighted,
-                    ghostText = ghostText,
-                    ghostId = pendingId,
-                    ghostIndex = ghostSlot(active, newItemsOnTop),
-                    editingId = editing?.id,
-                    editingText = draftText.text,
-                    doneExpanded = doneExpanded,
-                    onToggleDoneExpanded = {
-                        doneExpanded = !doneExpanded
-                        viewModel.setDoneExpanded(listId, doneExpanded)
+                        // The same control in the same place as the lists screen
+                        // (#59), so crossing between the two does not rearrange the
+                        // header under the thumb already reaching for it.
+                        HelpButton(onClick = onHelp)
+                        SettingsButton(onClick = onSettings)
                     },
-                    onDragStart = { index -> draggingId = active.getOrNull(index)?.id },
-                    onDragMove = { from, to -> draft = active.moved(from, to) },
-                    onDragEnd = {
-                        commitMove(draft, draggingId, viewModel::move)
-                        draggingId = null
-                    },
-                    onDragCancel = {
-                        draft = null
-                        draggingId = null
-                    },
-                    onToggle = viewModel::setDone,
-                    onStar = viewModel::setStarred,
-                    onRename = { task ->
-                        editing = task
-                        draftText = TextFieldValue(task.title, TextRange(task.title.length))
-                    },
-                    onDelete = viewModel::delete,
-                    onMoveTo = { moving = it },
                 )
+            },
+            // Voice (ADR 0016): a circle bottom-right, just above the add bar's
+            // send button. Not while a row is being edited, or on an archived list.
+            floatingActionButton = {
+                VoiceButton(listId = listId, editing = editing != null, readOnly = readOnly)
+            },
+            bottomBar = {
+                AddTaskBar(
+                    value = draftText,
+                    editing = editing != null,
+                    readOnly = readOnly,
+                    field = field,
+                    onValueChange = { draftText = echo.next(it, draftText) },
+                    onCancel = {
+                        editing = null
+                        echo.forget()
+                        draftText = TextFieldValue()
+                    },
+                    onSubmit = {
+                        val trimmed = draftText.text.trim()
+                        echo.submitted(trimmed)
+                        val added = submitDraft(trimmed, editing, viewModel::add, viewModel::rename)
+                        draftText = TextFieldValue()
+                        editing = null
+                        if (added != null) {
+                            pendingId = added
+                            pendingText = trimmed
+                        }
+                    },
+                )
+            },
+        ) { padding ->
+            Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+                if (board.isEmpty && ghostText == null) {
+                    NoRows(loaded = board.loaded, readOnly = readOnly)
+                } else {
+                    Tasks(
+                        active = active,
+                        done = board.done,
+                        accent = accent,
+                        readOnly = readOnly,
+                        draggingId = draggingId,
+                        highlightedId = highlighted,
+                        ghostText = ghostText,
+                        ghostId = pendingId,
+                        ghostIndex = ghostSlot(active, newItemsOnTop),
+                        editingId = editing?.id,
+                        editingText = draftText.text,
+                        doneExpanded = doneExpanded,
+                        onToggleDoneExpanded = {
+                            doneExpanded = !doneExpanded
+                            viewModel.setDoneExpanded(listId, doneExpanded)
+                        },
+                        onDragStart = { index -> draggingId = active.getOrNull(index)?.id },
+                        onDragMove = { from, to -> draft = active.moved(from, to) },
+                        onDragEnd = {
+                            commitMove(draft, draggingId, viewModel::move)
+                            draggingId = null
+                        },
+                        onDragCancel = {
+                            draft = null
+                            draggingId = null
+                        },
+                        onToggle = viewModel::setDone,
+                        onStar = viewModel::setStarred,
+                        onRename = { task ->
+                            editing = task
+                            draftText = TextFieldValue(task.title, TextRange(task.title.length))
+                        },
+                        onDelete = viewModel::delete,
+                        onMoveTo = { moving = it },
+                    )
+                }
             }
         }
     }
@@ -1166,6 +1173,16 @@ private fun TaskRow(
                                 onRename()
                             },
                         )
+                        val dictation = LocalDictation.current
+                        if (dictation != null && dictation.isDictated(task.id)) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.voice_correct_action)) },
+                                onClick = {
+                                    menuOpen = false
+                                    dictation.onCorrect(task)
+                                },
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.action_move_to)) },
                             onClick = {

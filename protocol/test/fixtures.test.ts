@@ -46,6 +46,7 @@ const changeFixtures = load("changes");
 const messageFixtures = load("messages");
 const pushFixtures = load("push");
 const authFixtures = load("auth");
+const voiceFixtures = load("voice");
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -62,6 +63,7 @@ describe("protocol fixtures round-trip (F4)", () => {
     ...messageFixtures,
     ...pushFixtures,
     ...authFixtures,
+    ...voiceFixtures,
   ]) {
     it(`${file} round-trips through JSON without data loss`, () => {
       expect(JSON.parse(JSON.stringify(parsed))).toEqual(parsed);
@@ -91,6 +93,66 @@ describe("wake push fixtures carry nothing but a hint to sync (M1)", () => {
       // it, so `seq` is a decimal string the client parses back.
       expect(typeof payload.seq).toBe("string");
       expect(Number.isSafeInteger(Number(payload.seq))).toBe(true);
+    });
+  }
+});
+
+describe("voice fixtures have their declared shape", () => {
+  for (const { file, parsed } of voiceFixtures) {
+    it(file, () => {
+      const record = parsed as Record<string, unknown>;
+      if (file === "correction-record.json") {
+        expect(Object.keys(record).sort()).toEqual(["heard", "language", "saved"]);
+        return;
+      }
+      if (file === "corrections-response.json") {
+        expect(Object.keys(record)).toEqual(["corrections"]);
+        for (const c of record.corrections as Record<string, unknown>[]) {
+          expect(Object.keys(c).sort()).toEqual(["heard", "language", "saved"]);
+        }
+        return;
+      }
+      if (file === "command-request.json") {
+        expect(Object.keys(record).sort()).toEqual([
+          "audio",
+          "corrections",
+          "dictionary",
+          "language",
+          "listName",
+          "lists",
+        ]);
+        return;
+      }
+      if (file === "command-response.json") {
+        expect(Object.keys(record).sort()).toEqual(["actions", "heard"]);
+        for (const action of record.actions as Record<string, unknown>[]) {
+          expect(action.type).toBe("add");
+          expect(
+            Object.keys(action)
+              .filter((k) => k !== "list")
+              .sort(),
+          ).toEqual(["text", "type"]);
+        }
+        return;
+      }
+      if (file.startsWith("cleanup-request")) {
+        const keys = Object.keys(record).filter((k) => k !== "field" && k !== "audio");
+        expect(keys.sort()).toEqual([
+          "corrections",
+          "dictionary",
+          "guesses",
+          "language",
+          "listName",
+        ]);
+        expect(["en", "af"]).toContain(record.language);
+      } else {
+        expect(
+          Object.keys(record)
+            .filter((k) => k !== "heard")
+            .sort(),
+        ).toEqual(["outcome", "text"]);
+        expect(["matched", "cleaned", "rejected"]).toContain(record.outcome);
+      }
     });
   }
 });
