@@ -180,7 +180,7 @@ dependencies {
     // emulator (H1). Those are JUnit 4, which the vintage engine runs on the
     // same JUnit Platform as everything else.
     testImplementation("junit:junit:4.13.2")
-    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.11.0")
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:6.1.3")
     testImplementation("org.robolectric:robolectric:4.16.1")
     // Declared rather than downloaded by Robolectric at first run, so Gradle
     // caches it and CI does not fetch 90 MB on every build.
