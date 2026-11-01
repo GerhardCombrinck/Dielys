@@ -20,6 +20,10 @@ declare global {
       /** The static pages in `public/`. Deployed, they are answered before the
        * Worker runs; the binding exists so tests can reach them too. */
       ASSETS: Fetcher;
+      /** Workers AI, for voice cleanup (ADR 0016). */
+      AI: Ai;
+      /** "off" switches voice cleanup off for everyone without an app release. */
+      VOICE_CLEANUP?: string;
       /**
        * The HTTPS App Link origin a magic-link email points at (ADR 0005),
        * e.g. "https://dielys.com" — public by nature, so a `vars` value in

@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
+import za.co.dielys.domain.DictionaryRow
 
 /**
  * Reads are `Flow`s, because that is the only way the UI observes data (E1.2). The
@@ -265,6 +266,20 @@ interface TaskDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(task: TaskEntity)
+
+    /**
+     * Every title this account has ever added, ticked and deleted ones included
+     * (deletes are tombstones, F5.3), folded per list: the voice dictionary's raw
+     * material (docs/VOICE.md). Ids are UUIDv7, so MAX(id) is the newest row and
+     * SQLite returns that row's title alongside it.
+     */
+    @Query(
+        """
+        SELECT title, list_id AS listId, COUNT(*) AS uses, MAX(id) AS lastId
+        FROM tasks GROUP BY list_id, lower(title)
+        """,
+    )
+    suspend fun dictionaryRows(): List<DictionaryRow>
 
     /** Feeds the count on the lists screen's row: what is still to do, so a
      * finished list reads 0 rather than however many things it once held. The

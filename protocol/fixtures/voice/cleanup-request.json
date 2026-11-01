@@ -1,0 +1,7 @@
+{
+  "language": "af",
+  "listName": "Inkopies",
+  "guesses": [{ "text": "elk", "confidence": 0.62 }, { "text": "melk", "confidence": 0.31 }],
+  "dictionary": ["Melk 2L", "Brood", "Botter"],
+  "corrections": [{ "heard": "bruid", "saved": "Brood" }]
+}

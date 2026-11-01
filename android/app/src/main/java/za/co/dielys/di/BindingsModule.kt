@@ -28,9 +28,11 @@ import za.co.dielys.data.remote.AccountApi
 import za.co.dielys.data.remote.AuthApi
 import za.co.dielys.data.remote.HttpAuthApi
 import za.co.dielys.data.remote.HttpSyncApi
+import za.co.dielys.data.remote.HttpVoiceApi
 import za.co.dielys.data.remote.ListSockets
 import za.co.dielys.data.remote.OkHttpListSockets
 import za.co.dielys.data.remote.SyncApi
+import za.co.dielys.data.remote.VoiceApi
 import za.co.dielys.data.sync.SyncScheduler
 import za.co.dielys.data.sync.WorkManagerSyncScheduler
 import za.co.dielys.ui.tasks.SoundPoolTickChime
@@ -46,6 +48,10 @@ abstract class BindingsModule {
     abstract fun syncApi(impl: HttpSyncApi): SyncApi
 
     /** Deleting the account (ADR 0007), over the same authenticated client. */
+    @Binds
+    @Singleton
+    abstract fun voiceApi(impl: HttpVoiceApi): VoiceApi
+
     @Binds
     @Singleton
     abstract fun accountApi(impl: HttpSyncApi): AccountApi

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!--
+            Debug builds only (never merged into release): the three phone checks
+            that decide whether hold-to-talk works as specced (docs/VOICE.md
+            "Phase 0"). Its own launcher entry so nothing in the app reaches it.
+        -->
+        <activity
+            android:name="za.co.dielys.debug.VoiceChecksActivity"
+            android:exported="true"
+            android:label="Voice checks"
+            android:theme="@style/Theme.Dielys">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Debug builds only: where the time of each hold-to-talk goes (docs/VOICE.md "Timing"). -->
+        <activity
+            android:name="za.co.dielys.debug.VoiceTimingsActivity"
+            android:exported="true"
+            android:label="Voice timings"
+            android:theme="@style/Theme.Dielys">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

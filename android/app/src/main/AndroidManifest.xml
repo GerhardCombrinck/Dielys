@@ -5,6 +5,19 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Hold-to-talk (ADR 0016). Asked for on the first hold, never at launch. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- A short tick when the voice button opens and closes the mic. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Mic hardware is optional: a phone without one just has no mic button. -->
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <!-- Lets the app see which speech recognizers are installed (Android 11+ package visibility). -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
 
     <application
         android:name=".DielysApplication"

@@ -2,7 +2,7 @@
  * Worker entry. Routing and auth only, no business logic (D1) — authenticate,
  * resolve which DO to talk to, forward.
  */
-import type { ErrorCode, MembershipRole } from "@dielys/protocol";
+import type { ErrorCode, MembershipRole, VoiceAction } from "@dielys/protocol";
 import { authenticate, authorizeAdmin, authorizeListAccess } from "./auth/authorize.js";
 import {
   ACCESS_TOKEN_TTL_SECONDS,
@@ -33,6 +33,21 @@ import {
   validateVerifyMagicCodeRequest,
   validateVerifyMagicLinkRequest,
 } from "./domain/validate.js";
+import {
+  applyCorrections,
+  buildCommandPrompt,
+  buildVoicePrompt,
+  fallbackActions,
+  instantMatch,
+  normalise as normaliseVoiceText,
+  parseCommand,
+  tidy,
+  traceable,
+  validateVoiceCleanupRequest,
+  validateVoiceCommandRequest,
+  validateVoiceCorrectionRecord,
+  whisperPrompt,
+} from "./domain/voice.js";
 import { log } from "./lib/log.js";
 
 export { ListRoom, UsersRoom };
@@ -137,6 +152,12 @@ async function handle(request: Request, env: Env): Promise<Response> {
         return await handleMintWsTicket(request, env, now);
       case "/auth/sync-settings":
         return await handleSyncSettings(request, env);
+      case "/voice/corrections":
+        return await handleVoiceCorrections(request, env, now);
+      case "/voice/command":
+        return await handleVoiceCommand(request, env);
+      case "/voice/cleanup":
+        return await handleVoiceCleanup(request, env);
       case "/devices/token":
         return await handleRegisterDevice(request, env, now);
       case "/admin/users":
@@ -553,6 +574,329 @@ async function handleRefresh(request: Request, env: Env, now: number): Promise<R
       now,
     ),
   );
+}
+
+/** Small and fast; the bake-off picks the final model (docs/VOICE.md). */
+const VOICE_MODEL = "@cf/meta/llama-3.1-8b-instruct-fp8";
+const WHISPER_MODEL = "@cf/openai/whisper-large-v3-turbo";
+const WHISPER_TIMEOUT_MS = 6000;
+const VOICE_TIMEOUT_MS = 2500;
+
+/**
+ * Speech to text. "turbo" is what ships: Whisper large-v3-turbo, greedy, with the
+ * person's items as its prompt. The others exist for the dev benchmark only.
+ */
+async function transcribe(
+  ai: Ai,
+  variant: string,
+  audio: string,
+  language: string,
+  words: string[],
+): Promise<string> {
+  switch (variant) {
+    case "turbo": {
+      const result = (await ai.run(WHISPER_MODEL, {
+        audio,
+        language,
+        task: "transcribe",
+        initial_prompt: whisperPrompt(words),
+        // Greedy decoding: much faster than the default five beams on a short clip.
+        beam_size: 1,
+        condition_on_previous_text: false,
+      })) as { text?: string };
+      return result.text ?? "";
+    }
+    // About 7x faster than Turbo on English but refuses Afrikaans (benchmark,
+    // 2026-11-01). Kept to retry English with key terms passed properly.
+    case "nova3": {
+      const bytes = Uint8Array.from(atob(audio), (c) => c.charCodeAt(0));
+      const result = (await ai.run(
+        "@cf/deepgram/nova-3" as never,
+        {
+          audio: { body: new Response(bytes).body, contentType: "audio/wav" },
+          language,
+          smart_format: true,
+          keyterm: words.slice(0, 20).join(" "),
+        } as never,
+      )) as {
+        results?: { channels?: { alternatives?: { transcript?: string }[] }[] };
+      };
+      return result.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? "";
+    }
+    default:
+      throw new Error(`unknown stt ${variant}`);
+  }
+}
+
+/** A `Server-Timing` header value: `auth;dur=3, whisper;dur=410`. */
+function serverTiming(stages: Record<string, number>): string {
+  return Object.entries(stages)
+    .map(([name, ms]) => `${name};dur=${ms}`)
+    .join(", ");
+}
+
+async function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  return await Promise.race([
+    work,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), ms)),
+  ]);
+}
+
+/**
+ * `POST /voice/cleanup` (ADR 0016). Access token only: no `UsersRoom` call, no
+ * list touched, because a Durable Object round trip would cost the most of
+ * anything here (ADR 0001). With `audio` it first transcribes with Whisper, then
+ * matches the person's own items, then asks the small model. Logs carry timings
+ * and outcomes, never the text or the audio (D4).
+ */
+async function handleVoiceCleanup(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") return errorResponse("malformed", 405);
+
+  const auth = await authenticate(request, env);
+  if (!auth.ok) return errorResponse(auth.code, auth.status);
+  if (env.VOICE_CLEANUP === "off" || env.AI === undefined) return errorResponse("internal", 503);
+
+  const body = await readJson(request);
+  if (body === null) return errorResponse("malformed", 400);
+  const parsed = validateVoiceCleanupRequest(body);
+  if (!parsed.ok) {
+    // The field name only, never its value (D4).
+    log("warn", "voice.cleanup.malformed", { field: parsed.reason });
+    return errorResponse("malformed", 400);
+  }
+  const req = parsed.value;
+
+  const started = Date.now();
+  let heard: string | undefined;
+  if (req.audio !== undefined) {
+    try {
+      const result = (await withTimeout(
+        env.AI.run(WHISPER_MODEL, {
+          audio: req.audio,
+          language: req.language,
+          task: "transcribe",
+          initial_prompt: whisperPrompt(req.dictionary),
+        }),
+        WHISPER_TIMEOUT_MS,
+      )) as { text?: string };
+      heard = (result.text ?? "").trim();
+    } catch (error) {
+      log("warn", "voice.transcribe.failed", {
+        ms: Date.now() - started,
+        reason: error instanceof Error ? error.message : "unknown",
+      });
+      return errorResponse("internal", 503);
+    }
+    if (heard === "") {
+      log("info", "voice.transcribe.empty", { language: req.language, ms: Date.now() - started });
+      return Response.json({ text: "", outcome: "rejected", heard });
+    }
+    req.guesses = [{ text: heard }];
+    delete req.audio;
+  }
+  const transcribedMs = Date.now() - started;
+  const top = req.guesses[0]?.text ?? "";
+
+  const reply = (text: string, outcome: "matched" | "cleaned" | "rejected") => {
+    log("info", "voice.cleanup", {
+      language: req.language,
+      outcome,
+      transcribeMs: transcribedMs,
+      totalMs: Date.now() - started,
+    });
+    return Response.json(heard === undefined ? { text, outcome } : { text, outcome, heard });
+  };
+
+  // Only when the field started empty: a match replaces the whole field.
+  if (req.field === undefined || req.field === "") {
+    const matched = instantMatch(
+      req.guesses.map((g) => g.text),
+      req.dictionary,
+    );
+    if (matched !== null) return reply(matched, "matched");
+  }
+
+  let answer = "";
+  try {
+    const result = (await withTimeout(
+      env.AI.run(VOICE_MODEL, {
+        messages: buildVoicePrompt(req),
+        temperature: 0,
+        max_tokens: 40,
+      }),
+      VOICE_TIMEOUT_MS,
+    )) as { response?: string };
+    answer = tidy(result.response ?? "");
+  } catch (error) {
+    log("warn", "voice.cleanup.failed", {
+      ms: Date.now() - started,
+      reason: error instanceof Error ? error.message : "unknown",
+    });
+  }
+  return answer !== "" && traceable(answer, req)
+    ? reply(answer, "cleaned")
+    : reply(top, "rejected");
+}
+
+/**
+ * Tuned for speed first: the small model answers in a few hundred milliseconds
+ * where the 70B took one to four seconds. [parseCommand] still drops anything it
+ * cannot trace, so a weaker answer costs spelling, never invented items.
+ */
+const COMMAND_MODEL = "@cf/meta/llama-3.1-8b-instruct-fp8";
+const COMMAND_TIMEOUT_MS = 3000;
+const COMMAND_MAX_TOKENS = 160;
+
+/**
+ * `POST /voice/command` (ADR 0016). One spoken instruction in, a list of add
+ * actions out ("add coffee, bread and milk to Woolies"). Whisper transcribes;
+ * a transcript that is exactly one of the person's items skips the model;
+ * otherwise the model answers in JSON and [parseCommand] keeps only what it can
+ * trace. Logs carry counts and timings, never the text (D4).
+ */
+async function handleVoiceCommand(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") return errorResponse("malformed", 405);
+
+  const entered = Date.now();
+  const auth = await authenticate(request, env);
+  if (!auth.ok) return errorResponse(auth.code, auth.status);
+  if (env.VOICE_CLEANUP === "off" || env.AI === undefined) return errorResponse("internal", 503);
+  const authMs = Date.now() - entered;
+
+  // Reading the body is the tail of the upload, so this shows slow uploads too.
+  const bodyStarted = Date.now();
+  const body = await readJson(request);
+  if (body === null) return errorResponse("malformed", 400);
+  const bodyMs = Date.now() - bodyStarted;
+  const parsed = validateVoiceCommandRequest(body);
+  if (!parsed.ok) {
+    log("warn", "voice.command.malformed", { field: parsed.reason });
+    return errorResponse("malformed", 400);
+  }
+  const req = parsed.value;
+
+  // Dev only: the benchmark compares speech models by naming one (docs/VOICE.md "Timing").
+  const stt = env.ENVIRONMENT === "dev" ? (request.headers.get("X-Voice-Stt") ?? "turbo") : "turbo";
+  const started = Date.now();
+  let heard: string;
+  try {
+    heard = (
+      await withTimeout(
+        transcribe(env.AI, stt, req.audio, req.language, [...req.dictionary, ...req.lists]),
+        WHISPER_TIMEOUT_MS,
+      )
+    ).trim();
+  } catch (error) {
+    log("warn", "voice.transcribe.failed", {
+      ms: Date.now() - started,
+      reason: error instanceof Error ? error.message : "unknown",
+    });
+    return errorResponse("internal", 503);
+  }
+  const transcribeMs = Date.now() - started;
+
+  let modelMs = 0;
+  let tokens = "-";
+  const reply = (actions: VoiceAction[], path: string) => {
+    log("info", "voice.command", {
+      language: req.language,
+      path,
+      actions: actions.length,
+      audioKb: Math.round((req.audio.length * 3) / 4 / 1024),
+      transcribeMs,
+      modelMs,
+      totalMs: Date.now() - started,
+    });
+    // Stage timings for the phone's timing screen (docs/VOICE.md "Timing").
+    // Durations and the data centre only, never the text (D4).
+    const timing = serverTiming({
+      auth: authMs,
+      body: bodyMs,
+      whisper: transcribeMs,
+      model: modelMs,
+      total: Date.now() - entered,
+    });
+    const colo = (request.cf as { colo?: string } | undefined)?.colo ?? "?";
+    return Response.json(
+      { heard, actions },
+      {
+        headers: {
+          "Server-Timing": `${timing}, path;desc="${path}", colo;desc="${colo}", tokens;desc="${tokens}", stt;desc="${stt}"`,
+        },
+      },
+    );
+  };
+
+  if (heard === "") return reply([], "empty");
+
+  const matched = instantMatch([heard], req.dictionary);
+  if (matched !== null) return reply([{ type: "add", text: matched }], "matched");
+  const corrected = applyCorrections([{ type: "add", text: heard }], req.corrections)[0];
+  if (corrected !== undefined && corrected.text !== heard) return reply([corrected], "corrected");
+
+  let raw = "";
+  const modelStarted = Date.now();
+  try {
+    const result = (await withTimeout(
+      env.AI.run(COMMAND_MODEL, {
+        messages: buildCommandPrompt(req, heard),
+        temperature: 0,
+        // One short line per item; the cap stops a rambling answer eating the timeout.
+        max_tokens: COMMAND_MAX_TOKENS,
+      }),
+      COMMAND_TIMEOUT_MS,
+    )) as {
+      response?: unknown;
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
+    };
+    // In and out, for the timing screen: output tokens are what the model spends time on.
+    tokens = `${result.usage?.prompt_tokens ?? "?"} in / ${result.usage?.completion_tokens ?? "?"} out`;
+    raw =
+      typeof result.response === "string" ? result.response : JSON.stringify(result.response ?? "");
+  } catch (error) {
+    log("warn", "voice.command.failed", {
+      ms: Date.now() - started,
+      reason: error instanceof Error ? error.message : "unknown",
+    });
+  }
+  modelMs = Date.now() - modelStarted;
+  const actions = applyCorrections(parseCommand(raw, req, heard), req.corrections);
+  if (actions.length > 0) return reply(actions, "model");
+  // The model failed or gave nothing traceable: the transcript itself is still
+  // better than losing what was said.
+  return reply(fallbackActions(heard), "fallback");
+}
+
+/**
+ * `GET`/`POST /voice/corrections` (ADR 0016, PROTOCOL.md "Voice corrections").
+ * One library shared by every account, built from corrections made on purpose
+ * with "Correct dictation": per mishearing, the most submitted correction wins,
+ * the latest on a tie.
+ * Logs never carry the text (D4).
+ */
+async function handleVoiceCorrections(request: Request, env: Env, now: number): Promise<Response> {
+  const auth = await authenticate(request, env);
+  if (!auth.ok) return errorResponse(auth.code, auth.status);
+
+  if (request.method === "GET") {
+    const corrections = await usersRoom(env).getVoiceCorrections();
+    return Response.json({ corrections });
+  }
+  if (request.method === "POST") {
+    const body = await readJson(request);
+    if (body === null) return errorResponse("malformed", 400);
+    const parsed = validateVoiceCorrectionRecord(body);
+    if (!parsed.ok) return errorResponse("malformed", 400);
+    await usersRoom(env).addVoiceCorrection(
+      parsed.value,
+      normaliseVoiceText(parsed.value.heard),
+      normaliseVoiceText(parsed.value.saved),
+      now,
+    );
+    log("info", "voice.correction.saved", { language: parsed.value.language });
+    return new Response(null, { status: 204 });
+  }
+  return errorResponse("malformed", 405);
 }
 
 async function handleMemberships(request: Request, env: Env): Promise<Response> {

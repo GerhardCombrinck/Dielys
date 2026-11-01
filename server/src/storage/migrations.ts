@@ -27,6 +27,8 @@ import usersV10 from "../../migrations/users/0010_ws_tickets.sql";
 import usersV11 from "../../migrations/users/0011_sync_settings.sql";
 import usersV12 from "../../migrations/users/0012_membership_notify.sql";
 import usersV13 from "../../migrations/users/0013_refresh_token_replaced_by.sql";
+import usersV14 from "../../migrations/users/0014_voice_corrections.sql";
+import usersV15 from "../../migrations/users/0015_shared_voice_corrections.sql";
 
 export interface Migration {
   version: number;
@@ -56,6 +58,8 @@ export const USERS_MIGRATIONS: readonly Migration[] = [
   { version: 11, name: "0011_sync_settings", sql: usersV11 },
   { version: 12, name: "0012_membership_notify", sql: usersV12 },
   { version: 13, name: "0013_refresh_token_replaced_by", sql: usersV13 },
+  { version: 14, name: "0014_voice_corrections", sql: usersV14 },
+  { version: 15, name: "0015_shared_voice_corrections", sql: usersV15 },
 ];
 
 /**
